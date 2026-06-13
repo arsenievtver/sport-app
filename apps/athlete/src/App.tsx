@@ -42,7 +42,7 @@ export default function App() {
         <AuthScreen
           role="athlete"
           roleLabel={ROLE_LABELS.athlete}
-          tagline="Тренировки с тренером. Прогресс, который мотивирует."
+          tagline={"Тренировки с тренером\nПрогресс который мотивирует"}
           onAuthenticated={(u) => setUser(u)}
         />
         <button

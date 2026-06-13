@@ -98,21 +98,24 @@ export function AuthScreen({
         )}
       </div>
 
+      <span className="auth-screen__role">{roleLabel}</span>
+
       <div className="auth-screen__content">
         <header className="auth-brand">
-          <BrandMark size={72} />
-          <h1 className="auth-brand__name">sport-app</h1>
-          <p className="auth-brand__tagline">{tagline}</p>
-          <span className="auth-brand__role">{roleLabel}</span>
+          <div className="auth-brand__row">
+            <BrandMark size={52} />
+            <div className="auth-brand__text">
+              <h1 className="auth-brand__name">sport-app</h1>
+              <p className="auth-brand__tagline">{tagline}</p>
+            </div>
+          </div>
         </header>
 
         <div className="auth-card">
           <h2 className="auth-card__title">{mode === "login" ? "Вход" : "Регистрация"}</h2>
-          <p className="auth-card__subtitle">
-            {mode === "login"
-              ? "Телефон и PIN-код из 6 цифр"
-              : "Создай аккаунт за минуту"}
-          </p>
+          {mode === "register" && (
+            <p className="auth-card__subtitle">Создай аккаунт за минуту</p>
+          )}
 
           {error && <p className="auth-error" role="alert">{error}</p>}
 
@@ -137,14 +140,14 @@ export function AuthScreen({
 
             <div className="auth-field">
               <label className="auth-field__label" htmlFor="phone">
-                Номер телефона
+                Телефон
               </label>
               <PhoneInput id="phone" value={phone} onChange={setPhone} disabled={loading} />
             </div>
 
-            <div className="auth-field">
+            <div className="auth-field auth-field--pin">
               <label className="auth-field__label" htmlFor="pin">
-                PIN-код
+                PIN
               </label>
               <PinInput id="pin" value={pin} onChange={setPin} disabled={loading} />
             </div>
@@ -166,29 +169,35 @@ export function AuthScreen({
           </p>
 
           {role === "athlete" && (
-            <div className="auth-stats">
-              <div className="auth-stats__item">
+            <p className="auth-stats auth-stats--inline">
+              <span className="auth-stats__chip">
                 <span className="auth-stats__value">SDT</span>
                 <span className="auth-stats__label">научная база</span>
-              </div>
-              <div className="auth-stats__item">
+              </span>
+              <span className="auth-stats__sep" aria-hidden>
+                ·
+              </span>
+              <span className="auth-stats__chip">
                 <span className="auth-stats__value">24/7</span>
                 <span className="auth-stats__label">твой прогресс</span>
-              </div>
-            </div>
+              </span>
+            </p>
           )}
 
           {role === "coach" && (
-            <div className="auth-stats">
-              <div className="auth-stats__item">
+            <p className="auth-stats auth-stats--inline">
+              <span className="auth-stats__chip">
                 <span className="auth-stats__value">B2B</span>
                 <span className="auth-stats__label">клиенты</span>
-              </div>
-              <div className="auth-stats__item">
+              </span>
+              <span className="auth-stats__sep" aria-hidden>
+                ·
+              </span>
+              <span className="auth-stats__chip">
                 <span className="auth-stats__value">∞</span>
                 <span className="auth-stats__label">программы</span>
-              </div>
-            </div>
+              </span>
+            </p>
           )}
         </div>
       </div>
