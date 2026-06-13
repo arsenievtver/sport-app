@@ -46,16 +46,18 @@ if [ "$DO_PULL" = true ]; then
 fi
 
 # shellcheck disable=SC1091
-set -a
-source "$PROD_DIR/.env"
-set +a
+read_env() {
+  local key=$1 file=$2
+  grep -m1 "^${key}=" "$file" | cut -d= -f2- | sed -e "s/^['\"]//" -e "s/['\"]$//"
+}
 
-if [ -z "${DOMAIN:-}" ] || [ "$DOMAIN" = "change-me" ]; then
+DOMAIN=$(read_env DOMAIN "$PROD_DIR/.env")
+SECRET_KEY=$(read_env SECRET_KEY "$PROD_DIR/.env")
   err "Set DOMAIN in infra/prod/.env to your real domain."
   exit 1
 fi
 
-if [ -z "${SECRET_KEY:-}" ] || [ "$SECRET_KEY" = "change-me-generate-a-long-random-string" ]; then
+if [ -z "$SECRET_KEY" ] || [ "$SECRET_KEY" = "change-me-generate-a-long-random-string" ]; then
   err "Set SECRET_KEY in infra/prod/.env (generate a random string)."
   exit 1
 fi
