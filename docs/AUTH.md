@@ -44,9 +44,41 @@ curl http://localhost:8000/api/v1/auth/me \
   -H "Authorization: Bearer <access_token>"
 ```
 
+## Идентичность: один телефон = один пользователь
+
+**Телефон — единственный ключ человека в системе.** Не создаём второго user на тот же номер.
+
+| Ситуация | Как устроено |
+|----------|----------------|
+| Ты тренер + админ + тестируешь как атлет | **Один** `User`, `roles: ["admin","coach","athlete"]`, один PIN |
+| Реальный атлет и реальный тренер — разные люди | **Два** `User` (два телефона), связь через `CoachAthleteLink` (invite-код) |
+
+### Сценарий «я один, несколько ролей»
+
+```bash
+# 1. Атлет зарегистрировался сам (или ты создал себе athlete)
+# POST /auth/register → roles: ["athlete"]
+
+# 2. Добавить тренера и админа на тот же телефон:
+./scripts/create-admin.sh 79106492742 123456 "Иван" --coach --athlete
+# → roles: ["admin","coach","athlete"], профили coach + athlete
+```
+
+Повторный запуск скрипта **не дублирует** user — только добавляет недостающие роли.
+
+### Сценарий «атлет уже есть, выдать тренера»
+
+```bash
+./scripts/grant-roles.sh 79106492742 "Мария" --coach
+```
+
+### Самoregистрация
+
+Если телефон уже в системе — `409` и подсказка войти или обратиться к админу. Второй аккаунт на тот же номер не создаётся.
+
 ## RBAC
 
-Роли: `athlete`, `coach`, `admin`.
+Роли: `athlete`, `coach`, `admin`. У пользователя **может быть несколько ролей** одновременно (`roles: ["coach", "admin", "athlete"]`).
 
 В коде используйте зависимости:
 
@@ -55,13 +87,16 @@ from app.core.deps import CurrentUser, CoachUser, AthleteUser, AdminUser
 ```
 
 - `CurrentUser` — любой авторизованный
-- `CoachUser` / `AthleteUser` / `AdminUser` — только указанная роль (403 иначе)
+- `CoachUser` / `AthleteUser` / `AdminUser` — у пользователя есть нужная роль (403 иначе)
 
 Admin **не регистрируется через API** — создаётся скриптом:
 
 ```bash
-cd backend && source .venv/bin/activate
-python ../scripts/create_admin.py 79106492742 123456 "Admin"
+# только admin
+./scripts/create-admin.sh 79106492742 123456 "Admin"
+
+# admin + тренер + атлет (для тестов одним аккаунтом)
+./scripts/create-admin.sh 79106492742 123456 "Иван" --coach --athlete
 ```
 
 ## Токены

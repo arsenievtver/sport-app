@@ -58,7 +58,7 @@ def require_roles(*roles: UserRole) -> Callable:
     allowed = set(roles)
 
     async def checker(user: Annotated[User, Depends(get_current_user)]) -> User:
-        if user.role not in allowed:
+        if not allowed.intersection(user.roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions",

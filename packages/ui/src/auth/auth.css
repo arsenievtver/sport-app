@@ -1,19 +1,24 @@
 .auth-screen {
   position: relative;
   min-height: 100dvh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
   overflow-y: auto;
-  background: var(--color-bg);
+  background: transparent;
 }
 
 .auth-screen__bg {
   position: fixed;
-  inset: 0;
   z-index: 0;
-  background: var(--gradient-app-bg);
   pointer-events: none;
+  top: calc(-1 * var(--safe-top));
+  right: calc(-1 * var(--safe-right));
+  bottom: calc(-1 * var(--safe-bottom));
+  left: calc(-1 * var(--safe-left));
+  background: var(--gradient-app-bg);
+  background-color: var(--color-bg);
 }
 
 .auth-screen__orb {
@@ -69,7 +74,11 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: var(--space-5) var(--space-4) var(--space-5);
+  padding:
+    max(var(--space-5), var(--safe-top))
+    max(var(--space-4), var(--safe-right))
+    max(var(--space-5), var(--safe-bottom))
+    max(var(--space-4), var(--safe-left));
   max-width: var(--content-max-width);
   width: 100%;
   margin: 0 auto;
@@ -77,8 +86,8 @@
 
 .auth-screen__role {
   position: absolute;
-  top: max(var(--space-4), env(safe-area-inset-top, 0px));
-  right: max(var(--space-4), env(safe-area-inset-right, 0px));
+  top: max(var(--space-4), var(--safe-top));
+  right: max(var(--space-4), var(--safe-right));
   z-index: 2;
   padding: var(--space-1) var(--space-3);
   font-size: var(--text-xs);
@@ -382,6 +391,13 @@
 
 .auth-switch__link:hover {
   color: var(--color-primary-hover);
+}
+
+.auth-hint {
+  margin-top: var(--space-4);
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 
 .auth-stats {

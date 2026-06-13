@@ -48,19 +48,24 @@ class TokenResponse(BaseModel):
     expires_in: int
 
 
-class UserProfileResponse(BaseModel):
+class CoachProfileResponse(BaseModel):
     display_name: str
-    invite_code: str | None = None
-    is_verified: bool | None = None
+    invite_code: str
+    is_verified: bool
+
+
+class AthleteProfileResponse(BaseModel):
+    display_name: str
     timezone: str | None = None
 
 
 class UserResponse(BaseModel):
     id: UUID
     phone: str
-    role: UserRole
+    roles: list[UserRole]
     is_active: bool
     last_login_at: datetime | None
-    profile: UserProfileResponse | None
+    coach_profile: CoachProfileResponse | None = None
+    athlete_profile: AthleteProfileResponse | None = None
 
     model_config = {"from_attributes": True}

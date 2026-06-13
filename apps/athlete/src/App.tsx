@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { clearTokens, fetchMe, getAccessToken } from "@sport-app/api-client";
-import { ROLE_LABELS } from "@sport-app/shared";
+import { hasRole, ROLE_LABELS } from "@sport-app/shared";
 import type { UserResponse } from "@sport-app/shared";
 import { AppShell, AuthScreen, isThemePreviewMode, ThemePreview } from "@sport-app/ui";
 
@@ -16,7 +16,13 @@ export default function App() {
       return;
     }
     fetchMe(token)
-      .then(setUser)
+      .then((u) => {
+        if (!hasRole(u, "athlete")) {
+          clearTokens();
+          return;
+        }
+        setUser(u);
+      })
       .catch(() => clearTokens())
       .finally(() => setChecking(false));
   }, []);
@@ -50,8 +56,8 @@ export default function App() {
           onClick={() => setShowThemes(true)}
           style={{
             position: "fixed",
-            bottom: "var(--space-4)",
-            right: "var(--space-4)",
+            bottom: "max(var(--space-4), env(safe-area-inset-bottom, 0px))",
+            right: "max(var(--space-4), env(safe-area-inset-right, 0px))",
             zIndex: 100,
             padding: "var(--space-2) var(--space-4)",
             fontSize: "var(--text-xs)",
@@ -72,7 +78,7 @@ export default function App() {
 
   return (
     <AppShell
-      title={`Привет, ${user.profile?.display_name ?? ROLE_LABELS.athlete.toLowerCase()}!`}
+      title={`Привет, ${user.athlete_profile?.display_name ?? ROLE_LABELS.athlete.toLowerCase()}!`}
       subtitle="Атлет · главная (скоро)"
     >
       <p className="text-secondary" style={{ marginTop: 0 }}>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { clearTokens, fetchMe, getAccessToken } from "@sport-app/api-client";
-import { ROLE_LABELS, ROLE_LABELS_PLURAL } from "@sport-app/shared";
+import { hasRole, ROLE_LABELS, ROLE_LABELS_PLURAL } from "@sport-app/shared";
 import type { UserResponse } from "@sport-app/shared";
 import { AppShell, AuthScreen } from "@sport-app/ui";
 
@@ -15,7 +15,13 @@ export default function App() {
       return;
     }
     fetchMe(token)
-      .then(setUser)
+      .then((u) => {
+        if (!hasRole(u, "coach")) {
+          clearTokens();
+          return;
+        }
+        setUser(u);
+      })
       .catch(() => clearTokens())
       .finally(() => setChecking(false));
   }, []);
@@ -36,7 +42,8 @@ export default function App() {
       <AuthScreen
         role="coach"
         roleLabel={ROLE_LABELS.coach}
-        tagline="Клиенты, программы и связь — всё в одном месте."
+        tagline={"Клиенты, программы и связь\nВсё в одном месте"}
+        allowRegister={false}
         onAuthenticated={(u) => setUser(u)}
       />
     );
@@ -44,15 +51,15 @@ export default function App() {
 
   return (
     <AppShell
-      title={`${user.profile?.display_name ?? ROLE_LABELS.coach}`}
+      title={`${user.coach_profile?.display_name ?? ROLE_LABELS.coach}`}
       subtitle={
-        user.profile?.invite_code
-          ? `Код приглашения: ${user.profile.invite_code}`
+        user.coach_profile?.invite_code
+          ? `Код приглашения: ${user.coach_profile.invite_code}`
           : "Coach · главная (скоро)"
       }
     >
       <p className="text-secondary" style={{ marginTop: 0 }}>
-        Добро пожаловать. Делись кодом {user.profile?.invite_code} с {ROLE_LABELS_PLURAL.athlete}.
+        Добро пожаловать. Делись кодом {user.coach_profile?.invite_code} с {ROLE_LABELS_PLURAL.athlete}.
       </p>
       <button
         type="button"

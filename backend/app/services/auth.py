@@ -18,7 +18,13 @@ from app.core.security import (
 )
 from app.models.enums import UserRole
 from app.models.user import AthleteProfile, CoachProfile, User
-from app.schemas.auth import RegisterRequest, TokenResponse, UserProfileResponse, UserResponse
+from app.schemas.auth import (
+    AthleteProfileResponse,
+    CoachProfileResponse,
+    RegisterRequest,
+    TokenResponse,
+    UserResponse,
+)
 
 
 class AuthService:
@@ -28,12 +34,15 @@ class AuthService:
     async def register(self, data: RegisterRequest) -> User:
         existing = await self.db.execute(select(User).where(User.phone == data.phone))
         if existing.scalar_one_or_none():
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone already registered")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Phone already registered. Log in or ask admin to add a role to your account.",
+            )
 
         user = User(
             phone=data.phone,
             password_hash=hash_pin(data.pin),
-            role=data.role,
+            roles=[data.role],
         )
         self.db.add(user)
         await self.db.flush()
@@ -45,7 +54,7 @@ class AuthService:
                 invite_code=await self._unique_invite_code(),
             )
             self.db.add(profile)
-        else:
+        elif data.role == UserRole.athlete:
             profile = AthleteProfile(
                 user_id=user.id,
                 display_name=data.display_name,
@@ -55,6 +64,73 @@ class AuthService:
         await self.db.flush()
         await self.db.refresh(user, attribute_names=["coach_profile", "athlete_profile"])
         return user
+
+    async def grant_roles(
+        self,
+        phone: str,
+        roles: list[UserRole],
+        display_name: str,
+        pin: str | None = None,
+        *,
+        update_pin: bool = False,
+    ) -> tuple[User, list[UserRole]]:
+        """Add roles to an existing user (by phone) or create a new one.
+
+        Phone is the single identity key — one person, one User, many roles.
+        Returns the user and the list of roles that were newly granted.
+        """
+        if not roles:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No roles to grant")
+
+        unique_roles: list[UserRole] = []
+        for role in roles:
+            if role not in unique_roles:
+                unique_roles.append(role)
+
+        result = await self.db.execute(select(User).where(User.phone == phone))
+        user = result.scalar_one_or_none()
+        added: list[UserRole] = []
+
+        if user is None:
+            if pin is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="PIN required to create a new user",
+                )
+            user = User(phone=phone, password_hash=hash_pin(pin), roles=list(unique_roles))
+            self.db.add(user)
+            await self.db.flush()
+            added = list(unique_roles)
+        else:
+            for role in unique_roles:
+                if role not in user.roles:
+                    added.append(role)
+            if added:
+                user.roles = [*user.roles, *added]
+            if update_pin and pin is not None:
+                user.password_hash = hash_pin(pin)
+
+        await self._ensure_profiles(user, display_name, unique_roles)
+        await self.db.flush()
+        await self.db.refresh(user, attribute_names=["coach_profile", "athlete_profile"])
+        return user, added
+
+    async def _ensure_profiles(self, user: User, display_name: str, roles: list[UserRole]) -> None:
+        if UserRole.coach in roles and user.coach_profile is None:
+            self.db.add(
+                CoachProfile(
+                    user_id=user.id,
+                    display_name=display_name,
+                    invite_code=await self._unique_invite_code(),
+                )
+            )
+        if UserRole.athlete in roles and user.athlete_profile is None:
+            self.db.add(
+                AthleteProfile(
+                    user_id=user.id,
+                    display_name=display_name,
+                )
+            )
 
     async def login(self, phone: str, pin: str) -> User:
         result = await self.db.execute(select(User).where(User.phone == phone))
@@ -107,15 +183,17 @@ class AuthService:
 
 
 def user_to_response(user: User) -> UserResponse:
-    profile: UserProfileResponse | None = None
-    if user.role == UserRole.coach and user.coach_profile:
-        profile = UserProfileResponse(
+    coach_profile: CoachProfileResponse | None = None
+    athlete_profile: AthleteProfileResponse | None = None
+
+    if user.coach_profile:
+        coach_profile = CoachProfileResponse(
             display_name=user.coach_profile.display_name,
             invite_code=user.coach_profile.invite_code,
             is_verified=user.coach_profile.is_verified,
         )
-    elif user.role == UserRole.athlete and user.athlete_profile:
-        profile = UserProfileResponse(
+    if user.athlete_profile:
+        athlete_profile = AthleteProfileResponse(
             display_name=user.athlete_profile.display_name,
             timezone=user.athlete_profile.timezone,
         )
@@ -123,8 +201,9 @@ def user_to_response(user: User) -> UserResponse:
     return UserResponse(
         id=user.id,
         phone=user.phone,
-        role=user.role,
+        roles=list(user.roles),
         is_active=user.is_active,
         last_login_at=user.last_login_at,
-        profile=profile,
+        coach_profile=coach_profile,
+        athlete_profile=athlete_profile,
     )

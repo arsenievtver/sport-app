@@ -1,6 +1,8 @@
 import uuid
 from datetime import date, datetime
 
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -8,15 +10,23 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.enums import CoachAthleteLinkStatus, UserRole
 
+user_role_enum = SQLEnum(UserRole, name="userrole", create_constraint=False)
+
 
 class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "users"
 
     phone: Mapped[str] = mapped_column(String(11), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[UserRole] = mapped_column(nullable=False, index=True)
+    roles: Mapped[list[UserRole]] = mapped_column(
+        ARRAY(user_role_enum),
+        nullable=False,
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    def has_role(self, role: UserRole) -> bool:
+        return role in self.roles
 
     coach_profile: Mapped["CoachProfile | None"] = relationship(
         back_populates="user",

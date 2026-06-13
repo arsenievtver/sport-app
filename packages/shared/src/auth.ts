@@ -19,20 +19,29 @@ export interface RegisterPayload extends LoginPayload {
   display_name: string;
 }
 
-export interface UserProfile {
+export interface CoachProfile {
   display_name: string;
-  invite_code?: string | null;
-  is_verified?: boolean | null;
+  invite_code: string;
+  is_verified: boolean;
+}
+
+export interface AthleteProfile {
+  display_name: string;
   timezone?: string | null;
 }
 
 export interface UserResponse {
   id: string;
   phone: string;
-  role: UserRole;
+  roles: UserRole[];
   is_active: boolean;
   last_login_at: string | null;
-  profile: UserProfile | null;
+  coach_profile: CoachProfile | null;
+  athlete_profile: AthleteProfile | null;
+}
+
+export function hasRole(user: Pick<UserResponse, "roles">, role: UserRole): boolean {
+  return user.roles.includes(role);
 }
 
 export interface ApiErrorBody {

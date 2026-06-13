@@ -93,7 +93,7 @@ erDiagram
 
 ## Индексы (заложены в моделях)
 
-- `users.email`, `users.role`
+- `users.phone`, `users.roles`
 - `coach_athlete_links.coach_id`, `athlete_id`, `status`
 - `workouts.scheduled_date`, `status`, `athlete_id`
 - `workout_logs.athlete_id`, `workout_id`

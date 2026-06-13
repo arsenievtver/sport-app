@@ -193,7 +193,7 @@ packages/
 
 ```
 User
-├── role: athlete | coach | admin
+├── roles: athlete | coach | admin (массив, несколько ролей на пользователя)
 ├── profile, settings, subscription_tier
 │
 CoachProfile (1:1 User)

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#050508"/>
+      <stop offset="1" stop-color="#12121c"/>
+    </linearGradient>
+    <radialGradient id="glow-green" cx="82%" cy="12%" r="55%" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00ffaa" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#050508" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow-pink" cx="8%" cy="92%" r="50%" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff2d95" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#050508" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="brand" x1="128" y1="128" x2="384" y2="384" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00ffaa"/>
+      <stop offset="1" stop-color="#00e5ff"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="256" y1="160" x2="256" y2="384" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff8800" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#ff2d95" stop-opacity="0.75"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect width="512" height="512" fill="url(#glow-green)"/>
+  <rect width="512" height="512" fill="url(#glow-pink)"/>
+  <g transform="translate(128 128) scale(4)">
+    <circle cx="32" cy="32" r="28" stroke="url(#brand)" stroke-width="2" opacity="0.35" fill="none"/>
+    <path d="M18 38 C22 28, 28 22, 32 22 C36 22, 42 28, 46 38" stroke="url(#brand)" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <path d="M22 42 L32 26 L42 42" stroke="url(#accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <circle cx="32" cy="44" r="3" fill="url(#brand)"/>
+  </g>
+</svg>

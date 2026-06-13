@@ -21,6 +21,16 @@ export interface ThemePreset {
 }
 
 export const THEME_STORAGE_KEY = "sport-app-theme";
+export const DEFAULT_THEME_ID: ThemeId = "neon-pulse";
+
+/** Фон для theme-color, splash и PWA */
+export const THEME_BG: Record<ThemeId, string> = {
+  "neon-pulse": "#050508",
+  "neon-crimson": "#080506",
+  "midnight-vitality": "#0c0f14",
+  "electric-pulse": "#0a0e17",
+  "forest-recovery": "#0a100e",
+};
 
 export const themePresets: ThemePreset[] = [
   {
@@ -72,12 +82,18 @@ export const themePresets: ThemePreset[] = [
 export function getStoredTheme(): ThemeId {
   const raw = localStorage.getItem(THEME_STORAGE_KEY);
   if (raw && themePresets.some((t) => t.id === raw)) return raw as ThemeId;
-  return "midnight-vitality";
+  return DEFAULT_THEME_ID;
+}
+
+function syncThemeColor(id: ThemeId): void {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", THEME_BG[id]);
 }
 
 export function applyTheme(id: ThemeId): void {
   document.documentElement.setAttribute("data-theme", id);
   localStorage.setItem(THEME_STORAGE_KEY, id);
+  syncThemeColor(id);
 }
 
 export function initTheme(): ThemeId {

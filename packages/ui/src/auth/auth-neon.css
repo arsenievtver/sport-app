@@ -48,7 +48,7 @@
   text-shadow: 0 0 30px color-mix(in srgb, var(--color-primary) 35%, transparent);
 }
 
-[data-theme^="neon-"] .auth-brand__role {
+[data-theme^="neon-"] .auth-screen__role {
   color: var(--color-accent);
   background: var(--color-accent-muted);
   border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
@@ -154,14 +154,14 @@
   filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-accent) 40%, transparent));
 }
 
-[data-theme^="neon-"] .auth-stats__item:first-child .auth-stats__value {
+[data-theme^="neon-"] .auth-stats__chip:first-child .auth-stats__value {
   background: var(--gradient-stats-primary);
   -webkit-background-clip: text;
   background-clip: text;
   filter: drop-shadow(0 0 10px color-mix(in srgb, var(--color-primary) 50%, transparent));
 }
 
-[data-theme^="neon-"] .auth-stats__item:last-child .auth-stats__value {
+[data-theme^="neon-"] .auth-stats__chip:last-child .auth-stats__value {
   background: var(--gradient-stats-accent);
   -webkit-background-clip: text;
   background-clip: text;

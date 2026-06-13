@@ -154,13 +154,15 @@ docker compose restart api caddy
 cd /opt/sport-app && ./scripts/deploy.sh
 ```
 
-Создать admin-пользователя:
+Создать admin-пользователя (суперюзер, **не через API**):
 
 ```bash
-docker compose -f infra/prod/docker-compose.yml exec api python -m scripts.create_admin
+# Локально или на сервере (если prod API в Docker уже запущен)
+./scripts/create-admin.sh 79106492742 123456 "Admin"
 ```
 
-(если скрипт добавлен в образ — иначе через `docker compose exec api` + alembic/ручной SQL)
+Скрипт сам выберет: prod-контейнер `api` или локальный venv.
+Подробнее: [docs/AUTH.md](../AUTH.md).
 
 ---
 

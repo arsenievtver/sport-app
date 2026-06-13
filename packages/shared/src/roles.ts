@@ -1,9 +1,10 @@
 import type { UserRole } from "./types";
 
 /** UI-названия ролей (код/API: athlete | coach | admin) */
-export const ROLE_LABELS: Record<Exclude<UserRole, "admin">, string> = {
+export const ROLE_LABELS: Record<UserRole, string> = {
   athlete: "Атлет",
   coach: "Тренер",
+  admin: "Админ",
 };
 
 export const ROLE_LABELS_GENITIVE: Record<Exclude<UserRole, "admin">, string> = {

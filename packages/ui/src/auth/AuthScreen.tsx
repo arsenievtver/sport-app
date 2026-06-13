@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import {
+  clearTokens,
   fetchMe,
   isValidPhone,
   isValidPin,
@@ -7,16 +8,23 @@ import {
   register,
   saveTokens,
 } from "@sport-app/api-client";
-import type { TokenResponse, UserResponse } from "@sport-app/shared";
+import type { TokenResponse, UserResponse, UserRole } from "@sport-app/shared";
+import { hasRole } from "@sport-app/shared";
 
 import { BrandMark } from "./BrandMark";
 import { PhoneInput } from "./PhoneInput";
 import { PinInput } from "./PinInput";
 
 export interface AuthScreenConfig {
-  role: "athlete" | "coach";
+  role: UserRole;
   roleLabel: string;
   tagline: string;
+  /** Самостоятельная регистрация (только атлет) */
+  allowRegister?: boolean;
+  /** Подпись под формой вместо ссылки на регистрацию */
+  loginHint?: string;
+  /** Мотивационная строка внизу карточки */
+  showStats?: boolean;
   /** Optional hero image URL — положи в public/auth-hero.webp */
   heroImageUrl?: string;
 }
@@ -31,6 +39,13 @@ export function AuthScreen({
   role,
   roleLabel,
   tagline,
+  allowRegister = role === "athlete",
+  loginHint = allowRegister
+    ? undefined
+    : role === "admin"
+      ? "Доступ только для администраторов"
+      : "Аккаунт выдаёт администратор",
+  showStats = role !== "admin",
   heroImageUrl,
   onAuthenticated,
 }: AuthScreenProps) {
@@ -44,7 +59,9 @@ export function AuthScreen({
   const canSubmit =
     isValidPhone(phone) &&
     isValidPin(pin) &&
-    (mode === "login" || displayName.trim().length >= 1);
+    (!allowRegister || mode === "login" || displayName.trim().length >= 1);
+
+  const isRegister = allowRegister && mode === "register";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -53,13 +70,24 @@ export function AuthScreen({
     setError(null);
     setLoading(true);
     try {
-      const tokens =
-        mode === "login"
-          ? await login({ phone, pin })
-          : await register({ phone, pin, role, display_name: displayName.trim() });
+      const tokens = isRegister
+        ? await register({
+            phone,
+            pin,
+            role: role as Exclude<UserRole, "admin">,
+            display_name: displayName.trim(),
+          })
+        : await login({ phone, pin });
 
       saveTokens(tokens);
       const user = await fetchMe(tokens.access_token);
+
+      if (!hasRole(user, role)) {
+        clearTokens();
+        setError("Это приложение не для вашей роли");
+        return;
+      }
+
       onAuthenticated(user, tokens);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Что-то пошло не так");
@@ -112,15 +140,15 @@ export function AuthScreen({
         </header>
 
         <div className="auth-card">
-          <h2 className="auth-card__title">{mode === "login" ? "Вход" : "Регистрация"}</h2>
-          {mode === "register" && (
+          <h2 className="auth-card__title">{isRegister ? "Регистрация" : "Вход"}</h2>
+          {isRegister && (
             <p className="auth-card__subtitle">Создай аккаунт за минуту</p>
           )}
 
           {error && <p className="auth-error" role="alert">{error}</p>}
 
           <form onSubmit={handleSubmit}>
-            {mode === "register" && (
+            {isRegister && (
               <div className="auth-field">
                 <label className="auth-field__label" htmlFor="display-name">
                   Как к тебе обращаться?
@@ -153,22 +181,26 @@ export function AuthScreen({
             </div>
 
             <button type="submit" className="auth-submit" disabled={!canSubmit || loading}>
-              {loading ? "Загрузка…" : mode === "login" ? "Войти" : "Создать аккаунт"}
+              {loading ? "Загрузка…" : isRegister ? "Создать аккаунт" : "Войти"}
             </button>
           </form>
 
-          <p className="auth-switch">
-            {mode === "login" ? "Нет аккаунта?" : "Уже есть аккаунт?"}
-            <button
-              type="button"
-              className="auth-switch__link"
-              onClick={() => switchMode(mode === "login" ? "register" : "login")}
-            >
-              {mode === "login" ? "Зарегистрироваться" : "Войти"}
-            </button>
-          </p>
+          {allowRegister && (
+            <p className="auth-switch">
+              {mode === "login" ? "Нет аккаунта?" : "Уже есть аккаунт?"}
+              <button
+                type="button"
+                className="auth-switch__link"
+                onClick={() => switchMode(mode === "login" ? "register" : "login")}
+              >
+                {mode === "login" ? "Зарегистрироваться" : "Войти"}
+              </button>
+            </p>
+          )}
 
-          {role === "athlete" && (
+          {!allowRegister && loginHint && <p className="auth-hint">{loginHint}</p>}
+
+          {showStats && role === "athlete" && (
             <p className="auth-stats auth-stats--inline">
               <span className="auth-stats__chip">
                 <span className="auth-stats__value">SDT</span>
@@ -184,11 +216,11 @@ export function AuthScreen({
             </p>
           )}
 
-          {role === "coach" && (
+          {showStats && role === "coach" && (
             <p className="auth-stats auth-stats--inline">
               <span className="auth-stats__chip">
-                <span className="auth-stats__value">B2B</span>
-                <span className="auth-stats__label">клиенты</span>
+                <span className="auth-stats__value">SDT</span>
+                <span className="auth-stats__label">научная база</span>
               </span>
               <span className="auth-stats__sep" aria-hidden>
                 ·
