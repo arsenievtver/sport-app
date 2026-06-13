@@ -67,9 +67,12 @@
         основе научных подходов.
       </p>
       <nav>
-        <a id="athlete-link" href="https://my.example.com">Приложение атлета</a>
-        <a id="coach-link" class="secondary" href="https://coach.example.com"
+        <a id="athlete-link" href="https://my.athlete-app.ru">Приложение атлета</a>
+        <a id="coach-link" class="secondary" href="https://coach.athlete-app.ru"
           >Кабинет тренера</a
+        >
+        <a id="coach-web-link" class="secondary" href="https://coach-web.athlete-app.ru"
+          >Coach Web</a
         >
       </nav>
     </main>
@@ -78,6 +81,7 @@
       const base = host.includes(".") ? host.slice(host.indexOf(".") + 1) : host;
       document.getElementById("athlete-link").href = `https://my.${base}`;
       document.getElementById("coach-link").href = `https://coach.${base}`;
+      document.getElementById("coach-web-link").href = `https://coach-web.${base}`;
     </script>
   </body>
 </html>

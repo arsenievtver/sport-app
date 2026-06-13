@@ -7,8 +7,10 @@
 | `@`, `www` | Лендинг |
 | `my` | Athlete PWA |
 | `coach` | Coach PWA (мобильный) |
-| `app` | Coach Web (desktop) |
+| `coach-web` | Coach Web (desktop) |
 | `admin` | Admin panel |
+
+Домен: **athlete-app.ru**
 
 API доступен на каждом поддомене через `/api/v1` (reverse proxy → FastAPI).
 
@@ -40,10 +42,8 @@ git push -u origin main
 | `www` | A | 51.250.9.170 |
 | `my` | A | 51.250.9.170 |
 | `coach` | A | 51.250.9.170 |
-| `app` | A | 51.250.9.170 |
+| `coach-web` | A | 51.250.9.170 |
 | `admin` | A | 51.250.9.170 |
-
-> **Важно:** добавьте A-запись `app` для Coach Web (desktop), если её ещё нет.
 
 Дождитесь распространения DNS (обычно 5–30 минут).
 
@@ -77,12 +77,12 @@ nano infra/prod/.env
 Обязательно замените:
 
 ```env
-DOMAIN=ваш-домен.ru
-LETSENCRYPT_EMAIL=you@example.com
+DOMAIN=athlete-app.ru
+LETSENCRYPT_EMAIL=you@athlete-app.ru
 SECRET_KEY=<случайная строка 48+ символов>
 POSTGRES_PASSWORD=<сильный пароль>
 DATABASE_URL=postgresql+asyncpg://sport:<тот же пароль>@postgres:5432/sport_app
-CORS_ALLOW_ORIGIN_REGEX=^https://([a-z0-9-]+\.)?ваш-домен\.ru$
+CORS_ALLOW_ORIGIN_REGEX=^https://([a-z0-9-]+\.)?athlete-app\.ru$
 S3_SECRET_KEY=<случайная строка>
 ```
 
@@ -108,11 +108,11 @@ python3 -c "import secrets; print(secrets.token_urlsafe(48))"
 
 После деплоя проверьте:
 
-- `https://ваш-домен.ru` — лендинг
-- `https://my.ваш-домен.ru` — Athlete
-- `https://coach.ваш-домен.ru` — Coach
-- `https://app.ваш-домен.ru` — Coach Web
-- `https://admin.ваш-домен.ru` — Admin
+- `https://athlete-app.ru` — лендинг
+- `https://my.athlete-app.ru` — Athlete
+- `https://coach.athlete-app.ru` — Coach PWA
+- `https://coach-web.athlete-app.ru` — Coach Web
+- `https://admin.athlete-app.ru` — Admin
 
 ---
 

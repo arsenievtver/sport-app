@@ -19,7 +19,7 @@ set -a
 source "$PROD_DIR/.env"
 set +a
 
-if [ -z "${DOMAIN:-}" ] || [ "$DOMAIN" = "example.com" ]; then
+if [ -z "${DOMAIN:-}" ] || [ "$DOMAIN" = "change-me" ]; then
   err "Set DOMAIN in infra/prod/.env to your real domain."
   exit 1
 fi
@@ -30,8 +30,8 @@ if [ -z "${SECRET_KEY:-}" ] || [ "$SECRET_KEY" = "change-me-generate-a-long-rand
 fi
 
 # Sync CORS regex with DOMAIN if still placeholder
-if grep -q 'example\.com' "$PROD_DIR/.env" 2>/dev/null; then
-  warn "Check CORS_ALLOW_ORIGIN_REGEX in infra/prod/.env matches DOMAIN=${DOMAIN}"
+if grep -q 'change-me' "$PROD_DIR/.env" 2>/dev/null; then
+  warn "Check secrets and CORS_ALLOW_ORIGIN_REGEX in infra/prod/.env (DOMAIN=${DOMAIN})"
 fi
 
 log "Building frontend static files..."
@@ -63,7 +63,7 @@ echo ""
 echo "  Landing:    https://${DOMAIN}"
 echo "  Athlete:    https://my.${DOMAIN}"
 echo "  Coach PWA:  https://coach.${DOMAIN}"
-echo "  Coach Web:  https://app.${DOMAIN}"
+echo "  Coach Web:  https://coach-web.${DOMAIN}"
 echo "  Admin:      https://admin.${DOMAIN}"
 echo ""
 echo "  Logs: cd infra/prod && docker compose logs -f"

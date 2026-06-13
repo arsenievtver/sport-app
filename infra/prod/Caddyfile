@@ -32,7 +32,7 @@ coach.{$DOMAIN} {
 	}
 }
 
-app.{$DOMAIN} {
+coach-web.{$DOMAIN} {
 	encode gzip
 	handle /api/v1/* {
 		reverse_proxy api:8000
