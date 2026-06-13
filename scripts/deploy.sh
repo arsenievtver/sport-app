@@ -53,6 +53,8 @@ read_env() {
 
 DOMAIN=$(read_env DOMAIN "$PROD_DIR/.env")
 SECRET_KEY=$(read_env SECRET_KEY "$PROD_DIR/.env")
+
+if [ -z "$DOMAIN" ] || [ "$DOMAIN" = "change-me" ]; then
   err "Set DOMAIN in infra/prod/.env to your real domain."
   exit 1
 fi
