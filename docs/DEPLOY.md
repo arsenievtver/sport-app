@@ -49,74 +49,75 @@ git push -u origin main
 
 ---
 
-## 3. Первичная настройка сервера
+## 3. Первичная настройка сервера (один раз)
 
-Подключитесь по SSH и выполните (один раз):
+Подключитесь по SSH:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/arsenievtver/sport-app/main/scripts/server-setup.sh | sudo bash
+ssh root@51.250.9.170
 ```
 
-Или вручную после `git clone`:
+Установите Docker, пользователя `deploy`, firewall, клонируйте репозиторий:
 
 ```bash
-sudo ./scripts/server-setup.sh
+curl -fsSL https://raw.githubusercontent.com/arsenievtver/sport-app/main/scripts/server-setup.sh | bash
 ```
 
 ---
 
-## 4. Конфигурация
+## 4. Конфигурация (один раз)
 
 ```bash
-sudo su - deploy
+su - deploy
 cd /opt/sport-app
 cp infra/prod/.env.example infra/prod/.env
+./scripts/gen-secrets.sh    # скопируйте вывод в .env
 nano infra/prod/.env
 ```
 
-Обязательно замените:
+Минимум в `.env`:
 
 ```env
 DOMAIN=athlete-app.ru
 LETSENCRYPT_EMAIL=you@athlete-app.ru
-SECRET_KEY=<случайная строка 48+ символов>
-POSTGRES_PASSWORD=<сильный пароль>
+SECRET_KEY=<из gen-secrets.sh>
+POSTGRES_PASSWORD=<из gen-secrets.sh>
 DATABASE_URL=postgresql+asyncpg://sport:<тот же пароль>@postgres:5432/sport_app
 CORS_ALLOW_ORIGIN_REGEX=^https://([a-z0-9-]+\.)?athlete-app\.ru$
-S3_SECRET_KEY=<случайная строка>
-```
-
-Сгенерировать секрет:
-
-```bash
-python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+S3_SECRET_KEY=<из gen-secrets.sh>
 ```
 
 ---
 
-## 5. Деплой
+## 5. Первый деплой
 
 ```bash
+cd /opt/sport-app
 ./scripts/deploy.sh
 ```
 
-Скрипт:
-1. Собирает frontend-приложения в Docker
-2. Копирует статику и лендинг
-3. Поднимает Postgres, Redis, MinIO, API, Caddy
-4. Применяет миграции Alembic
-
-После деплоя проверьте:
-
-- `https://athlete-app.ru` — лендинг
-- `https://my.athlete-app.ru` — Athlete
-- `https://coach.athlete-app.ru` — Coach PWA
-- `https://coach-web.athlete-app.ru` — Coach Web
-- `https://admin.athlete-app.ru` — Admin
+Первый запуск займёт 10–20 минут (сборка Docker-образов).
 
 ---
 
-## 6. Автодеплой (GitHub Actions)
+## 6. Обновления (каждый раз после push на GitHub)
+
+**Вариант A — одна команда на сервере (рекомендуется для старта):**
+
+```bash
+ssh deploy@51.250.9.170
+cd /opt/sport-app && ./scripts/deploy.sh
+```
+
+Скрипт сам делает `git pull` с GitHub → сборка → перезапуск.
+
+**Вариант B — автоматически при push (без SSH):**
+
+Настройте GitHub Actions secrets (см. ниже) — после каждого `git push` деплой запускается сам.
+
+---
+
+## 7. Автодеплой (GitHub Actions, опционально)
 
 В настройках репозитория → **Secrets and variables → Actions**:
 
@@ -137,7 +138,7 @@ mkdir -p ~/.ssh && chmod 700 ~/.ssh
 
 ---
 
-## 7. Полезные команды
+## 8. Полезные команды
 
 ```bash
 cd /opt/sport-app/infra/prod
@@ -149,8 +150,8 @@ docker compose logs -f api
 # Перезапуск
 docker compose restart api caddy
 
-# Обновление вручную
-cd /opt/sport-app && git pull && ./scripts/deploy.sh
+# Обновление вручную (pull уже внутри deploy.sh)
+cd /opt/sport-app && ./scripts/deploy.sh
 ```
 
 Создать admin-пользователя:

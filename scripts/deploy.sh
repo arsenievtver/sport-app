@@ -1,10 +1,30 @@
 #!/usr/bin/env bash
-# Deploy sport-app on the production server (run from repo root after git pull).
+# Deploy sport-app on the production server.
+# Default: pull latest from GitHub (main) → build → start.
+# Usage: ./scripts/deploy.sh [--no-pull]
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROD_DIR="$ROOT/infra/prod"
+DO_PULL=true
+
+for arg in "$@"; do
+  case "$arg" in
+    --no-pull) DO_PULL=false ;;
+    -h | --help)
+      echo "Usage: $0 [--no-pull]"
+      echo ""
+      echo "  (default)  git fetch + reset origin/main, then build & start"
+      echo "  --no-pull  skip git pull (deploy current checkout)"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $arg" >&2
+      exit 1
+      ;;
+  esac
+done
 
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
@@ -12,6 +32,17 @@ source "$SCRIPT_DIR/lib/common.sh"
 if [ ! -f "$PROD_DIR/.env" ]; then
   err "Missing $PROD_DIR/.env — copy from .env.example and fill in values."
   exit 1
+fi
+
+if [ "$DO_PULL" = true ]; then
+  if [ -d "$ROOT/.git" ]; then
+    log "Pulling latest from GitHub (origin/main)..."
+    git -C "$ROOT" fetch origin main
+    git -C "$ROOT" reset --hard origin/main
+    ok "Code updated"
+  else
+    warn "Not a git repo — skipping pull"
+  fi
 fi
 
 # shellcheck disable=SC1091
@@ -26,6 +57,16 @@ fi
 
 if [ -z "${SECRET_KEY:-}" ] || [ "$SECRET_KEY" = "change-me-generate-a-long-random-string" ]; then
   err "Set SECRET_KEY in infra/prod/.env (generate a random string)."
+  exit 1
+fi
+
+if ! command -v docker >/dev/null 2>&1; then
+  err "Docker not found. Run: sudo ./scripts/server-setup.sh"
+  exit 1
+fi
+
+if ! docker info >/dev/null 2>&1; then
+  err "Docker is not running or user lacks permissions (add to docker group)."
   exit 1
 fi
 
