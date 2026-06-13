@@ -16,12 +16,14 @@ export default defineConfig(({ mode }) => {
         registerType: "autoUpdate",
         includeAssets: ["icon.svg"],
         manifest: {
+          id: "/",
           name: "sport-app — Атлет",
           short_name: "Атлет",
           description: "Тренировки и прогресс для атлета",
           theme_color: "#050508",
           background_color: "#050508",
           display: "standalone",
+          scope: "/",
           start_url: "/",
           icons: [
             {

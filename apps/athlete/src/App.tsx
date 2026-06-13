@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { clearTokens, fetchMe, getAccessToken } from "@sport-app/api-client";
 import { hasRole, ROLE_LABELS } from "@sport-app/shared";
 import type { UserResponse } from "@sport-app/shared";
-import { AppShell, AuthScreen, isThemePreviewMode, ThemePreview } from "@sport-app/ui";
+import { AppShell, AuthScreen, isThemePreviewMode, PwaInstallBanner, ThemePreview } from "@sport-app/ui";
 
 export default function App() {
   const [user, setUser] = useState<UserResponse | null>(null);
@@ -31,8 +31,10 @@ export default function App() {
     return <ThemePreview onClose={() => setShowThemes(false)} />;
   }
 
+  let content: ReactNode;
+
   if (checking) {
-    return (
+    content = (
       <div className="auth-screen">
         <div className="auth-screen__bg" />
         <div className="auth-screen__content" style={{ justifyContent: "center", alignItems: "center" }}>
@@ -40,17 +42,44 @@ export default function App() {
         </div>
       </div>
     );
+  } else if (!user) {
+    content = (
+      <AuthScreen
+        role="athlete"
+        roleLabel={ROLE_LABELS.athlete}
+        tagline={"Тренировки с тренером\nПрогресс который мотивирует"}
+        onAuthenticated={(u) => setUser(u)}
+      />
+    );
+  } else {
+    content = (
+      <AppShell
+        title={`Привет, ${user.athlete_profile?.display_name ?? ROLE_LABELS.athlete.toLowerCase()}!`}
+        subtitle="Атлет · главная (скоро)"
+      >
+        <p className="text-secondary" style={{ marginTop: 0 }}>
+          Ты вошёл как {user.phone}. Здесь будет программа и логирование тренировок.
+        </p>
+        <button
+          type="button"
+          className="auth-switch__link"
+          style={{ marginTop: "var(--space-4)" }}
+          onClick={() => {
+            clearTokens();
+            setUser(null);
+          }}
+        >
+          Выйти
+        </button>
+      </AppShell>
+    );
   }
 
-  if (!user) {
-    return (
-      <>
-        <AuthScreen
-          role="athlete"
-          roleLabel={ROLE_LABELS.athlete}
-          tagline={"Тренировки с тренером\nПрогресс который мотивирует"}
-          onAuthenticated={(u) => setUser(u)}
-        />
+  return (
+    <>
+      {content}
+      <PwaInstallBanner appName="Атлет" />
+      {!checking && !user ? (
         <button
           type="button"
           onClick={() => setShowThemes(true)}
@@ -72,29 +101,7 @@ export default function App() {
         >
           🎨 Темы
         </button>
-      </>
-    );
-  }
-
-  return (
-    <AppShell
-      title={`Привет, ${user.athlete_profile?.display_name ?? ROLE_LABELS.athlete.toLowerCase()}!`}
-      subtitle="Атлет · главная (скоро)"
-    >
-      <p className="text-secondary" style={{ marginTop: 0 }}>
-        Ты вошёл как {user.phone}. Здесь будет программа и логирование тренировок.
-      </p>
-      <button
-        type="button"
-        className="auth-switch__link"
-        style={{ marginTop: "var(--space-4)" }}
-        onClick={() => {
-          clearTokens();
-          setUser(null);
-        }}
-      >
-        Выйти
-      </button>
-    </AppShell>
+      ) : null}
+    </>
   );
 }

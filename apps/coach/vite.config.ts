@@ -16,12 +16,14 @@ export default defineConfig(({ mode }) => {
         registerType: "autoUpdate",
         includeAssets: ["icon.svg"],
         manifest: {
+          id: "/",
           name: "sport-app — Coach",
           short_name: "Coach",
           description: "Мобильный кабинет тренера",
           theme_color: "#050508",
           background_color: "#050508",
           display: "standalone",
+          scope: "/",
           start_url: "/",
           icons: [
             {

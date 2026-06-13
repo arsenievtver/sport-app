@@ -6,3 +6,4 @@ export type { AuthScreenConfig } from "./auth/AuthScreen";
 export { ThemePreview, isThemePreviewMode } from "./preview/ThemePreview";
 export { applyTheme, DEFAULT_THEME_ID, getStoredTheme, initTheme, themePresets, THEME_BG } from "./themes/presets";
 export type { ThemeId, ThemePreset } from "./themes/presets";
+export { PwaInstallBanner } from "./pwa/PwaInstallBanner";
