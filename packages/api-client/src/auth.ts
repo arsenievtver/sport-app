@@ -62,22 +62,68 @@ export async function fetchMe(accessToken: string): Promise<UserResponse> {
   return res.json() as Promise<UserResponse>;
 }
 
-export function normalizePhoneInput(raw: string): string {
-  let digits = raw.replace(/\D/g, "");
-  if (digits.startsWith("8") && digits.length >= 11) {
-    digits = "7" + digits.slice(1);
-  }
-  if (digits.length === 10 && digits.startsWith("9")) {
-    digits = "7" + digits;
-  }
-  return digits.slice(0, 11);
+/** Canonical: "" | "7" (only +7 typed) | "7" + up to 10 national digits */
+export function getPhoneNational(canonical: string): string {
+  if (!canonical || canonical === "7") return "";
+  return canonical.startsWith("7") ? canonical.slice(1) : canonical;
 }
 
-export function formatPhoneDisplay(digits: string): string {
+export function formatPhoneDisplay(canonical: string): string {
+  if (!canonical) return "";
+  if (canonical === "7") return "+7 (";
+
+  const national = getPhoneNational(canonical);
+  const p = national.padEnd(10, "_").slice(0, 10);
+  return `+7 (${p.slice(0, 3)}) ${p.slice(3, 6)}-${p.slice(6, 8)}-${p.slice(8, 10)}`.replace(
+    /[_-]+$/g,
+    "",
+  );
+}
+
+/** Paste, autofill, mobile keyboard fallback */
+export function normalizePhoneInput(raw: string): string {
+  let digits = raw.replace(/\D/g, "");
   if (!digits) return "";
-  const d = digits.startsWith("7") ? digits : "7" + digits;
-  const p = d.padEnd(11, "_").slice(0, 11);
-  return `+7 (${p.slice(1, 4)}) ${p.slice(4, 7)}-${p.slice(7, 9)}-${p.slice(9, 11)}`.replace(/[_-]+$/g, "");
+
+  if (digits.startsWith("8") && digits.length === 11) {
+    digits = `7${digits.slice(1)}`;
+  }
+
+  if (digits.length >= 11 && digits.startsWith("7")) {
+    return digits.slice(0, 11);
+  }
+
+  if (digits.length === 10 && !digits.startsWith("7")) {
+    return `7${digits}`;
+  }
+
+  const isFormatted = raw.includes("+") || raw.includes("(");
+
+  if (isFormatted) {
+    const national = digits.startsWith("7") ? digits.slice(1) : digits;
+    if (!national) return "7";
+    return `7${national.slice(0, 10)}`;
+  }
+
+  if (digits === "7") return "7";
+
+  return `7${digits.replace(/^7/, "").slice(0, 10)}`;
+}
+
+export function appendPhoneDigit(canonical: string, digit: string): string {
+  if (canonical === "" && digit === "7") return "7";
+  const national = getPhoneNational(canonical);
+  return `7${(national + digit).slice(0, 10)}`;
+}
+
+export function backspacePhone(canonical: string): string {
+  const national = getPhoneNational(canonical);
+  if (national.length > 0) {
+    const next = national.slice(0, -1);
+    return next ? `7${next}` : "";
+  }
+  if (canonical === "7") return "";
+  return canonical;
 }
 
 export function isValidPhone(digits: string): boolean {

@@ -1,4 +1,10 @@
-import { formatPhoneDisplay, normalizePhoneInput } from "@sport-app/api-client";
+import { useRef } from "react";
+import {
+  appendPhoneDigit,
+  backspacePhone,
+  formatPhoneDisplay,
+  normalizePhoneInput,
+} from "@sport-app/api-client";
 
 interface PhoneInputProps {
   value: string;
@@ -8,7 +14,24 @@ interface PhoneInputProps {
 }
 
 export function PhoneInput({ value, onChange, disabled, id }: PhoneInputProps) {
-  const display = formatPhoneDisplay(value);
+  const skipChange = useRef(false);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (disabled) return;
+
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      skipChange.current = true;
+      onChange(backspacePhone(value));
+      return;
+    }
+
+    if (/^\d$/.test(e.key)) {
+      e.preventDefault();
+      skipChange.current = true;
+      onChange(appendPhoneDigit(value, e.key));
+    }
+  };
 
   return (
     <input
@@ -18,9 +41,21 @@ export function PhoneInput({ value, onChange, disabled, id }: PhoneInputProps) {
       autoComplete="tel"
       className="auth-field__input auth-field__input--phone"
       placeholder="+7 (910) 000-00-00"
-      value={display}
+      value={formatPhoneDisplay(value)}
       disabled={disabled}
-      onChange={(e) => onChange(normalizePhoneInput(e.target.value))}
+      onKeyDown={handleKeyDown}
+      onPaste={(e) => {
+        if (disabled) return;
+        e.preventDefault();
+        onChange(normalizePhoneInput(e.clipboardData.getData("text")));
+      }}
+      onChange={(e) => {
+        if (skipChange.current) {
+          skipChange.current = false;
+          return;
+        }
+        onChange(normalizePhoneInput(e.target.value));
+      }}
     />
   );
 }
