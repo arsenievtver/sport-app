@@ -13,6 +13,10 @@ my.{$DOMAIN} {
 	handle /api/v1/* {
 		reverse_proxy api:8000
 	}
+	@no_cache {
+		path / /index.html /sw.js /workbox-*.js /manifest.webmanifest
+	}
+	header @no_cache Cache-Control "no-cache, no-store, must-revalidate"
 	handle {
 		root * /srv/athlete
 		try_files {path} /index.html
@@ -25,6 +29,10 @@ coach.{$DOMAIN} {
 	handle /api/v1/* {
 		reverse_proxy api:8000
 	}
+	@no_cache {
+		path / /index.html /sw.js /workbox-*.js /manifest.webmanifest
+	}
+	header @no_cache Cache-Control "no-cache, no-store, must-revalidate"
 	handle {
 		root * /srv/coach
 		try_files {path} /index.html

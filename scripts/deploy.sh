@@ -81,11 +81,11 @@ fi
 
 log "Building frontend static files..."
 cd "$PROD_DIR"
-docker compose --profile build run --rm build-landing
-docker compose --profile build run --rm build-athlete
-docker compose --profile build run --rm build-coach
-docker compose --profile build run --rm build-coach-web
-docker compose --profile build run --rm build-admin
+docker compose --profile build run --rm --build build-landing
+docker compose --profile build run --rm --build build-athlete
+docker compose --profile build run --rm --build build-coach
+docker compose --profile build run --rm --build build-coach-web
+docker compose --profile build run --rm --build build-admin
 
 log "Building and starting services..."
 docker compose up -d --build
