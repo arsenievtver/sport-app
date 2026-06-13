@@ -1,0 +1,23 @@
+{
+  "name": "sport-app",
+  "private": true,
+  "scripts": {
+    "start": "./scripts/start.sh",
+    "stop": "./scripts/stop.sh",
+    "status": "./scripts/dev.sh status",
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "dev:athlete": "turbo dev --filter=@sport-app/athlete",
+    "dev:coach": "turbo dev --filter=@sport-app/coach",
+    "dev:coach-web": "turbo dev --filter=@sport-app/coach-web",
+    "dev:admin": "turbo dev --filter=@sport-app/admin"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

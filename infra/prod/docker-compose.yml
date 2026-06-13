@@ -1,0 +1,140 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: sport-app-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - landing_static:/srv/landing:ro
+      - athlete_static:/srv/athlete:ro
+      - coach_static:/srv/coach:ro
+      - coach_web_static:/srv/coach-web:ro
+      - admin_static:/srv/admin:ro
+    depends_on:
+      api:
+        condition: service_started
+
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/Dockerfile.backend
+    container_name: sport-app-api
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: sport-app-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sport
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: sport_app
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sport -d sport_app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: sport-app-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: sport-app-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+    volumes:
+      - minio_data:/data
+    expose:
+      - "9000"
+      - "9001"
+
+  build-landing:
+    image: alpine:3.21
+    volumes:
+      - ./static/landing:/src:ro
+      - landing_static:/out
+    entrypoint: ["sh", "-c", "rm -rf /out/* && cp -r /src/. /out/"]
+    profiles: [build]
+
+  build-athlete:
+    build:
+      context: ../..
+      dockerfile: infra/Dockerfile.frontend
+      args:
+        APP: athlete
+    volumes:
+      - athlete_static:/out
+    profiles: [build]
+
+  build-coach:
+    build:
+      context: ../..
+      dockerfile: infra/Dockerfile.frontend
+      args:
+        APP: coach
+    volumes:
+      - coach_static:/out
+    profiles: [build]
+
+  build-coach-web:
+    build:
+      context: ../..
+      dockerfile: infra/Dockerfile.frontend
+      args:
+        APP: coach-web
+    volumes:
+      - coach_web_static:/out
+    profiles: [build]
+
+  build-admin:
+    build:
+      context: ../..
+      dockerfile: infra/Dockerfile.frontend
+      args:
+        APP: admin
+    volumes:
+      - admin_static:/out
+    profiles: [build]
+
+volumes:
+  caddy_data:
+  caddy_config:
+  landing_static:
+  athlete_static:
+  coach_static:
+  coach_web_static:
+  admin_static:
+  postgres_data:
+  redis_data:
+  minio_data:

@@ -1,0 +1,57 @@
+{
+	email {$LETSENCRYPT_EMAIL}
+}
+
+{$DOMAIN}, www.{$DOMAIN} {
+	root * /srv/landing
+	encode gzip
+	file_server
+}
+
+my.{$DOMAIN} {
+	encode gzip
+	handle /api/v1/* {
+		reverse_proxy api:8000
+	}
+	handle {
+		root * /srv/athlete
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+coach.{$DOMAIN} {
+	encode gzip
+	handle /api/v1/* {
+		reverse_proxy api:8000
+	}
+	handle {
+		root * /srv/coach
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+app.{$DOMAIN} {
+	encode gzip
+	handle /api/v1/* {
+		reverse_proxy api:8000
+	}
+	handle {
+		root * /srv/coach-web
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+admin.{$DOMAIN} {
+	encode gzip
+	handle /api/v1/* {
+		reverse_proxy api:8000
+	}
+	handle {
+		root * /srv/admin
+		try_files {path} /index.html
+		file_server
+	}
+}

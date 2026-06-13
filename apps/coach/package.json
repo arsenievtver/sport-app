@@ -1,0 +1,29 @@
+{
+  "name": "@sport-app/coach",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "tsc -b --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@sport-app/api-client": "workspace:*",
+    "@sport-app/shared": "workspace:*",
+    "@sport-app/ui": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@sport-app/vite-config": "workspace:*",
+    "@types/node": "^22.10.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "vite-plugin-pwa": "^0.21.1"
+  }
+}

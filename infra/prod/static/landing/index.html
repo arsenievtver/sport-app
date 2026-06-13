@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>sport-app</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0c0f14;
+        --text: #e8edf5;
+        --muted: #8b95a8;
+        --accent: #5eead4;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: system-ui, -apple-system, sans-serif;
+        background: radial-gradient(circle at top, #152033, var(--bg));
+        color: var(--text);
+        padding: 2rem;
+      }
+      main {
+        max-width: 40rem;
+        text-align: center;
+      }
+      h1 {
+        font-size: clamp(2rem, 5vw, 3rem);
+        margin: 0 0 0.75rem;
+      }
+      p {
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+        margin-top: 2rem;
+      }
+      a {
+        color: var(--bg);
+        background: var(--accent);
+        text-decoration: none;
+        padding: 0.75rem 1.25rem;
+        border-radius: 999px;
+        font-weight: 600;
+      }
+      a.secondary {
+        background: transparent;
+        color: var(--text);
+        border: 1px solid #2a3344;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>sport-app</h1>
+      <p>
+        Платформа для тренеров и спортсменов: программы, прогресс, мотивация на
+        основе научных подходов.
+      </p>
+      <nav>
+        <a id="athlete-link" href="https://my.example.com">Приложение атлета</a>
+        <a id="coach-link" class="secondary" href="https://coach.example.com"
+          >Кабинет тренера</a
+        >
+      </nav>
+    </main>
+    <script>
+      const host = location.hostname.replace(/^www\./, "");
+      const base = host.includes(".") ? host.slice(host.indexOf(".") + 1) : host;
+      document.getElementById("athlete-link").href = `https://my.${base}`;
+      document.getElementById("coach-link").href = `https://coach.${base}`;
+    </script>
+  </body>
+</html>
