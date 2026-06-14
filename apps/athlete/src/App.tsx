@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { ROLE_LABELS } from "@sport-app/shared";
 import { AppShell, AuthScreen, isThemePreviewMode, PwaInstallBanner, ThemePreview, useAuthSession } from "@sport-app/ui";
+import { WhoopPanel } from "./components/WhoopPanel";
+import "./components/whoop.css";
 
 export default function App() {
   const { user, setUser, checking, logout } = useAuthSession("athlete");
@@ -34,11 +36,12 @@ export default function App() {
     content = (
       <AppShell
         title={`Привет, ${user.athlete_profile?.display_name ?? ROLE_LABELS.athlete.toLowerCase()}!`}
-        subtitle="Атлет · главная (скоро)"
+        subtitle="Атлет · здоровье и тренировки"
       >
         <p className="text-secondary" style={{ marginTop: 0 }}>
-          Ты вошёл как {user.phone}. Здесь будет программа и логирование тренировок.
+          Подключите WHOOP, чтобы видеть recovery, сон и нагрузку на одном экране.
         </p>
+        <WhoopPanel />
         <button
           type="button"
           className="auth-switch__link"

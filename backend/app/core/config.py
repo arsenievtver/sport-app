@@ -28,5 +28,10 @@ class Settings(BaseSettings):
     s3_secret_key: str = "miniosecret"
     s3_bucket: str = "sport-app"
 
+    whoop_client_id: str | None = None
+    whoop_client_secret: str | None = None
+    whoop_redirect_uri: str = "http://localhost:8000/api/v1/integrations/whoop/callback"
+    athlete_app_url: str = "http://localhost:5173"
+
 
 settings = Settings()

@@ -12,7 +12,7 @@ from sqlalchemy.orm import selectinload
 from app.core.database import get_db
 from app.core.security import TOKEN_TYPE_ACCESS, decode_token
 from app.models.enums import UserRole
-from app.models.user import User
+from app.models.user import AthleteProfile, User
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -72,3 +72,15 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 CoachUser = Annotated[User, Depends(require_roles(UserRole.coach))]
 AthleteUser = Annotated[User, Depends(require_roles(UserRole.athlete))]
 AdminUser = Annotated[User, Depends(require_roles(UserRole.admin))]
+
+
+async def get_current_athlete_profile(user: AthleteUser) -> AthleteProfile:
+    if user.athlete_profile is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Athlete profile required",
+        )
+    return user.athlete_profile
+
+
+CurrentAthleteProfile = Annotated[AthleteProfile, Depends(get_current_athlete_profile)]

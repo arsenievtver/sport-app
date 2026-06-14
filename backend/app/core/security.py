@@ -15,6 +15,7 @@ PIN_PATTERN = re.compile(r"^\d{6}$")
 ALGORITHM = "HS256"
 TOKEN_TYPE_ACCESS = "access"
 TOKEN_TYPE_REFRESH = "refresh"
+TOKEN_TYPE_WHOOP_STATE = "whoop_oauth_state"
 
 
 def normalize_phone(raw: str) -> str:
@@ -74,6 +75,14 @@ def create_refresh_token(user_id: UUID) -> str:
         str(user_id),
         TOKEN_TYPE_REFRESH,
         timedelta(days=settings.refresh_token_expire_days),
+    )
+
+
+def create_whoop_oauth_state(athlete_id: UUID) -> str:
+    return _create_token(
+        str(athlete_id),
+        TOKEN_TYPE_WHOOP_STATE,
+        timedelta(minutes=10),
     )
 
 

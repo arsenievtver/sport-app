@@ -1,0 +1,250 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+from typing import Any
+from urllib.parse import urlencode
+from uuid import UUID
+
+import httpx
+from fastapi import HTTPException, status
+from jose import JWTError
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import settings
+from app.core.security import TOKEN_TYPE_WHOOP_STATE, create_whoop_oauth_state, decode_token
+from app.core.token_crypto import decrypt_secret, encrypt_secret
+from app.models.health import HealthConnection
+
+WHOOP_PROVIDER = "whoop"
+WHOOP_AUTH_URL = "https://api.prod.whoop.com/oauth/oauth2/auth"
+WHOOP_TOKEN_URL = "https://api.prod.whoop.com/oauth/oauth2/token"
+WHOOP_API_BASE = "https://api.prod.whoop.com/developer/v2"
+WHOOP_SCOPES = (
+    "read:profile read:recovery read:cycles read:workout read:sleep read:body_measurement"
+)
+
+
+class WhoopService:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    def _require_config(self) -> tuple[str, str, str]:
+        if not settings.whoop_client_id or not settings.whoop_client_secret:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="WHOOP integration is not configured",
+            )
+        return settings.whoop_client_id, settings.whoop_client_secret, settings.whoop_redirect_uri
+
+    def build_authorization_url(self, athlete_id: UUID) -> str:
+        client_id, _, redirect_uri = self._require_config()
+        state = create_whoop_oauth_state(athlete_id)
+        query = urlencode(
+            {
+                "response_type": "code",
+                "client_id": client_id,
+                "redirect_uri": redirect_uri,
+                "scope": WHOOP_SCOPES,
+                "state": state,
+            }
+        )
+        return f"{WHOOP_AUTH_URL}?{query}"
+
+    def parse_oauth_state(self, state: str) -> UUID:
+        try:
+            payload = decode_token(state)
+            if payload.get("type") != TOKEN_TYPE_WHOOP_STATE:
+                raise ValueError("invalid state type")
+            return UUID(payload["sub"])
+        except (JWTError, KeyError, ValueError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired OAuth state",
+            ) from exc
+
+    async def get_connection(self, athlete_id: UUID) -> HealthConnection | None:
+        result = await self.db.execute(
+            select(HealthConnection).where(
+                HealthConnection.athlete_id == athlete_id,
+                HealthConnection.provider == WHOOP_PROVIDER,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def complete_oauth(self, code: str, athlete_id: UUID) -> HealthConnection:
+        client_id, client_secret, redirect_uri = self._require_config()
+        token_payload = await self._exchange_code(code, client_id, client_secret, redirect_uri)
+        access_token = token_payload["access_token"]
+        refresh_token = token_payload.get("refresh_token")
+        expires_in = token_payload.get("expires_in")
+        expires_at = None
+        if isinstance(expires_in, int):
+            expires_at = datetime.now(UTC) + timedelta(seconds=expires_in)
+
+        profile = await self._api_get(access_token, "/user/profile/basic")
+        external_user_id = str(profile.get("user_id", ""))
+
+        connection = await self.get_connection(athlete_id)
+        if connection is None:
+            connection = HealthConnection(
+                athlete_id=athlete_id,
+                provider=WHOOP_PROVIDER,
+            )
+            self.db.add(connection)
+
+        connection.external_user_id = external_user_id or None
+        connection.access_token_encrypted = encrypt_secret(access_token)
+        connection.refresh_token_encrypted = (
+            encrypt_secret(refresh_token) if refresh_token else None
+        )
+        connection.token_expires_at = expires_at
+        connection.scopes = token_payload.get("scope", WHOOP_SCOPES)
+        connection.last_sync_error = None
+        await self.db.commit()
+        await self.db.refresh(connection)
+
+        try:
+            await self.sync(athlete_id)
+        except HTTPException:
+            pass
+
+        await self.db.refresh(connection)
+        return connection
+
+    async def disconnect(self, athlete_id: UUID) -> None:
+        connection = await self.get_connection(athlete_id)
+        if connection is None:
+            return
+
+        access_token = decrypt_secret(connection.access_token_encrypted)
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                await client.delete(
+                    f"{WHOOP_API_BASE}/user/access",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                )
+        except httpx.HTTPError:
+            pass
+
+        await self.db.delete(connection)
+        await self.db.commit()
+
+    async def sync(self, athlete_id: UUID) -> dict[str, Any]:
+        connection = await self.get_connection(athlete_id)
+        if connection is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="WHOOP is not connected",
+            )
+
+        access_token = await self._get_valid_access_token(connection)
+        payload = {
+            "profile": await self._api_get(access_token, "/user/profile/basic"),
+            "body_measurement": await self._api_get(access_token, "/user/measurement/body", optional=True),
+            "recovery": await self._api_get(access_token, "/recovery", {"limit": 7}),
+            "sleep": await self._api_get(access_token, "/activity/sleep", {"limit": 7}),
+            "workouts": await self._api_get(access_token, "/activity/workout", {"limit": 10}),
+            "cycles": await self._api_get(access_token, "/cycle", {"limit": 7}),
+            "synced_at": datetime.now(UTC).isoformat(),
+        }
+
+        connection.last_sync_at = datetime.now(UTC)
+        connection.last_sync_error = None
+        connection.last_sync_payload = payload
+        await self.db.commit()
+        await self.db.refresh(connection)
+        return payload
+
+    async def _get_valid_access_token(self, connection: HealthConnection) -> str:
+        expires_at = connection.token_expires_at
+        if expires_at and expires_at > datetime.now(UTC) + timedelta(seconds=60):
+            return decrypt_secret(connection.access_token_encrypted)
+
+        if not connection.refresh_token_encrypted:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="WHOOP token expired; reconnect required",
+            )
+
+        client_id, client_secret, _ = self._require_config()
+        refresh_token = decrypt_secret(connection.refresh_token_encrypted)
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(
+                WHOOP_TOKEN_URL,
+                data={
+                    "grant_type": "refresh_token",
+                    "refresh_token": refresh_token,
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+        if response.status_code >= 400:
+            connection.last_sync_error = "WHOOP token refresh failed"
+            await self.db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="WHOOP token refresh failed; reconnect required",
+            )
+
+        token_payload = response.json()
+        access_token = token_payload["access_token"]
+        connection.access_token_encrypted = encrypt_secret(access_token)
+        if token_payload.get("refresh_token"):
+            connection.refresh_token_encrypted = encrypt_secret(token_payload["refresh_token"])
+        expires_in = token_payload.get("expires_in")
+        if isinstance(expires_in, int):
+            connection.token_expires_at = datetime.now(UTC) + timedelta(seconds=expires_in)
+        await self.db.commit()
+        return access_token
+
+    async def _exchange_code(
+        self,
+        code: str,
+        client_id: str,
+        client_secret: str,
+        redirect_uri: str,
+    ) -> dict[str, Any]:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(
+                WHOOP_TOKEN_URL,
+                data={
+                    "grant_type": "authorization_code",
+                    "code": code,
+                    "redirect_uri": redirect_uri,
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+        if response.status_code >= 400:
+            detail = response.text
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"WHOOP token exchange failed: {detail}",
+            )
+        return response.json()
+
+    async def _api_get(
+        self,
+        access_token: str,
+        path: str,
+        params: dict[str, Any] | None = None,
+        *,
+        optional: bool = False,
+    ) -> dict[str, Any]:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.get(
+                f"{WHOOP_API_BASE}{path}",
+                params=params,
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+        if response.status_code == 404 and optional:
+            return {}
+        if response.status_code >= 400:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"WHOOP API error ({response.status_code}): {response.text}",
+            )
+        return response.json()

@@ -5,6 +5,7 @@ from app.models.goal import Goal
 from app.models.messaging import Message, MessageThread
 from app.models.notification import Notification
 from app.models.program import Program, ProgramWeek
+from app.models.health import HealthConnection
 from app.models.progress import AnalyticsEvent, ProgressSnapshot
 from app.models.user import AthleteProfile, CoachAthleteLink, CoachProfile, User
 from app.models.workout import Workout, WorkoutExercise, WorkoutLog, WorkoutLogExercise
@@ -23,6 +24,7 @@ __all__ = [
     "WorkoutLog",
     "WorkoutLogExercise",
     "Goal",
+    "HealthConnection",
     "ProgressSnapshot",
     "AnalyticsEvent",
     "Challenge",
