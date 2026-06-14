@@ -4,15 +4,23 @@ import { getApiBaseUrl } from "./config";
 
 const ACCESS_KEY = "sport-app:access-token";
 const REFRESH_KEY = "sport-app:refresh-token";
+const EXPIRES_AT_KEY = "sport-app:token-expires-at";
+
+const REFRESH_BUFFER_MS = 60_000;
+
+let refreshPromise: Promise<TokenResponse> | null = null;
+let onAuthFailure: (() => void) | null = null;
 
 export function saveTokens(tokens: TokenResponse): void {
   localStorage.setItem(ACCESS_KEY, tokens.access_token);
   localStorage.setItem(REFRESH_KEY, tokens.refresh_token);
+  localStorage.setItem(EXPIRES_AT_KEY, String(Date.now() + tokens.expires_in * 1000));
 }
 
 export function clearTokens(): void {
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(REFRESH_KEY);
+  localStorage.removeItem(EXPIRES_AT_KEY);
 }
 
 export function getAccessToken(): string | null {
@@ -21,6 +29,16 @@ export function getAccessToken(): string | null {
 
 export function getRefreshToken(): string | null {
   return localStorage.getItem(REFRESH_KEY);
+}
+
+export function setOnAuthFailure(handler: (() => void) | null): void {
+  onAuthFailure = handler;
+}
+
+function isAccessTokenExpiringSoon(): boolean {
+  const expiresAt = localStorage.getItem(EXPIRES_AT_KEY);
+  if (!expiresAt) return false;
+  return Date.now() >= Number(expiresAt) - REFRESH_BUFFER_MS;
 }
 
 async function parseError(res: Response): Promise<string> {
@@ -36,6 +54,12 @@ async function parseError(res: Response): Promise<string> {
   return `Ошибка ${res.status}`;
 }
 
+function failAuth(): never {
+  clearTokens();
+  onAuthFailure?.();
+  throw new Error("Сессия истекла");
+}
+
 async function postJson<T>(path: string, payload: unknown): Promise<T> {
   const res = await fetch(`${getApiBaseUrl()}${path}`, {
     method: "POST",
@@ -46,6 +70,79 @@ async function postJson<T>(path: string, payload: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export async function refreshTokens(): Promise<TokenResponse> {
+  const refresh = getRefreshToken();
+  if (!refresh) {
+    throw new Error("Нет refresh-токена");
+  }
+
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = postJson<TokenResponse>("/auth/refresh", { refresh_token: refresh })
+    .then((tokens) => {
+      saveTokens(tokens);
+      return tokens;
+    })
+    .finally(() => {
+      refreshPromise = null;
+    });
+
+  return refreshPromise;
+}
+
+async function ensureValidAccessToken(): Promise<string> {
+  const token = getAccessToken();
+  if (!token) failAuth();
+
+  if (isAccessTokenExpiringSoon()) {
+    try {
+      const tokens = await refreshTokens();
+      return tokens.access_token;
+    } catch {
+      failAuth();
+    }
+  }
+
+  return token;
+}
+
+/** Authenticated fetch: proactive refresh before expiry, retry once on 401. */
+export async function authenticatedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const accessToken = await ensureValidAccessToken();
+
+  const doFetch = (token: string) => {
+    const headers = new Headers(init.headers);
+    headers.set("Authorization", `Bearer ${token}`);
+    if (init.body && !headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+    return fetch(`${getApiBaseUrl()}${path}`, { ...init, headers });
+  };
+
+  let res = await doFetch(accessToken);
+
+  if (res.status === 401) {
+    try {
+      const tokens = await refreshTokens();
+      res = await doFetch(tokens.access_token);
+    } catch {
+      failAuth();
+    }
+
+    if (res.status === 401) {
+      failAuth();
+    }
+  }
+
+  return res;
+}
+
+export async function authenticatedFetchOk(path: string, init: RequestInit = {}): Promise<Response> {
+  const res = await authenticatedFetch(path, init);
+  if (!res.ok) throw new Error(await parseError(res));
+  return res;
+}
+
 export async function login(payload: LoginPayload): Promise<TokenResponse> {
   return postJson<TokenResponse>("/auth/login", payload);
 }
@@ -54,10 +151,8 @@ export async function register(payload: RegisterPayload): Promise<TokenResponse>
   return postJson<TokenResponse>("/auth/register", payload);
 }
 
-export async function fetchMe(accessToken: string): Promise<UserResponse> {
-  const res = await fetch(`${getApiBaseUrl()}/auth/me`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+export async function fetchMe(): Promise<UserResponse> {
+  const res = await authenticatedFetch("/auth/me");
   if (!res.ok) throw new Error(await parseError(res));
   return res.json() as Promise<UserResponse>;
 }

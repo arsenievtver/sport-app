@@ -3,6 +3,8 @@ export { theme } from "./theme";
 export type { Theme } from "./theme";
 export { AuthScreen } from "./auth/AuthScreen";
 export type { AuthScreenConfig } from "./auth/AuthScreen";
+export { useAuthSession } from "./auth/useAuthSession";
+export type { AuthSession } from "./auth/useAuthSession";
 export { PhoneInput } from "./auth/PhoneInput";
 export { PinInput } from "./auth/PinInput";
 export { ThemePreview, isThemePreviewMode } from "./preview/ThemePreview";

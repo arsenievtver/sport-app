@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
-import { clearTokens, fetchMe, getAccessToken } from "@sport-app/api-client";
-import { hasRole, ROLE_LABELS } from "@sport-app/shared";
-import type { UserResponse } from "@sport-app/shared";
-import { AuthScreen } from "@sport-app/ui";
+import { useState } from "react";
+import { ROLE_LABELS } from "@sport-app/shared";
+import { AuthScreen, useAuthSession } from "@sport-app/ui";
 
 import { AdminLayout, type AdminPage } from "./components/AdminLayout";
 import { UsersPage } from "./components/UsersPage";
@@ -11,27 +9,8 @@ import "./admin.css";
 const REQUIRED_ROLE = "admin" as const;
 
 export default function App() {
-  const [user, setUser] = useState<UserResponse | null>(null);
-  const [checking, setChecking] = useState(true);
+  const { user, setUser, checking, logout } = useAuthSession(REQUIRED_ROLE);
   const [page, setPage] = useState<AdminPage>("users");
-
-  useEffect(() => {
-    const token = getAccessToken();
-    if (!token) {
-      setChecking(false);
-      return;
-    }
-    fetchMe(token)
-      .then((u) => {
-        if (!hasRole(u, REQUIRED_ROLE)) {
-          clearTokens();
-          return;
-        }
-        setUser(u);
-      })
-      .catch(() => clearTokens())
-      .finally(() => setChecking(false));
-  }, []);
 
   if (checking) {
     return (
@@ -61,10 +40,7 @@ export default function App() {
       page={page}
       onNavigate={setPage}
       phone={user.phone}
-      onLogout={() => {
-        clearTokens();
-        setUser(null);
-      }}
+      onLogout={logout}
       title="Пользователи"
       subtitle="Тренеры, атлеты и связи между ними"
     >

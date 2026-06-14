@@ -1,32 +1,10 @@
-import { useEffect, useState } from "react";
-import { clearTokens, fetchMe, getAccessToken } from "@sport-app/api-client";
-import { hasRole, ROLE_LABELS } from "@sport-app/shared";
-import type { UserResponse } from "@sport-app/shared";
-import { AppShell, AuthScreen } from "@sport-app/ui";
+import { ROLE_LABELS } from "@sport-app/shared";
+import { AppShell, AuthScreen, useAuthSession } from "@sport-app/ui";
 
 const REQUIRED_ROLE = "coach" as const;
 
 export default function App() {
-  const [user, setUser] = useState<UserResponse | null>(null);
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    const token = getAccessToken();
-    if (!token) {
-      setChecking(false);
-      return;
-    }
-    fetchMe(token)
-      .then((u) => {
-        if (!hasRole(u, REQUIRED_ROLE)) {
-          clearTokens();
-          return;
-        }
-        setUser(u);
-      })
-      .catch(() => clearTokens())
-      .finally(() => setChecking(false));
-  }, []);
+  const { user, setUser, checking, logout } = useAuthSession(REQUIRED_ROLE);
 
   if (checking) {
     return (
@@ -63,10 +41,7 @@ export default function App() {
         type="button"
         className="auth-switch__link"
         style={{ marginTop: "var(--space-4)" }}
-        onClick={() => {
-          clearTokens();
-          setUser(null);
-        }}
+        onClick={logout}
       >
         Выйти
       </button>

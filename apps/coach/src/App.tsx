@@ -1,30 +1,9 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { clearTokens, fetchMe, getAccessToken } from "@sport-app/api-client";
-import { hasRole, ROLE_LABELS, ROLE_LABELS_PLURAL } from "@sport-app/shared";
-import type { UserResponse } from "@sport-app/shared";
-import { AppShell, AuthScreen, PwaInstallBanner } from "@sport-app/ui";
+import { type ReactNode } from "react";
+import { ROLE_LABELS, ROLE_LABELS_PLURAL } from "@sport-app/shared";
+import { AppShell, AuthScreen, PwaInstallBanner, useAuthSession } from "@sport-app/ui";
 
 export default function App() {
-  const [user, setUser] = useState<UserResponse | null>(null);
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    const token = getAccessToken();
-    if (!token) {
-      setChecking(false);
-      return;
-    }
-    fetchMe(token)
-      .then((u) => {
-        if (!hasRole(u, "coach")) {
-          clearTokens();
-          return;
-        }
-        setUser(u);
-      })
-      .catch(() => clearTokens())
-      .finally(() => setChecking(false));
-  }, []);
+  const { user, setUser, checking, logout } = useAuthSession("coach");
 
   let content: ReactNode;
 
@@ -64,10 +43,7 @@ export default function App() {
           type="button"
           className="auth-switch__link"
           style={{ marginTop: "var(--space-4)" }}
-          onClick={() => {
-            clearTokens();
-            setUser(null);
-          }}
+          onClick={logout}
         >
           Выйти
         </button>

@@ -80,7 +80,7 @@ export function AuthScreen({
         : await login({ phone, pin });
 
       saveTokens(tokens);
-      const user = await fetchMe(tokens.access_token);
+      const user = await fetchMe();
 
       if (!hasRole(user, role)) {
         clearTokens();

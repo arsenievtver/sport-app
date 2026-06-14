@@ -1,31 +1,10 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { clearTokens, fetchMe, getAccessToken } from "@sport-app/api-client";
-import { hasRole, ROLE_LABELS } from "@sport-app/shared";
-import type { UserResponse } from "@sport-app/shared";
-import { AppShell, AuthScreen, isThemePreviewMode, PwaInstallBanner, ThemePreview } from "@sport-app/ui";
+import { useState, type ReactNode } from "react";
+import { ROLE_LABELS } from "@sport-app/shared";
+import { AppShell, AuthScreen, isThemePreviewMode, PwaInstallBanner, ThemePreview, useAuthSession } from "@sport-app/ui";
 
 export default function App() {
-  const [user, setUser] = useState<UserResponse | null>(null);
-  const [checking, setChecking] = useState(true);
+  const { user, setUser, checking, logout } = useAuthSession("athlete");
   const [showThemes, setShowThemes] = useState(isThemePreviewMode());
-
-  useEffect(() => {
-    const token = getAccessToken();
-    if (!token) {
-      setChecking(false);
-      return;
-    }
-    fetchMe(token)
-      .then((u) => {
-        if (!hasRole(u, "athlete")) {
-          clearTokens();
-          return;
-        }
-        setUser(u);
-      })
-      .catch(() => clearTokens())
-      .finally(() => setChecking(false));
-  }, []);
 
   if (showThemes) {
     return <ThemePreview onClose={() => setShowThemes(false)} />;
@@ -64,10 +43,7 @@ export default function App() {
           type="button"
           className="auth-switch__link"
           style={{ marginTop: "var(--space-4)" }}
-          onClick={() => {
-            clearTokens();
-            setUser(null);
-          }}
+          onClick={logout}
         >
           Выйти
         </button>
