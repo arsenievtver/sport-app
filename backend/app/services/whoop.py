@@ -138,14 +138,16 @@ class WhoopService:
                 detail="WHOOP is not connected",
             )
 
-        access_token = await self._get_valid_access_token(connection)
+        async def fetch(path: str, params: dict[str, Any] | None = None, *, optional: bool = False) -> dict[str, Any]:
+            return await self._api_get_for_connection(connection, path, params, optional=optional)
+
         payload = {
-            "profile": await self._api_get(access_token, "/user/profile/basic"),
-            "body_measurement": await self._api_get(access_token, "/user/measurement/body", optional=True),
-            "recovery": await self._api_get(access_token, "/recovery", {"limit": 7}),
-            "sleep": await self._api_get(access_token, "/activity/sleep", {"limit": 7}),
-            "workouts": await self._api_get(access_token, "/activity/workout", {"limit": 10}),
-            "cycles": await self._api_get(access_token, "/cycle", {"limit": 7}),
+            "profile": await fetch("/user/profile/basic"),
+            "body_measurement": await fetch("/user/measurement/body", optional=True),
+            "recovery": await fetch("/recovery", {"limit": 7}),
+            "sleep": await fetch("/activity/sleep", {"limit": 7}),
+            "workouts": await fetch("/activity/workout", {"limit": 10}),
+            "cycles": await fetch("/cycle", {"limit": 7}),
             "synced_at": datetime.now(UTC).isoformat(),
         }
 
@@ -158,12 +160,16 @@ class WhoopService:
 
     async def _get_valid_access_token(self, connection: HealthConnection) -> str:
         expires_at = connection.token_expires_at
-        if expires_at and expires_at > datetime.now(UTC) + timedelta(seconds=60):
+        if expires_at is None or expires_at > datetime.now(UTC) + timedelta(seconds=60):
             return decrypt_secret(connection.access_token_encrypted)
+        return await self._refresh_access_token(connection)
 
+    async def _refresh_access_token(self, connection: HealthConnection) -> str:
         if not connection.refresh_token_encrypted:
+            connection.last_sync_error = "WHOOP token expired"
+            await self.db.commit()
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
+                status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="WHOOP token expired; reconnect required",
             )
 
@@ -184,7 +190,7 @@ class WhoopService:
             connection.last_sync_error = "WHOOP token refresh failed"
             await self.db.commit()
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
+                status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="WHOOP token refresh failed; reconnect required",
             )
 
@@ -198,6 +204,28 @@ class WhoopService:
             connection.token_expires_at = datetime.now(UTC) + timedelta(seconds=expires_in)
         await self.db.commit()
         return access_token
+
+    async def _api_get_for_connection(
+        self,
+        connection: HealthConnection,
+        path: str,
+        params: dict[str, Any] | None = None,
+        *,
+        optional: bool = False,
+    ) -> dict[str, Any]:
+        access_token = await self._get_valid_access_token(connection)
+        status_code, payload = await self._api_get_raw(access_token, path, params)
+        if status_code == 401:
+            access_token = await self._refresh_access_token(connection)
+            status_code, payload = await self._api_get_raw(access_token, path, params)
+        if status_code == 404 and optional:
+            return {}
+        if status_code >= 400:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"WHOOP API error ({status_code}): {payload}",
+            )
+        return payload
 
     async def _exchange_code(
         self,
@@ -234,17 +262,30 @@ class WhoopService:
         *,
         optional: bool = False,
     ) -> dict[str, Any]:
+        status_code, payload = await self._api_get_raw(access_token, path, params)
+        if status_code == 404 and optional:
+            return {}
+        if status_code >= 400:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"WHOOP API error ({status_code}): {payload}",
+            )
+        return payload
+
+    async def _api_get_raw(
+        self,
+        access_token: str,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> tuple[int, Any]:
         async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.get(
                 f"{WHOOP_API_BASE}{path}",
                 params=params,
                 headers={"Authorization": f"Bearer {access_token}"},
             )
-        if response.status_code == 404 and optional:
-            return {}
-        if response.status_code >= 400:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"WHOOP API error ({response.status_code}): {response.text}",
-            )
-        return response.json()
+        try:
+            body = response.json()
+        except ValueError:
+            body = response.text
+        return response.status_code, body

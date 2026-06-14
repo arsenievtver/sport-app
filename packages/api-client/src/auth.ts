@@ -60,6 +60,27 @@ function failAuth(): never {
   throw new Error("Сессия истекла");
 }
 
+const SESSION_AUTH_ERRORS = new Set([
+  "Not authenticated",
+  "Invalid or expired token",
+  "Invalid token type",
+  "User not found or inactive",
+]);
+
+async function isSessionUnauthorized(res: Response): Promise<boolean> {
+  try {
+    const body = await res.clone().json();
+    if (typeof body.detail === "string") {
+      if (body.detail.startsWith("WHOOP ")) return false;
+      if (body.detail.includes("WHOOP token")) return false;
+      return SESSION_AUTH_ERRORS.has(body.detail);
+    }
+  } catch {
+    /* ignore */
+  }
+  return true;
+}
+
 async function postJson<T>(path: string, payload: unknown): Promise<T> {
   const res = await fetch(`${getApiBaseUrl()}${path}`, {
     method: "POST",
@@ -121,7 +142,7 @@ export async function authenticatedFetch(path: string, init: RequestInit = {}): 
 
   let res = await doFetch(accessToken);
 
-  if (res.status === 401) {
+  if (res.status === 401 && (await isSessionUnauthorized(res))) {
     try {
       const tokens = await refreshTokens();
       res = await doFetch(tokens.access_token);
@@ -129,7 +150,7 @@ export async function authenticatedFetch(path: string, init: RequestInit = {}): 
       failAuth();
     }
 
-    if (res.status === 401) {
+    if (res.status === 401 && (await isSessionUnauthorized(res))) {
       failAuth();
     }
   }
