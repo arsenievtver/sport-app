@@ -67,6 +67,7 @@ async def whoop_status(
         connected_at=connection.created_at,
         last_sync_at=connection.last_sync_at,
         last_sync_error=connection.last_sync_error,
+        has_refresh_token=bool(connection.refresh_token_encrypted),
         last_sync=connection.last_sync_payload,
     )
 

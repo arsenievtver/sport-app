@@ -8,41 +8,12 @@ interface AppShellProps {
 
 export function AppShell({ title, subtitle, children }: AppShellProps) {
   return (
-    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
-      <header className="glass glass--bar" style={{ minHeight: "var(--header-height)", padding: "var(--space-4) var(--space-5)" }}>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: "var(--text-xl)",
-            fontWeight: "var(--font-semibold)",
-            letterSpacing: "var(--tracking-tight)",
-          }}
-        >
-          {title}
-        </h1>
-        {subtitle && (
-          <p
-            style={{
-              margin: "var(--space-1) 0 0",
-              color: "var(--color-text-secondary)",
-              fontSize: "var(--text-sm)",
-            }}
-          >
-            {subtitle}
-          </p>
-        )}
+    <div className="app-shell">
+      <header className="app-shell__header glass glass--bar">
+        <h1 className="app-shell__title">{title}</h1>
+        {subtitle && <p className="app-shell__subtitle">{subtitle}</p>}
       </header>
-      <main
-        style={{
-          flex: 1,
-          padding: "var(--space-5)",
-          maxWidth: "var(--content-max-width)",
-          width: "100%",
-          margin: "0 auto",
-        }}
-      >
-        {children}
-      </main>
+      <main className="app-shell__main">{children}</main>
     </div>
   );
 }

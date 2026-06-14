@@ -7,6 +7,11 @@ class UserRole(str, enum.Enum):
     admin = "admin"
 
 
+class Gender(str, enum.Enum):
+    male = "male"
+    female = "female"
+
+
 class CoachAthleteLinkStatus(str, enum.Enum):
     pending = "pending"
     active = "active"

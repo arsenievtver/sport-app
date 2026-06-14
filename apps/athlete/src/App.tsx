@@ -1,6 +1,14 @@
 import { useState, type ReactNode } from "react";
-import { ROLE_LABELS } from "@sport-app/shared";
-import { AppShell, AuthScreen, isThemePreviewMode, PwaInstallBanner, ThemePreview, useAuthSession } from "@sport-app/ui";
+import { ROLE_LABELS, isAthleteOnboardingComplete } from "@sport-app/shared";
+import {
+  AppShell,
+  AthleteOnboarding,
+  AuthScreen,
+  isThemePreviewMode,
+  PwaInstallBanner,
+  ThemePreview,
+  useAuthSession,
+} from "@sport-app/ui";
 import { WhoopPanel } from "./components/WhoopPanel";
 import "./components/whoop.css";
 
@@ -30,6 +38,13 @@ export default function App() {
         roleLabel={ROLE_LABELS.athlete}
         tagline={"Тренировки с тренером\nПрогресс который мотивирует"}
         onAuthenticated={(u) => setUser(u)}
+      />
+    );
+  } else if (!isAthleteOnboardingComplete(user.athlete_profile)) {
+    content = (
+      <AthleteOnboarding
+        displayName={user.athlete_profile?.display_name ?? ROLE_LABELS.athlete}
+        onComplete={(updated) => setUser(updated)}
       />
     );
   } else {
@@ -64,8 +79,8 @@ export default function App() {
           onClick={() => setShowThemes(true)}
           style={{
             position: "fixed",
-            bottom: "max(var(--space-4), env(safe-area-inset-bottom, 0px))",
-            right: "max(var(--space-4), env(safe-area-inset-right, 0px))",
+            bottom: "max(var(--space-4), var(--safe-bottom))",
+            right: "max(var(--space-4), var(--safe-right))",
             zIndex: 100,
             padding: "var(--space-2) var(--space-4)",
             fontSize: "var(--text-xs)",

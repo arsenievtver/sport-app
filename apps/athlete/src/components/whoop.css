@@ -98,6 +98,13 @@
   font-size: var(--text-sm);
 }
 
+.whoop-panel__warn {
+  margin: 0 0 var(--space-3);
+  color: #fbbf24;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
 .whoop-dashboard {
   display: grid;
   gap: var(--space-5);

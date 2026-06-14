@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { ROLE_LABELS, ROLE_LABELS_PLURAL } from "@sport-app/shared";
-import { AppShell, AuthScreen, PwaInstallBanner, useAuthSession } from "@sport-app/ui";
+import { AppShell, AuthScreen, CoachAthletesPanel, PwaInstallBanner, useAuthSession } from "@sport-app/ui";
 
 export default function App() {
   const { user, setUser, checking, logout } = useAuthSession("coach");
@@ -39,6 +39,8 @@ export default function App() {
         <p className="text-secondary" style={{ marginTop: 0 }}>
           Добро пожаловать. Делись кодом {user.coach_profile?.invite_code} с {ROLE_LABELS_PLURAL.athlete}.
         </p>
+        <h2 style={{ margin: "var(--space-5) 0 var(--space-3)", fontSize: "var(--text-lg)" }}>Атлеты и их цели</h2>
+        <CoachAthletesPanel />
         <button
           type="button"
           className="auth-switch__link"

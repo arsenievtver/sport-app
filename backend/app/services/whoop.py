@@ -21,8 +21,30 @@ WHOOP_AUTH_URL = "https://api.prod.whoop.com/oauth/oauth2/auth"
 WHOOP_TOKEN_URL = "https://api.prod.whoop.com/oauth/oauth2/token"
 WHOOP_API_BASE = "https://api.prod.whoop.com/developer/v2"
 WHOOP_SCOPES = (
-    "read:profile read:recovery read:cycles read:workout read:sleep read:body_measurement"
+    "offline read:profile read:recovery read:cycles read:workout read:sleep read:body_measurement"
 )
+
+
+def _expires_at_from_payload(token_payload: dict[str, Any]) -> datetime | None:
+    expires_in = token_payload.get("expires_in")
+    if isinstance(expires_in, str) and expires_in.isdigit():
+        expires_in = int(expires_in)
+    if isinstance(expires_in, int):
+        return datetime.now(UTC) + timedelta(seconds=expires_in)
+    return None
+
+
+def _apply_token_payload(connection: HealthConnection, token_payload: dict[str, Any]) -> None:
+    connection.access_token_encrypted = encrypt_secret(token_payload["access_token"])
+    refresh_token = token_payload.get("refresh_token")
+    if refresh_token:
+        connection.refresh_token_encrypted = encrypt_secret(refresh_token)
+    expires_at = _expires_at_from_payload(token_payload)
+    if expires_at is not None:
+        connection.token_expires_at = expires_at
+    scope = token_payload.get("scope")
+    if scope:
+        connection.scopes = scope
 
 
 class WhoopService:
@@ -75,14 +97,13 @@ class WhoopService:
     async def complete_oauth(self, code: str, athlete_id: UUID) -> HealthConnection:
         client_id, client_secret, redirect_uri = self._require_config()
         token_payload = await self._exchange_code(code, client_id, client_secret, redirect_uri)
-        access_token = token_payload["access_token"]
-        refresh_token = token_payload.get("refresh_token")
-        expires_in = token_payload.get("expires_in")
-        expires_at = None
-        if isinstance(expires_in, int):
-            expires_at = datetime.now(UTC) + timedelta(seconds=expires_in)
+        if not token_payload.get("refresh_token"):
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="WHOOP did not return refresh token; ensure offline scope is enabled",
+            )
 
-        profile = await self._api_get(access_token, "/user/profile/basic")
+        profile = await self._api_get(token_payload["access_token"], "/user/profile/basic")
         external_user_id = str(profile.get("user_id", ""))
 
         connection = await self.get_connection(athlete_id)
@@ -94,12 +115,7 @@ class WhoopService:
             self.db.add(connection)
 
         connection.external_user_id = external_user_id or None
-        connection.access_token_encrypted = encrypt_secret(access_token)
-        connection.refresh_token_encrypted = (
-            encrypt_secret(refresh_token) if refresh_token else None
-        )
-        connection.token_expires_at = expires_at
-        connection.scopes = token_payload.get("scope", WHOOP_SCOPES)
+        _apply_token_payload(connection, token_payload)
         connection.last_sync_error = None
         await self.db.commit()
         await self.db.refresh(connection)
@@ -183,6 +199,7 @@ class WhoopService:
                     "refresh_token": refresh_token,
                     "client_id": client_id,
                     "client_secret": client_secret,
+                    "scope": "offline",
                 },
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
@@ -195,15 +212,9 @@ class WhoopService:
             )
 
         token_payload = response.json()
-        access_token = token_payload["access_token"]
-        connection.access_token_encrypted = encrypt_secret(access_token)
-        if token_payload.get("refresh_token"):
-            connection.refresh_token_encrypted = encrypt_secret(token_payload["refresh_token"])
-        expires_in = token_payload.get("expires_in")
-        if isinstance(expires_in, int):
-            connection.token_expires_at = datetime.now(UTC) + timedelta(seconds=expires_in)
+        _apply_token_payload(connection, token_payload)
         await self.db.commit()
-        return access_token
+        return decrypt_secret(connection.access_token_encrypted)
 
     async def _api_get_for_connection(
         self,

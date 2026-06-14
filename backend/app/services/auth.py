@@ -193,10 +193,7 @@ def user_to_response(user: User) -> UserResponse:
             is_verified=user.coach_profile.is_verified,
         )
     if user.athlete_profile:
-        athlete_profile = AthleteProfileResponse(
-            display_name=user.athlete_profile.display_name,
-            timezone=user.athlete_profile.timezone,
-        )
+        athlete_profile = AthleteProfileResponse.model_validate(user.athlete_profile)
 
     return UserResponse(
         id=user.id,

@@ -127,6 +127,11 @@ export function WhoopPanel() {
       {loading ? <p className="text-muted">Загрузка…</p> : null}
       {notice ? <p className="whoop-panel__notice">{notice}</p> : null}
       {error ? <p className="whoop-panel__error">{error}</p> : null}
+      {status?.connected && !status.has_refresh_token ? (
+        <p className="whoop-panel__warn">
+          Автообновление недоступно — отключите WHOOP и подключите снова (один раз Grant).
+        </p>
+      ) : null}
 
       <div className="whoop-panel__actions">
         {!status?.connected ? (

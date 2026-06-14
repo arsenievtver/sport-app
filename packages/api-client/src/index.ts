@@ -4,6 +4,8 @@ import type { ApiHealth } from "@sport-app/shared";
 
 export * from "./auth";
 export * from "./admin";
+export * from "./athlete";
+export * from "./coach";
 export * from "./whoop";
 export { getApiBaseUrl } from "./config";
 

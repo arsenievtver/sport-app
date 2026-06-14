@@ -1,0 +1,40 @@
+.app-shell {
+  min-height: 100dvh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell__header {
+  min-height: calc(var(--header-height) + var(--safe-top));
+  padding:
+    max(var(--space-4), var(--safe-top))
+    max(var(--space-5), var(--safe-right))
+    var(--space-4)
+    max(var(--space-5), var(--safe-left));
+}
+
+.app-shell__title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.app-shell__subtitle {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.app-shell__main {
+  flex: 1;
+  padding:
+    var(--space-5)
+    max(var(--space-5), var(--safe-right))
+    max(var(--space-5), var(--safe-bottom))
+    max(var(--space-5), var(--safe-left));
+  max-width: var(--content-max-width);
+  width: 100%;
+  margin: 0 auto;
+}

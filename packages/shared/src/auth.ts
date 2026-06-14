@@ -1,4 +1,5 @@
 import type { UserRole } from "./types";
+import type { AthleteProfile } from "./athlete";
 
 export type { UserRole };
 
@@ -25,10 +26,16 @@ export interface CoachProfile {
   is_verified: boolean;
 }
 
-export interface AthleteProfile {
-  display_name: string;
-  timezone?: string | null;
-}
+export type { AthleteProfile, AthleteOnboardingPayload, CoachAthleteSummary, Gender } from "./athlete";
+export {
+  FOCUS_IMPORTANCE_DEFAULT,
+  FOCUS_IMPORTANCE_MAX,
+  FOCUS_IMPORTANCE_MIN,
+  GENDER_LABELS,
+  TRAINING_TRAIT_LABELS,
+  clampFocusImportance,
+  isAthleteOnboardingComplete,
+} from "./athlete";
 
 export interface UserResponse {
   id: string;

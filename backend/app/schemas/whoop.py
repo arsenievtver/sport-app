@@ -15,6 +15,7 @@ class WhoopStatusResponse(BaseModel):
     connected_at: datetime | None = None
     last_sync_at: datetime | None = None
     last_sync_error: str | None = None
+    has_refresh_token: bool = False
     last_sync: dict[str, Any] | None = None
 
 

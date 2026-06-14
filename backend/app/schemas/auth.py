@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.core.security import validate_phone, validate_pin
 from app.models.enums import UserRole
+from app.schemas.athlete import AthleteProfileResponse
 
 PHONE_EXAMPLE = "79106492742"
 PIN_EXAMPLE = "123456"
@@ -52,11 +53,6 @@ class CoachProfileResponse(BaseModel):
     display_name: str
     invite_code: str
     is_verified: bool
-
-
-class AthleteProfileResponse(BaseModel):
-    display_name: str
-    timezone: str | None = None
 
 
 class UserResponse(BaseModel):

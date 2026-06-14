@@ -3,14 +3,15 @@ from datetime import date, datetime
 
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
-from app.models.enums import CoachAthleteLinkStatus, UserRole
+from app.models.enums import CoachAthleteLinkStatus, Gender, UserRole
 
 user_role_enum = SQLEnum(UserRole, name="userrole", create_constraint=False)
+gender_enum = SQLEnum(Gender, name="gender", create_constraint=False, native_enum=False)
 
 
 class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -71,9 +72,20 @@ class AthleteProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         nullable=False,
     )
     display_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    gender: Mapped[Gender | None] = mapped_column(gender_enum, nullable=True)
     birth_date: Mapped[date | None] = mapped_column(Date)
     avatar_url: Mapped[str | None] = mapped_column(String(512))
     timezone: Mapped[str] = mapped_column(String(64), default="UTC", nullable=False)
+    # Training focus importance scores (20–100 each, independent).
+    focus_strength: Mapped[int | None] = mapped_column(Integer)
+    focus_flexibility: Mapped[int | None] = mapped_column(Integer)
+    focus_endurance: Mapped[int | None] = mapped_column(Integer)
+    focus_coordination: Mapped[int | None] = mapped_column(Integer)
+    weight_target_min_kg: Mapped[float | None] = mapped_column(Float)
+    weight_target_max_kg: Mapped[float | None] = mapped_column(Float)
+    personal_goal_title: Mapped[str | None] = mapped_column(String(200))
+    personal_goal_target: Mapped[float | None] = mapped_column(Float)
+    onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     user: Mapped["User"] = relationship(back_populates="athlete_profile")
     coach_links: Mapped[list["CoachAthleteLink"]] = relationship(

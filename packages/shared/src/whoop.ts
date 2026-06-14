@@ -9,6 +9,7 @@ export interface WhoopStatusResponse {
   connected_at?: string | null;
   last_sync_at?: string | null;
   last_sync_error?: string | null;
+  has_refresh_token?: boolean;
   last_sync?: WhoopSyncPayload | null;
 }
 

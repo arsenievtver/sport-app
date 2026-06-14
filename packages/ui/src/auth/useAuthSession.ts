@@ -9,6 +9,13 @@ import {
 import { hasRole } from "@sport-app/shared";
 import type { UserResponse, UserRole } from "@sport-app/shared";
 
+let sessionRefreshPaused = false;
+
+/** Pause background /auth/me refresh while athlete onboarding is open. */
+export function setSessionRefreshPaused(paused: boolean): void {
+  sessionRefreshPaused = paused;
+}
+
 export interface AuthSession {
   user: UserResponse | null;
   setUser: (user: UserResponse | null) => void;
@@ -58,6 +65,7 @@ export function useAuthSession(requiredRole: UserRole): AuthSession {
 
   useEffect(() => {
     const recheck = () => {
+      if (sessionRefreshPaused) return;
       if (document.visibilityState !== "visible") return;
       if (!getAccessToken() && !getRefreshToken()) return;
       void validateSession();

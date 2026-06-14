@@ -1,6 +1,7 @@
 .admin-layout {
   display: flex;
   min-height: 100dvh;
+  min-height: 100svh;
 }
 
 .admin-sidebar {
@@ -8,7 +9,11 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  padding: var(--space-5) var(--space-4);
+  padding:
+    max(var(--space-5), var(--safe-top))
+    max(var(--space-4), var(--safe-right))
+    max(var(--space-5), var(--safe-bottom))
+    max(var(--space-4), var(--safe-left));
   border-right: 1px solid var(--glass-border);
   background:
     linear-gradient(180deg, var(--glass-tint) 0%, transparent 60%),
@@ -80,8 +85,18 @@
 }
 
 .admin-header {
-  padding: var(--space-5) var(--space-6);
+  padding:
+    var(--space-5)
+    max(var(--space-6), var(--safe-right))
+    var(--space-5)
+    max(var(--space-6), var(--safe-left));
   border-bottom: 1px solid var(--glass-border);
+}
+
+@media (min-width: 769px) {
+  .admin-header {
+    padding-top: max(var(--space-5), var(--safe-top));
+  }
 }
 
 .admin-header__title {
@@ -98,7 +113,11 @@
 
 .admin-content {
   flex: 1;
-  padding: var(--space-6);
+  padding:
+    var(--space-6)
+    max(var(--space-6), var(--safe-right))
+    max(var(--space-6), var(--safe-bottom))
+    max(var(--space-6), var(--safe-left));
   overflow-x: auto;
 }
 
@@ -365,6 +384,7 @@
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--glass-border);
+    padding-bottom: var(--space-4);
   }
 
   .admin-sidebar__nav {
