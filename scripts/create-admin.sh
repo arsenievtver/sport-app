@@ -7,7 +7,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROD_DIR="$ROOT/infra/prod"
-COMPOSE=(docker compose -f "$PROD_DIR/docker-compose.yml")
 
 if [ $# -lt 3 ]; then
   echo "Usage: $0 <phone> <pin> <display_name> [--coach] [--athlete]" >&2
@@ -30,20 +29,12 @@ run_local() {
 }
 
 run_docker() {
-  # One-off command in running API container (scripts mounted at /scripts).
-  if docker exec sport-app-api test -f /scripts/create_admin.py >/dev/null 2>&1; then
-    "${COMPOSE[@]}" exec -T --entrypoint python api /scripts/create_admin.py "${PY_ARGS[@]}"
-    return
-  fi
-
-  # Fallback: ephemeral container, bypass API entrypoint (uvicorn).
-  "${COMPOSE[@]}" run --rm -T --no-deps \
-    --entrypoint python \
-    -v "$ROOT/scripts:/scripts:ro" \
-    api /scripts/create_admin.py "${PY_ARGS[@]}"
+  # shellcheck source=lib/docker-admin.sh
+  source "$SCRIPT_DIR/lib/docker-admin.sh"
+  docker_admin_python "$ROOT/scripts/create_admin.py" "${PY_ARGS[@]}"
 }
 
-if [ -f "$PROD_DIR/.env" ] && "${COMPOSE[@]}" ps api 2>/dev/null | grep -q "Up"; then
+if [ -f "$PROD_DIR/.env" ] && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx sport-app-api; then
   echo "[sport-app] Creating admin via prod API container..."
   run_docker
 else
