@@ -29,6 +29,8 @@ services:
     container_name: sport-app-api
     restart: unless-stopped
     env_file: .env
+    volumes:
+      - ../../scripts:/scripts:ro
     depends_on:
       postgres:
         condition: service_healthy
