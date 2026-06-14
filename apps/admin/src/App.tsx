@@ -2,13 +2,18 @@ import { useEffect, useState } from "react";
 import { clearTokens, fetchMe, getAccessToken } from "@sport-app/api-client";
 import { hasRole, ROLE_LABELS } from "@sport-app/shared";
 import type { UserResponse } from "@sport-app/shared";
-import { AppShell, AuthScreen } from "@sport-app/ui";
+import { AuthScreen } from "@sport-app/ui";
+
+import { AdminLayout, type AdminPage } from "./components/AdminLayout";
+import { UsersPage } from "./components/UsersPage";
+import "./admin.css";
 
 const REQUIRED_ROLE = "admin" as const;
 
 export default function App() {
   const [user, setUser] = useState<UserResponse | null>(null);
   const [checking, setChecking] = useState(true);
+  const [page, setPage] = useState<AdminPage>("users");
 
   useEffect(() => {
     const token = getAccessToken();
@@ -52,24 +57,18 @@ export default function App() {
   }
 
   return (
-    <AppShell title="Admin" subtitle="Панель суперюзера">
-      <p className="text-secondary" style={{ marginTop: 0 }}>
-        Подключение тренеров, модерация, метрики платформы.
-      </p>
-      <p className="text-muted" style={{ marginTop: "var(--space-2)", fontSize: "var(--text-sm)" }}>
-        Вошёл: {user.phone}
-      </p>
-      <button
-        type="button"
-        className="auth-switch__link"
-        style={{ marginTop: "var(--space-4)" }}
-        onClick={() => {
-          clearTokens();
-          setUser(null);
-        }}
-      >
-        Выйти
-      </button>
-    </AppShell>
+    <AdminLayout
+      page={page}
+      onNavigate={setPage}
+      phone={user.phone}
+      onLogout={() => {
+        clearTokens();
+        setUser(null);
+      }}
+      title="Пользователи"
+      subtitle="Тренеры, атлеты и связи между ними"
+    >
+      {page === "users" && <UsersPage />}
+    </AdminLayout>
   );
 }

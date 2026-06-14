@@ -25,7 +25,7 @@ run_local() {
 }
 
 run_docker() {
-  docker compose -f "$PROD_DIR/docker-compose.yml" exec -T \
+  docker compose -f "$PROD_DIR/docker-compose.yml" run --rm -T --no-deps \
     -v "$ROOT/scripts:/scripts:ro" \
     api python /scripts/grant-roles.py "$PHONE" "$NAME" "${EXTRA_ARGS[@]}"
 }

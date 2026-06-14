@@ -11,7 +11,8 @@ import asyncio
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
+_backend = Path(__file__).resolve().parents[1] / "backend"
+sys.path.insert(0, str(_backend if _backend.is_dir() else Path("/app")))
 
 from app.core.database import async_session_factory
 from app.core.security import validate_phone, validate_pin

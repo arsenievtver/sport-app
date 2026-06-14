@@ -3,6 +3,7 @@
 import type { ApiHealth } from "@sport-app/shared";
 
 export * from "./auth";
+export * from "./admin";
 export { getApiBaseUrl } from "./config";
 
 import { getApiBaseUrl } from "./config";
