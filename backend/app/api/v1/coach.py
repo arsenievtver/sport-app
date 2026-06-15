@@ -18,7 +18,7 @@ async def get_current_coach_profile(user: CoachUser) -> CoachProfile:
 
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Coach profile required",
+            detail="Требуется профиль тренера",
         )
     return user.coach_profile
 

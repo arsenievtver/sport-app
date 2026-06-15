@@ -55,7 +55,7 @@ class WhoopService:
         if not settings.whoop_client_id or not settings.whoop_client_secret:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="WHOOP integration is not configured",
+                detail="Интеграция WHOOP не настроена",
             )
         return settings.whoop_client_id, settings.whoop_client_secret, settings.whoop_redirect_uri
 
@@ -82,7 +82,7 @@ class WhoopService:
         except (JWTError, KeyError, ValueError) as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or expired OAuth state",
+                detail="Недействительный или просроченный OAuth state",
             ) from exc
 
     async def get_connection(self, athlete_id: UUID) -> HealthConnection | None:
@@ -100,7 +100,7 @@ class WhoopService:
         if not token_payload.get("refresh_token"):
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="WHOOP did not return refresh token; ensure offline scope is enabled",
+                detail="WHOOP не вернул refresh-токен; проверьте, что включён offline scope",
             )
 
         profile = await self._api_get(token_payload["access_token"], "/user/profile/basic")
@@ -151,7 +151,7 @@ class WhoopService:
         if connection is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="WHOOP is not connected",
+                detail="WHOOP не подключён",
             )
 
         async def fetch(path: str, params: dict[str, Any] | None = None, *, optional: bool = False) -> dict[str, Any]:
@@ -182,11 +182,11 @@ class WhoopService:
 
     async def _refresh_access_token(self, connection: HealthConnection) -> str:
         if not connection.refresh_token_encrypted:
-            connection.last_sync_error = "WHOOP token expired"
+            connection.last_sync_error = "Токен WHOOP истёк"
             await self.db.commit()
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="WHOOP token expired; reconnect required",
+                detail="Токен WHOOP истёк; требуется переподключение",
             )
 
         client_id, client_secret, _ = self._require_config()
@@ -204,11 +204,11 @@ class WhoopService:
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
         if response.status_code >= 400:
-            connection.last_sync_error = "WHOOP token refresh failed"
+            connection.last_sync_error = "Не удалось обновить токен WHOOP"
             await self.db.commit()
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="WHOOP token refresh failed; reconnect required",
+                detail="Не удалось обновить токен WHOOP; требуется переподключение",
             )
 
         token_payload = response.json()
@@ -234,7 +234,7 @@ class WhoopService:
         if status_code >= 400:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"WHOOP API error ({status_code}): {payload}",
+                detail=f"Ошибка API WHOOP ({status_code}): {payload}",
             )
         return payload
 
@@ -261,7 +261,7 @@ class WhoopService:
             detail = response.text
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"WHOOP token exchange failed: {detail}",
+                detail=f"Не удалось обменять токен WHOOP: {detail}",
             )
         return response.json()
 
@@ -279,7 +279,7 @@ class WhoopService:
         if status_code >= 400:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"WHOOP API error ({status_code}): {payload}",
+                detail=f"Ошибка API WHOOP ({status_code}): {payload}",
             )
         return payload
 

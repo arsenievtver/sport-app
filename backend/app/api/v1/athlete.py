@@ -20,7 +20,7 @@ async def complete_onboarding(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> UserResponse:
     if user.athlete_profile is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Athlete profile required")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
 
     service = AthleteService(db)
     await service.complete_onboarding(user.athlete_profile, data)
@@ -31,6 +31,6 @@ async def complete_onboarding(
 @router.get("/profile", response_model=AthleteProfileResponse)
 async def get_profile(user: AthleteUser) -> AthleteProfileResponse:
     if user.athlete_profile is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Athlete profile required")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
 
     return AthleteProfileResponse.model_validate(user.athlete_profile)

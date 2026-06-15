@@ -34,7 +34,7 @@ class RegisterRequest(PhonePinLogin):
     @classmethod
     def check_register_role(cls, value: UserRole) -> UserRole:
         if value == UserRole.admin:
-            raise ValueError("admin accounts cannot be registered via API")
+            raise ValueError("Аккаунты администратора нельзя регистрировать через API")
         return value
 
 

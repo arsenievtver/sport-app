@@ -24,19 +24,19 @@ def normalize_phone(raw: str) -> str:
         digits = "7" + digits[1:]
     if digits.startswith("7") and len(digits) == 11:
         return digits
-    raise ValueError("phone must be 11 digits starting with 7, e.g. 79106492742")
+    raise ValueError("Телефон должен содержать 11 цифр и начинаться с 7, например 79106492742")
 
 
 def validate_phone(phone: str) -> str:
     normalized = normalize_phone(phone)
     if not PHONE_PATTERN.match(normalized):
-        raise ValueError("phone must be 11 digits starting with 7, e.g. 79106492742")
+        raise ValueError("Телефон должен содержать 11 цифр и начинаться с 7, например 79106492742")
     return normalized
 
 
 def validate_pin(pin: str) -> str:
     if not PIN_PATTERN.match(pin):
-        raise ValueError("pin must be exactly 6 digits")
+        raise ValueError("PIN должен состоять ровно из 6 цифр")
     return pin
 
 

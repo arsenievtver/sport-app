@@ -61,18 +61,17 @@ function failAuth(): never {
 }
 
 const SESSION_AUTH_ERRORS = new Set([
-  "Not authenticated",
-  "Invalid or expired token",
-  "Invalid token type",
-  "User not found or inactive",
+  "Требуется авторизация",
+  "Недействительный или просроченный токен",
+  "Недействительный тип токена",
+  "Пользователь не найден или отключён",
 ]);
 
 async function isSessionUnauthorized(res: Response): Promise<boolean> {
   try {
     const body = await res.clone().json();
     if (typeof body.detail === "string") {
-      if (body.detail.startsWith("WHOOP ")) return false;
-      if (body.detail.includes("WHOOP token")) return false;
+      if (body.detail.includes("WHOOP")) return false;
       return SESSION_AUTH_ERRORS.has(body.detail);
     }
   } catch {

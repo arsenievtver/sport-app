@@ -32,12 +32,24 @@ class AuthService:
         self.db = db
 
     async def register(self, data: RegisterRequest) -> User:
-        existing = await self.db.execute(select(User).where(User.phone == data.phone))
-        if existing.scalar_one_or_none():
+        result = await self.db.execute(select(User).where(User.phone == data.phone))
+        existing = result.scalar_one_or_none()
+        if existing and existing.roles:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Phone already registered. Log in or ask admin to add a role to your account.",
+                detail="Этот телефон уже зарегистрирован. Войдите или попросите администратора добавить роль.",
             )
+
+        if existing:
+            user, _ = await self.grant_roles(
+                phone=data.phone,
+                roles=[data.role],
+                display_name=data.display_name,
+                pin=data.pin,
+                update_pin=True,
+            )
+            user.is_active = True
+            return user
 
         user = User(
             phone=data.phone,
@@ -80,7 +92,7 @@ class AuthService:
         Returns the user and the list of roles that were newly granted.
         """
         if not roles:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No roles to grant")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Не указаны роли для выдачи")
 
         unique_roles: list[UserRole] = []
         for role in roles:
@@ -95,7 +107,7 @@ class AuthService:
             if pin is None:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="PIN required to create a new user",
+                    detail="Для создания нового пользователя нужен PIN",
                 )
             user = User(phone=phone, password_hash=hash_pin(pin), roles=list(unique_roles))
             self.db.add(user)
@@ -136,10 +148,10 @@ class AuthService:
         result = await self.db.execute(select(User).where(User.phone == phone))
         user = result.scalar_one_or_none()
         if user is None or not verify_pin(pin, user.password_hash):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid phone or pin")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный телефон или PIN")
 
         if not user.is_active:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is inactive")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Аккаунт отключён")
 
         user.last_login_at = datetime.now(UTC)
         await self.db.flush()
@@ -150,18 +162,18 @@ class AuthService:
         try:
             payload = decode_token(refresh_token)
             if payload.get("type") != TOKEN_TYPE_REFRESH:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Недействительный refresh-токен")
             user_id = UUID(payload["sub"])
         except (JWTError, ValueError, KeyError) as exc:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired refresh token",
+                detail="Недействительный или просроченный refresh-токен",
             ) from exc
 
         result = await self.db.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
         if user is None or not user.is_active:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Пользователь не найден или отключён")
 
         return self.issue_tokens(user.id)
 
@@ -179,7 +191,7 @@ class AuthService:
             existing = await self.db.execute(select(CoachProfile).where(CoachProfile.invite_code == code))
             if existing.scalar_one_or_none() is None:
                 return code
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not generate invite code")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Не удалось сгенерировать код приглашения")
 
 
 def user_to_response(user: User) -> UserResponse:

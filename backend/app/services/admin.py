@@ -61,7 +61,7 @@ class AdminService:
         if user and user.coach_profile:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Coach with this phone already exists",
+                detail="Тренер с этим телефоном уже существует",
             )
 
         user, _ = await self.auth.grant_roles(
@@ -72,7 +72,7 @@ class AdminService:
         )
         profile = user.coach_profile
         if profile is None:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Coach profile missing")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Профиль тренера не найден")
 
         profile.bio = data.bio
         profile.is_verified = data.is_verified
@@ -101,10 +101,7 @@ class AdminService:
         profile = await self._get_coach_profile(coach_id)
         user = profile.user
         await self.db.delete(profile)
-        user.roles = [role for role in user.roles if role != UserRole.coach]
-        if not user.roles:
-            user.is_active = False
-        await self.db.flush()
+        await self._remove_role(user, UserRole.coach)
 
     async def create_athlete(self, data: AdminAthleteCreate) -> AdminAthleteResponse:
         existing = await self.db.execute(
@@ -116,7 +113,7 @@ class AdminService:
         if user and user.athlete_profile:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Athlete with this phone already exists",
+                detail="Атлет с этим телефоном уже существует",
             )
 
         user, _ = await self.auth.grant_roles(
@@ -127,7 +124,7 @@ class AdminService:
         )
         profile = user.athlete_profile
         if profile is None:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Athlete profile missing")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Профиль атлета не найден")
 
         profile.birth_date = data.birth_date
         profile.timezone = data.timezone
@@ -156,10 +153,7 @@ class AdminService:
         profile = await self._get_athlete_profile(athlete_id)
         user = profile.user
         await self.db.delete(profile)
-        user.roles = [role for role in user.roles if role != UserRole.athlete]
-        if not user.roles:
-            user.is_active = False
-        await self.db.flush()
+        await self._remove_role(user, UserRole.athlete)
 
     async def create_link(self, data: CoachAthleteLinkCreate) -> CoachAthleteLinkResponse:
         await self._get_coach_profile(data.coach_id)
@@ -171,7 +165,7 @@ class AdminService:
             )
         )
         if existing.scalar_one_or_none():
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Link already exists")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Связь уже существует")
 
         link = CoachAthleteLink(
             coach_id=data.coach_id,
@@ -194,8 +188,14 @@ class AdminService:
         result = await self.db.execute(select(CoachAthleteLink).where(CoachAthleteLink.id == link_id))
         link = result.scalar_one_or_none()
         if link is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Связь не найдена")
         await self.db.delete(link)
+        await self.db.flush()
+
+    async def _remove_role(self, user: User, role: UserRole) -> None:
+        user.roles = [existing for existing in user.roles if existing != role]
+        if not user.roles:
+            await self.db.delete(user)
         await self.db.flush()
 
     async def _get_coach(self, coach_id: UUID) -> AdminCoachResponse:
@@ -217,7 +217,7 @@ class AdminService:
         )
         profile = result.scalar_one_or_none()
         if profile is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coach not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Тренер не найден")
         return profile
 
     async def _get_athlete_profile(self, athlete_id: UUID) -> AthleteProfile:
@@ -231,7 +231,7 @@ class AdminService:
         )
         profile = result.scalar_one_or_none()
         if profile is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Athlete not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Атлет не найден")
         return profile
 
     async def _sync_coach_athletes(self, coach_id: UUID, athlete_ids: list[UUID]) -> None:
@@ -241,7 +241,7 @@ class AdminService:
                 select(AthleteProfile.id).where(AthleteProfile.id == athlete_id)
             )
             if athlete_result.scalar_one_or_none() is None:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Athlete {athlete_id} not found")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Атлет {athlete_id} не найден")
 
         result = await self.db.execute(
             select(CoachAthleteLink).where(CoachAthleteLink.coach_id == coach_id)
@@ -269,7 +269,7 @@ class AdminService:
         for coach_id in coach_ids:
             coach_result = await self.db.execute(select(CoachProfile.id).where(CoachProfile.id == coach_id))
             if coach_result.scalar_one_or_none() is None:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Coach {coach_id} not found")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Тренер {coach_id} не найден")
 
         result = await self.db.execute(
             select(CoachAthleteLink).where(CoachAthleteLink.athlete_id == athlete_id)

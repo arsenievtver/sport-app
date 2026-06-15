@@ -24,7 +24,7 @@ class AthleteOnboardingRequest(BaseModel):
     @classmethod
     def birth_date_in_past(cls, value: date) -> date:
         if value >= date.today():
-            raise ValueError("birth_date must be in the past")
+            raise ValueError("Дата рождения должна быть в прошлом")
         return value
 
     @field_validator("personal_goal_title")
@@ -42,14 +42,14 @@ class AthleteOnboardingRequest(BaseModel):
             and self.weight_target_max_kg is not None
             and self.weight_target_min_kg > self.weight_target_max_kg
         ):
-            raise ValueError("weight_target_min_kg must be <= weight_target_max_kg")
+            raise ValueError("Минимальный вес должен быть не больше максимального")
 
         has_title = self.personal_goal_title is not None
         has_target = self.personal_goal_target is not None
         if has_title and not has_target:
-            raise ValueError("personal_goal_target required when personal_goal_title is set")
+            raise ValueError("Укажите целевое значение личной цели")
         if has_target and not has_title:
-            raise ValueError("personal_goal_title required when personal_goal_target is set")
+            raise ValueError("Укажите название личной цели")
 
         return self
 

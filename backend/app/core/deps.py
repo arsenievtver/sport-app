@@ -24,19 +24,19 @@ async def get_current_user(
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
+            detail="Требуется авторизация",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
     try:
         payload = decode_token(credentials.credentials)
         if payload.get("type") != TOKEN_TYPE_ACCESS:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Недействительный тип токена")
         user_id = UUID(payload["sub"])
     except (JWTError, KeyError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
+            detail="Недействительный или просроченный токен",
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
 
@@ -50,7 +50,7 @@ async def get_current_user(
     )
     user = result.scalar_one_or_none()
     if user is None or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Пользователь не найден или отключён")
     return user
 
 
@@ -61,7 +61,7 @@ def require_roles(*roles: UserRole) -> Callable:
         if not allowed.intersection(user.roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions",
+                detail="Недостаточно прав",
             )
         return user
 
@@ -78,7 +78,7 @@ async def get_current_athlete_profile(user: AthleteUser) -> AthleteProfile:
     if user.athlete_profile is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Athlete profile required",
+            detail="Требуется профиль атлета",
         )
     return user.athlete_profile
 

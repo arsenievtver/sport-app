@@ -38,7 +38,7 @@ async def whoop_callback(
     if error:
         return _athlete_app_redirect({"whoop": "error", "reason": error})
     if not code or not state:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing code or state")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Не переданы code или state")
 
     service = WhoopService(db)
     athlete_id = service.parse_oauth_state(state)
