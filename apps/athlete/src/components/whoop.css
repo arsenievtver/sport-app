@@ -1,9 +1,38 @@
 .whoop-panel {
-  margin-top: var(--space-6);
+  margin-top: var(--space-2);
   padding: var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--color-surface) 90%, var(--color-accent) 10%);
+}
+
+.whoop-panel--home {
+  margin-top: 0;
+}
+
+.whoop-btn--compact {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.whoop-panel__actions--settings {
+  margin-bottom: 0;
+}
+
+.whoop-settings__status-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.whoop-settings__lead {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.5;
 }
 
 .whoop-panel__header {

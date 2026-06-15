@@ -28,6 +28,9 @@ build/
 .turbo/
 *.tsbuildinfo
 
+# Uploaded media (local dev)
+uploads/
+
 # PWA
 dev-dist/
 sw.js

@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     s3_secret_key: str = "miniosecret"
     s3_bucket: str = "sport-app"
 
+    media_root: str = "uploads"
+    avatar_size_px: int = 512
+    avatar_jpeg_quality: int = 85
+
     whoop_client_id: str | None = None
     whoop_client_secret: str | None = None
     whoop_redirect_uri: str = "http://localhost:8000/api/v1/integrations/whoop/callback"

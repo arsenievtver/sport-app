@@ -40,8 +40,22 @@
   --space-8: 2rem;
 
   --touch-target: 48px;
-  --header-height: 56px;
-  --bottom-nav-height: 64px;
+  --shell-bar-margin: var(--space-4);
+  --shell-bar-padding-y: 20px;
+  --shell-header-bar-height: calc(var(--shell-bar-padding-y) * 2 + 1.40625rem);
+  --shell-header-float-offset: calc(
+    var(--shell-header-bar-height) + max(var(--shell-bar-margin), var(--safe-top))
+  );
+  --bottom-nav-slot-size: 52px;
+  --bottom-nav-slot-gap: var(--space-2);
+  --bottom-nav-icon-size: 30px;
+  --bottom-nav-bar-padding-y: var(--space-2);
+  --bottom-nav-margin: var(--shell-bar-margin);
+  --bottom-nav-inner-height: var(--bottom-nav-slot-size);
+  --bottom-nav-height: calc(var(--bottom-nav-bar-padding-y) * 2 + var(--bottom-nav-inner-height));
+  --bottom-nav-float-offset: calc(
+    var(--bottom-nav-height) + max(var(--bottom-nav-margin), var(--safe-bottom))
+  );
   --content-max-width: 480px;
   --content-max-width-desktop: 1280px;
 

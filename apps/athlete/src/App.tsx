@@ -3,18 +3,27 @@ import { ROLE_LABELS, isAthleteOnboardingComplete } from "@sport-app/shared";
 import {
   AppShell,
   AthleteOnboarding,
+  AthleteSettings,
   AuthScreen,
+  BottomNav,
+  BottomNavIconHome,
+  BottomNavIconSettings,
   isThemePreviewMode,
   PwaInstallBanner,
   ThemePreview,
   useAuthSession,
 } from "@sport-app/ui";
-import { WhoopPanel } from "./components/WhoopPanel";
+import { WhoopHomePanel } from "./components/WhoopHomePanel";
+import { WhoopOAuthListener } from "./components/WhoopOAuthListener";
+import { WhoopSettingsPanel } from "./components/WhoopSettingsPanel";
 import "./components/whoop.css";
+
+type AthleteTab = "home" | "settings";
 
 export default function App() {
   const { user, setUser, checking, logout } = useAuthSession("athlete");
   const [showThemes, setShowThemes] = useState(isThemePreviewMode());
+  const [tab, setTab] = useState<AthleteTab>("home");
 
   if (showThemes) {
     return <ThemePreview onClose={() => setShowThemes(false)} />;
@@ -48,24 +57,40 @@ export default function App() {
       />
     );
   } else {
+    const displayName = user.athlete_profile?.display_name ?? ROLE_LABELS.athlete.toLowerCase();
+    const navItems = [
+      {
+        id: "home",
+        label: "Главная",
+        icon: <BottomNavIconHome />,
+      },
+      {
+        id: "settings",
+        label: "Настройки",
+        icon: <BottomNavIconSettings />,
+      },
+    ];
+
     content = (
-      <AppShell
-        title={`Привет, ${user.athlete_profile?.display_name ?? ROLE_LABELS.athlete.toLowerCase()}!`}
-        subtitle="Атлет · здоровье и тренировки"
-      >
-        <p className="text-secondary" style={{ marginTop: 0 }}>
-          Подключите WHOOP, чтобы видеть recovery, сон и нагрузку на одном экране.
-        </p>
-        <WhoopPanel />
-        <button
-          type="button"
-          className="auth-switch__link"
-          style={{ marginTop: "var(--space-4)" }}
-          onClick={logout}
+      <>
+        <WhoopOAuthListener />
+        <AppShell
+          title={tab === "home" ? `Привет, ${displayName}!` : "Настройки"}
+          bottomNav={<BottomNav items={navItems} activeId={tab} onChange={(id) => setTab(id as AthleteTab)} />}
         >
-          Выйти
-        </button>
-      </AppShell>
+          {tab === "home" ? (
+            <WhoopHomePanel />
+          ) : (
+            <AthleteSettings
+              user={user}
+              onUserUpdated={setUser}
+              onOpenThemes={() => setShowThemes(true)}
+              onLogout={logout}
+              whoopSection={<WhoopSettingsPanel />}
+            />
+          )}
+        </AppShell>
+      </>
     );
   }
 

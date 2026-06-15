@@ -273,10 +273,8 @@ ensure_backend_venv() {
   fi
   # shellcheck disable=SC1091
   source "$ROOT/backend/.venv/bin/activate"
-  if ! python -c "import fastapi" >/dev/null 2>&1; then
-    log "Installing backend dependencies..."
-    pip install -q -e "$ROOT/backend[dev]"
-  fi
+  log "Syncing backend dependencies..."
+  pip install -q -e "$ROOT/backend[dev]"
 }
 
 ensure_pnpm() {

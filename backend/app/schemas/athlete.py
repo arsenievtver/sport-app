@@ -1,8 +1,9 @@
 from datetime import date, datetime
+from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.models.enums import Gender
+from app.models.enums import CoachAthleteLinkStatus, Gender
 
 FOCUS_IMPORTANCE_MIN = 20
 FOCUS_IMPORTANCE_MAX = 100
@@ -54,10 +55,45 @@ class AthleteOnboardingRequest(BaseModel):
         return self
 
 
+class AthleteProfileUpdateRequest(BaseModel):
+    display_name: str | None = Field(default=None, min_length=1, max_length=120)
+    gender: Gender | None = None
+    birth_date: date | None = None
+
+    @field_validator("display_name")
+    @classmethod
+    def normalize_display_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Имя не может быть пустым")
+        return stripped
+
+    @field_validator("birth_date")
+    @classmethod
+    def birth_date_in_past(cls, value: date | None) -> date | None:
+        if value is not None and value >= date.today():
+            raise ValueError("Дата рождения должна быть в прошлом")
+        return value
+
+
+class JoinCoachRequest(BaseModel):
+    invite_code: str = Field(min_length=4, max_length=32)
+
+
+class AthleteCoachResponse(BaseModel):
+    link_id: UUID
+    coach_id: UUID
+    display_name: str
+    link_status: CoachAthleteLinkStatus
+
+
 class AthleteProfileResponse(BaseModel):
     display_name: str
     gender: Gender | None = None
     birth_date: date | None = None
+    avatar_url: str | None = None
     timezone: str | None = None
     focus_strength: int | None = None
     focus_flexibility: int | None = None

@@ -4,16 +4,22 @@ interface AppShellProps {
   title: string;
   subtitle?: string;
   children?: ReactNode;
+  bottomNav?: ReactNode;
 }
 
-export function AppShell({ title, subtitle, children }: AppShellProps) {
+export function AppShell({ title, subtitle, children, bottomNav }: AppShellProps) {
   return (
-    <div className="app-shell">
-      <header className="app-shell__header glass glass--bar">
-        <h1 className="app-shell__title">{title}</h1>
-        {subtitle && <p className="app-shell__subtitle">{subtitle}</p>}
+    <div
+      className={`app-shell${bottomNav ? " app-shell--with-bottom-nav" : ""}${subtitle ? " app-shell--with-subtitle" : ""}`}
+    >
+      <header className="app-shell__header">
+        <div className="app-shell__header-bar glass glass--floating-bar">
+          <h1 className="app-shell__title">{title}</h1>
+          {subtitle && <p className="app-shell__subtitle">{subtitle}</p>}
+        </div>
       </header>
       <main className="app-shell__main">{children}</main>
+      {bottomNav}
     </div>
   );
 }

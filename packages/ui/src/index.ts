@@ -1,4 +1,6 @@
 export { AppShell, StatusBadge } from "./AppShell";
+export { BottomNav, BottomNavIconHome, BottomNavIconSettings } from "./BottomNav";
+export type { BottomNavItem } from "./BottomNav";
 export { theme } from "./theme";
 export type { Theme } from "./theme";
 export { AuthScreen } from "./auth/AuthScreen";
@@ -13,3 +15,4 @@ export type { ThemeId, ThemePreset } from "./themes/presets";
 export { PwaInstallBanner } from "./pwa/PwaInstallBanner";
 export { AthleteOnboarding } from "./onboarding/AthleteOnboarding";
 export { CoachAthletesPanel } from "./onboarding/CoachAthletesPanel";
+export { AthleteSettings } from "./settings/AthleteSettings";

@@ -2,8 +2,10 @@
 @import "./glass.css";
 @import "./base.css";
 @import "./app-shell.css";
+@import "./bottom-nav.css";
 @import "./auth/auth.css";
 @import "./auth/auth-neon.css";
 @import "./preview/preview.css";
 @import "./onboarding/onboarding.css";
+@import "./settings/settings.css";
 @import "./pwa/pwa-install.css";

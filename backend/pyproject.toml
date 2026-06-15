@@ -16,6 +16,7 @@ dependencies = [
     "python-multipart>=0.0.17",
     "pgvector>=0.3.6",
     "httpx>=0.28.0",
+    "pillow>=11.0.0",
 ]
 
 [project.optional-dependencies]

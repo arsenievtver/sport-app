@@ -30,10 +30,7 @@ export default function App() {
   }
 
   return (
-    <AppShell
-      title={user.coach_profile?.display_name ?? ROLE_LABELS.coach}
-      subtitle="Coach Web · программы и библиотека (скоро)"
-    >
+    <AppShell title={user.coach_profile?.display_name ?? ROLE_LABELS.coach}>
       <p className="text-secondary" style={{ marginTop: 0 }}>
         Desktop-first: drag-and-drop программы, медиа упражнений, аналитика клиентов.
       </p>

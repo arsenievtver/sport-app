@@ -3,7 +3,7 @@
   z-index: 90;
   left: max(var(--space-4), var(--safe-left));
   right: max(var(--space-4), var(--safe-right));
-  bottom: max(var(--space-4), var(--safe-bottom));
+  bottom: var(--bottom-nav-float-offset, max(var(--space-4), var(--safe-bottom)));
   animation: pwa-install-in 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 

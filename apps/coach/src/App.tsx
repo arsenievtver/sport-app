@@ -1,9 +1,21 @@
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ROLE_LABELS, ROLE_LABELS_PLURAL } from "@sport-app/shared";
-import { AppShell, AuthScreen, CoachAthletesPanel, PwaInstallBanner, useAuthSession } from "@sport-app/ui";
+import {
+  AppShell,
+  AuthScreen,
+  BottomNav,
+  BottomNavIconHome,
+  BottomNavIconSettings,
+  CoachAthletesPanel,
+  PwaInstallBanner,
+  useAuthSession,
+} from "@sport-app/ui";
+
+type CoachTab = "home" | "settings";
 
 export default function App() {
   const { user, setUser, checking, logout } = useAuthSession("coach");
+  const [tab, setTab] = useState<CoachTab>("home");
 
   let content: ReactNode;
 
@@ -27,28 +39,54 @@ export default function App() {
       />
     );
   } else {
+    const coachName = user.coach_profile?.display_name ?? ROLE_LABELS.coach;
+    const inviteCode = user.coach_profile?.invite_code;
+    const navItems = [
+      {
+        id: "home",
+        label: "Главная",
+        icon: <BottomNavIconHome />,
+      },
+      {
+        id: "settings",
+        label: "Настройки",
+        icon: <BottomNavIconSettings />,
+      },
+    ];
+
     content = (
       <AppShell
-        title={`${user.coach_profile?.display_name ?? ROLE_LABELS.coach}`}
-        subtitle={
-          user.coach_profile?.invite_code
-            ? `Код приглашения: ${user.coach_profile.invite_code}`
-            : "Coach · главная (скоро)"
-        }
+        title={tab === "home" ? coachName : "Настройки"}
+        bottomNav={<BottomNav items={navItems} activeId={tab} onChange={(id) => setTab(id as CoachTab)} />}
       >
-        <p className="text-secondary" style={{ marginTop: 0 }}>
-          Добро пожаловать. Делись кодом {user.coach_profile?.invite_code} с {ROLE_LABELS_PLURAL.athlete}.
-        </p>
-        <h2 style={{ margin: "var(--space-5) 0 var(--space-3)", fontSize: "var(--text-lg)" }}>Атлеты и их цели</h2>
-        <CoachAthletesPanel />
-        <button
-          type="button"
-          className="auth-switch__link"
-          style={{ marginTop: "var(--space-4)" }}
-          onClick={logout}
-        >
-          Выйти
-        </button>
+        {tab === "home" ? (
+          <>
+            <p className="text-secondary" style={{ marginTop: 0 }}>
+              Добро пожаловать. Делись кодом {inviteCode} с {ROLE_LABELS_PLURAL.athlete}.
+            </p>
+            <h2 style={{ margin: "var(--space-5) 0 var(--space-3)", fontSize: "var(--text-lg)" }}>Атлеты и их цели</h2>
+            <CoachAthletesPanel />
+          </>
+        ) : (
+          <>
+            <p className="text-secondary" style={{ marginTop: 0 }}>
+              Настройки профиля тренера и аккаунта.
+            </p>
+            {inviteCode ? (
+              <p className="text-secondary" style={{ marginTop: "var(--space-4)" }}>
+                Код приглашения: <strong>{inviteCode}</strong>
+              </p>
+            ) : null}
+            <button
+              type="button"
+              className="auth-switch__link"
+              style={{ marginTop: "var(--space-4)" }}
+              onClick={logout}
+            >
+              Выйти
+            </button>
+          </>
+        )}
       </AppShell>
     );
   }
