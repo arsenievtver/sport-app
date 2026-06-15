@@ -70,6 +70,7 @@ class AdminService:
             display_name=data.display_name,
             pin=data.pin,
         )
+        user.is_active = True
         profile = user.coach_profile
         if profile is None:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Профиль тренера не найден")
@@ -122,6 +123,7 @@ class AdminService:
             display_name=data.display_name,
             pin=data.pin,
         )
+        user.is_active = True
         profile = user.athlete_profile
         if profile is None:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Профиль атлета не найден")

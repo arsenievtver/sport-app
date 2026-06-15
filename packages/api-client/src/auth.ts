@@ -48,8 +48,12 @@ async function parseError(res: Response): Promise<string> {
     if (Array.isArray(body.detail) && body.detail[0]?.msg) {
       return body.detail.map((d: { msg: string }) => d.msg).join(", ");
     }
+    if (typeof body.message === "string") return body.message;
   } catch {
     /* ignore */
+  }
+  if (res.status >= 500) {
+    return "Внутренняя ошибка сервера. Попробуйте позже или обратитесь к администратору.";
   }
   return `Ошибка ${res.status}`;
 }

@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.security import (
@@ -31,9 +32,19 @@ class AuthService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def _get_user_by_phone(self, phone: str) -> User | None:
+        result = await self.db.execute(
+            select(User)
+            .where(User.phone == phone)
+            .options(
+                selectinload(User.coach_profile),
+                selectinload(User.athlete_profile),
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def register(self, data: RegisterRequest) -> User:
-        result = await self.db.execute(select(User).where(User.phone == data.phone))
-        existing = result.scalar_one_or_none()
+        existing = await self._get_user_by_phone(data.phone)
         if existing and existing.roles:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -99,8 +110,7 @@ class AuthService:
             if role not in unique_roles:
                 unique_roles.append(role)
 
-        result = await self.db.execute(select(User).where(User.phone == phone))
-        user = result.scalar_one_or_none()
+        user = await self._get_user_by_phone(phone)
         added: list[UserRole] = []
 
         if user is None:
@@ -114,11 +124,12 @@ class AuthService:
             await self.db.flush()
             added = list(unique_roles)
         else:
+            current_roles = list(user.roles or [])
             for role in unique_roles:
-                if role not in user.roles:
+                if role not in current_roles:
                     added.append(role)
             if added:
-                user.roles = [*user.roles, *added]
+                user.roles = [*current_roles, *added]
             if update_pin and pin is not None:
                 user.password_hash = hash_pin(pin)
 
@@ -145,8 +156,7 @@ class AuthService:
             )
 
     async def login(self, phone: str, pin: str) -> User:
-        result = await self.db.execute(select(User).where(User.phone == phone))
-        user = result.scalar_one_or_none()
+        user = await self._get_user_by_phone(phone)
         if user is None or not verify_pin(pin, user.password_hash):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный телефон или PIN")
 
