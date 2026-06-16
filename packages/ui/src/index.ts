@@ -5,6 +5,7 @@ export {
   BottomNavIconHome,
   BottomNavIconInvite,
   BottomNavIconSettings,
+  BottomNavIconStats,
 } from "./BottomNav";
 export { CoachInvitePanel } from "./invite/CoachInvitePanel";
 export { usePendingCoachInvite } from "./invite/usePendingCoachInvite";

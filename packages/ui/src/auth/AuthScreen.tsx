@@ -9,7 +9,7 @@ import {
   saveTokens,
 } from "@sport-app/api-client";
 import type { TokenResponse, UserResponse, UserRole } from "@sport-app/shared";
-import { hasRole } from "@sport-app/shared";
+import { clearPendingInviteCode, hasRole } from "@sport-app/shared";
 
 import { BrandMark } from "./BrandMark";
 import { PhoneInput } from "./PhoneInput";
@@ -27,6 +27,8 @@ export interface AuthScreenConfig {
   showStats?: boolean;
   /** Подсказка при переходе по приглашению тренера */
   inviteHint?: string;
+  /** Код приглашения тренера (регистрация + привязка на сервере) */
+  pendingInviteCode?: string | null;
   /** Optional hero image URL — положи в public/auth-hero.webp */
   heroImageUrl?: string;
 }
@@ -49,6 +51,7 @@ export function AuthScreen({
       : "Аккаунт выдаёт администратор",
   showStats = role !== "admin",
   inviteHint,
+  pendingInviteCode,
   heroImageUrl,
   onAuthenticated,
 }: AuthScreenProps) {
@@ -79,6 +82,7 @@ export function AuthScreen({
             pin,
             role: role as Exclude<UserRole, "admin">,
             display_name: displayName.trim(),
+            ...(pendingInviteCode ? { invite_code: pendingInviteCode } : {}),
           })
         : await login({ phone, pin });
 
@@ -89,6 +93,10 @@ export function AuthScreen({
         clearTokens();
         setError("Это приложение не для вашей роли");
         return;
+      }
+
+      if (isRegister && pendingInviteCode) {
+        clearPendingInviteCode();
       }
 
       onAuthenticated(user, tokens);

@@ -18,6 +18,7 @@ export interface LoginPayload {
 export interface RegisterPayload extends LoginPayload {
   role: Exclude<UserRole, "admin">;
   display_name: string;
+  invite_code?: string;
 }
 
 export interface CoachProfile {

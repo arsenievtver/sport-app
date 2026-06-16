@@ -13,24 +13,33 @@ import {
   BottomNav,
   BottomNavIconHome,
   BottomNavIconSettings,
+  BottomNavIconStats,
   isThemePreviewMode,
   PwaInstallBanner,
   ThemePreview,
   useAuthSession,
   usePendingCoachInvite,
 } from "@sport-app/ui";
-import { WhoopHomePanel } from "./components/WhoopHomePanel";
 import { WhoopOAuthListener } from "./components/WhoopOAuthListener";
-import { WhoopSettingsPanel } from "./components/WhoopSettingsPanel";
+import { WhoopTabPanel } from "./components/WhoopTabPanel";
 import { AthleteCoachesHomePanel } from "./components/AthleteCoachesHomePanel";
 import "./components/whoop.css";
 
-type AthleteTab = "home" | "settings";
+type AthleteTab = "home" | "whoop" | "settings";
+
+const TAB_TITLES: Record<AthleteTab, string | ((name: string) => string)> = {
+  home: (name) => `Привет, ${name}!`,
+  whoop: "WHOOP",
+  settings: "Настройки",
+};
 
 export default function App() {
   const { user, setUser, checking, logout } = useAuthSession("athlete");
   const [showThemes, setShowThemes] = useState(isThemePreviewMode());
-  const [tab, setTab] = useState<AthleteTab>("home");
+  const [tab, setTab] = useState<AthleteTab>(() => {
+    const whoop = new URLSearchParams(window.location.search).get("whoop");
+    return whoop ? "whoop" : "home";
+  });
   const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() => readPendingInviteCode());
 
   useEffect(() => {
@@ -67,6 +76,7 @@ export default function App() {
             ? "Тренер пригласил тебя в sport-app. Войди или зарегистрируйся — мы сразу свяжем вас."
             : undefined
         }
+        pendingInviteCode={pendingInviteCode}
         onAuthenticated={(u) => setUser(u)}
       />
     );
@@ -86,36 +96,44 @@ export default function App() {
         icon: <BottomNavIconHome />,
       },
       {
+        id: "whoop",
+        label: "WHOOP",
+        icon: <BottomNavIconStats />,
+      },
+      {
         id: "settings",
         label: "Настройки",
         icon: <BottomNavIconSettings />,
       },
     ];
 
+    const titleEntry = TAB_TITLES[tab];
+    const title = typeof titleEntry === "function" ? titleEntry(displayName) : titleEntry;
+
     content = (
       <>
         <WhoopOAuthListener />
         <AppShell
-          title={tab === "home" ? `Привет, ${displayName}!` : "Настройки"}
+          title={title}
           bottomNav={<BottomNav items={navItems} activeId={tab} onChange={(id) => setTab(id as AthleteTab)} />}
         >
-          {joining ? <p className="invite-banner invite-banner--info">Подключаем тренера…</p> : null}
-          {notice ? <p className="invite-banner invite-banner--success">{notice}</p> : null}
-          {inviteError ? <p className="invite-banner invite-banner--error">{inviteError}</p> : null}
           {tab === "home" ? (
             <>
+              {joining ? <p className="invite-banner invite-banner--info">Подключаем тренера…</p> : null}
+              {notice ? <p className="invite-banner invite-banner--success">{notice}</p> : null}
+              {inviteError ? <p className="invite-banner invite-banner--error">{inviteError}</p> : null}
               <AthleteCoachesHomePanel refreshKey={coachesRefreshKey > 0 ? String(coachesRefreshKey) : undefined} />
-              <WhoopHomePanel />
             </>
-          ) : (
+          ) : null}
+          {tab === "whoop" ? <WhoopTabPanel /> : null}
+          {tab === "settings" ? (
             <AthleteSettings
               user={user}
               onUserUpdated={setUser}
               onOpenThemes={() => setShowThemes(true)}
               onLogout={logout}
-              whoopSection={<WhoopSettingsPanel />}
             />
-          )}
+          ) : null}
         </AppShell>
       </>
     );
@@ -124,7 +142,14 @@ export default function App() {
   return (
     <>
       {content}
-      <PwaInstallBanner appName="Атлет" />
+      <PwaInstallBanner
+        appName="Атлет"
+        blockedReason={
+          !checking && !user && pendingInviteCode
+            ? "Приглашение тренера сохранено в ссылке. После входа можно установить приложение — тренер уже будет привязан."
+            : undefined
+        }
+      />
       {!checking && !user ? (
         <button
           type="button"

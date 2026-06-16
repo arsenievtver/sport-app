@@ -132,3 +132,23 @@ export function BottomNavIconSettings() {
     </svg>
   );
 }
+
+export function BottomNavIconStats() {
+  return (
+    <svg
+      className="bottom-nav__icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M5 19V13" />
+      <path d="M12 19V7" />
+      <path d="M19 19V10" />
+      <path d="M3 19h18" />
+    </svg>
+  );
+}

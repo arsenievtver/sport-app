@@ -29,6 +29,7 @@ class PhonePinLogin(BaseModel):
 class RegisterRequest(PhonePinLogin):
     role: UserRole = Field(examples=[UserRole.athlete])
     display_name: str = Field(min_length=1, max_length=120, examples=["Иван"])
+    invite_code: str | None = Field(default=None, min_length=4, max_length=32)
 
     @field_validator("role")
     @classmethod

@@ -4,11 +4,34 @@ type PwaInstallBannerProps = {
   appName: string;
   storageKey?: string;
   iconSrc?: string;
+  /** Не предлагать установку (например, пока не завершён вход по приглашению) */
+  blockedReason?: string;
 };
 
-export function PwaInstallBanner({ appName, storageKey, iconSrc = "/icon.svg" }: PwaInstallBannerProps) {
+export function PwaInstallBanner({
+  appName,
+  storageKey,
+  iconSrc = "/icon.svg",
+  blockedReason,
+}: PwaInstallBannerProps) {
   const key = storageKey ?? `pwa-install-${appName.toLowerCase()}`;
-  const { visible, mode, install, dismiss } = usePwaInstall(key);
+  const { visible, mode, install, dismiss } = usePwaInstall(key, Boolean(blockedReason));
+
+  if (blockedReason) {
+    return (
+      <div className="pwa-install" role="region" aria-label="Установка приложения">
+        <div className="pwa-install__card">
+          <div className="pwa-install__head">
+            <img className="pwa-install__icon" src={iconSrc} alt="" width={44} height={44} />
+            <div>
+              <p className="pwa-install__title">Сначала войди или зарегистрируйся</p>
+              <p className="pwa-install__text">{blockedReason}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!visible || !mode) return null;
 

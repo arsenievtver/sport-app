@@ -10,12 +10,12 @@ import {
 
 export type PwaInstallMode = "android" | "ios" | null;
 
-export function usePwaInstall(storageKey: string) {
+export function usePwaInstall(storageKey: string, blocked = false) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [mode, setMode] = useState<PwaInstallMode>(null);
 
   useEffect(() => {
-    if (isStandalonePwa() || wasInstallBannerDismissed(storageKey)) return;
+    if (blocked || isStandalonePwa() || wasInstallBannerDismissed(storageKey)) return;
 
     const onBeforeInstall = (event: Event) => {
       event.preventDefault();
@@ -41,7 +41,7 @@ export function usePwaInstall(storageKey: string) {
       window.removeEventListener("appinstalled", onInstalled);
       if (iosTimer) clearTimeout(iosTimer);
     };
-  }, [storageKey]);
+  }, [storageKey, blocked]);
 
   const dismiss = useCallback(() => {
     markInstallBannerDismissed(storageKey);

@@ -1,9 +1,14 @@
 .bottom-nav {
   position: fixed;
   z-index: 80;
-  left: max(var(--bottom-nav-margin), var(--safe-left));
-  right: max(var(--bottom-nav-margin), var(--safe-right));
-  bottom: max(var(--bottom-nav-margin), var(--safe-bottom));
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding:
+    0
+    max(var(--bottom-nav-margin), var(--safe-right))
+    max(var(--bottom-nav-margin), var(--safe-bottom))
+    max(var(--bottom-nav-margin), var(--safe-left));
   pointer-events: none;
 }
 

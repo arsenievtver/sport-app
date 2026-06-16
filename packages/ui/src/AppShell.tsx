@@ -12,6 +12,7 @@ export function AppShell({ title, subtitle, children, bottomNav }: AppShellProps
     <div
       className={`app-shell${bottomNav ? " app-shell--with-bottom-nav" : ""}${subtitle ? " app-shell--with-subtitle" : ""}`}
     >
+      <div className="app-shell__bg" aria-hidden />
       <header className="app-shell__header">
         <div className="app-shell__header-bar glass glass--floating-bar">
           <h1 className="app-shell__title">{title}</h1>

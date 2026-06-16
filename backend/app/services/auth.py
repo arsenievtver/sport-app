@@ -19,6 +19,7 @@ from app.core.security import (
 )
 from app.models.enums import UserRole
 from app.models.user import AthleteProfile, CoachProfile, User
+from app.schemas.athlete import JoinCoachRequest
 from app.schemas.auth import (
     AthleteProfileResponse,
     CoachProfileResponse,
@@ -26,6 +27,7 @@ from app.schemas.auth import (
     TokenResponse,
     UserResponse,
 )
+from app.services.athlete import AthleteService
 
 
 class AuthService:
@@ -83,6 +85,10 @@ class AuthService:
                 display_name=data.display_name,
             )
             self.db.add(profile)
+            await self.db.flush()
+            if data.invite_code:
+                athlete_service = AthleteService(self.db)
+                await athlete_service.join_coach(profile, JoinCoachRequest(invite_code=data.invite_code))
 
         await self.db.flush()
         await self.db.refresh(user, attribute_names=["coach_profile", "athlete_profile"])

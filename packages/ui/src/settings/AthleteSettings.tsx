@@ -3,7 +3,6 @@ import {
   fetchAthleteCoaches,
   formatPhoneDisplay,
   joinAthleteCoach,
-  removeAthleteCoach,
   resolveMediaUrl,
   updateAthleteProfile,
   uploadAthleteAvatar,
@@ -18,14 +17,12 @@ import {
 } from "@sport-app/shared";
 
 import { AvatarCropModal } from "./AvatarCropModal";
-import { SessionsBalanceBadge } from "../sessions/SessionsBalanceBadge";
 
 interface AthleteSettingsProps {
   user: UserResponse;
   onUserUpdated: (user: UserResponse) => void;
   onOpenThemes: () => void;
   onLogout: () => void;
-  whoopSection?: ReactNode;
 }
 
 function SettingsSection({
@@ -84,7 +81,6 @@ export function AthleteSettings({
   onUserUpdated,
   onOpenThemes,
   onLogout,
-  whoopSection,
 }: AthleteSettingsProps) {
   const profile = user.athlete_profile;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -187,20 +183,6 @@ export function AthleteSettings({
       showMessage("Тренер добавлен");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось добавить тренера");
-    } finally {
-      setSavingCoach(false);
-    }
-  };
-
-  const handleRemoveCoach = async (linkId: string) => {
-    setSavingCoach(true);
-    setError(null);
-    try {
-      await removeAthleteCoach(linkId);
-      setCoaches((prev) => prev.filter((item) => item.link_id !== linkId));
-      showMessage("Тренер удалён");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось удалить тренера");
     } finally {
       setSavingCoach(false);
     }
@@ -324,22 +306,8 @@ export function AthleteSettings({
                         {initial}
                       </div>
                     )}
-                    <div>
-                      <div className="settings-coach-list__name">{coach.display_name}</div>
-                      <div className="settings-coach-list__meta">
-                        {coach.link_status === "pending" ? "Ожидает подтверждения" : "Активен"}
-                      </div>
-                    </div>
+                    <div className="settings-coach-list__name">{coach.display_name}</div>
                   </div>
-                  <SessionsBalanceBadge balance={coach.sessions_balance} />
-                  <button
-                    type="button"
-                    className="settings-btn settings-btn--ghost"
-                    onClick={() => void handleRemoveCoach(coach.link_id)}
-                    disabled={savingCoach}
-                  >
-                    Удалить
-                  </button>
                 </li>
               );
             })}
@@ -366,8 +334,6 @@ export function AthleteSettings({
           </button>
         </div>
       </SettingsSection>
-
-      {whoopSection ? <SettingsSection title="WHOOP">{whoopSection}</SettingsSection> : null}
 
       <SettingsSection title="Приложение">
         <button type="button" className="settings-link" onClick={onOpenThemes}>
