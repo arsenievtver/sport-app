@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import CoachAthleteLinkStatus, Gender
+from app.models.enums import CoachAthleteLinkStatus, CoachAthleteSessionEntryKind, Gender
 
 
 class CoachAthleteSummary(BaseModel):
@@ -13,6 +13,7 @@ class CoachAthleteSummary(BaseModel):
     avatar_url: str | None = None
     link_status: CoachAthleteLinkStatus
     sessions_balance: int = 0
+    sessions_completed: int = 0
     gender: Gender | None = None
     birth_date: date | None = None
     focus_strength: int | None = None
@@ -34,3 +35,11 @@ class CoachAthleteSessionsResponse(BaseModel):
     athlete_id: UUID
     link_id: UUID
     sessions_balance: int
+    sessions_completed: int
+
+
+class CoachAthleteSessionHistoryEntry(BaseModel):
+    id: UUID
+    kind: CoachAthleteSessionEntryKind
+    sessions_count: int
+    entry_date: date

@@ -19,6 +19,11 @@ class CoachAthleteLinkStatus(str, enum.Enum):
     ended = "ended"
 
 
+class CoachAthleteSessionEntryKind(str, enum.Enum):
+    credit = "credit"
+    debit = "debit"
+
+
 class ProgramStatus(str, enum.Enum):
     draft = "draft"
     active = "active"

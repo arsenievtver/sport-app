@@ -25,6 +25,8 @@ export interface AuthScreenConfig {
   loginHint?: string;
   /** Мотивационная строка внизу карточки */
   showStats?: boolean;
+  /** Подсказка при переходе по приглашению тренера */
+  inviteHint?: string;
   /** Optional hero image URL — положи в public/auth-hero.webp */
   heroImageUrl?: string;
 }
@@ -46,10 +48,11 @@ export function AuthScreen({
       ? "Доступ только для администраторов"
       : "Аккаунт выдаёт администратор",
   showStats = role !== "admin",
+  inviteHint,
   heroImageUrl,
   onAuthenticated,
 }: AuthScreenProps) {
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(inviteHint ? "register" : "login");
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -144,6 +147,7 @@ export function AuthScreen({
           {isRegister && (
             <p className="auth-card__subtitle">Создай аккаунт за минуту</p>
           )}
+          {inviteHint ? <p className="auth-hint auth-hint--invite">{inviteHint}</p> : null}
 
           {error && <p className="auth-error" role="alert">{error}</p>}
 

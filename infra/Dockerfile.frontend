@@ -10,6 +10,8 @@ COPY packages ./packages
 
 ARG APP=athlete
 ENV VITE_API_URL=/api/v1
+ARG VITE_ATHLETE_APP_URL=
+ENV VITE_ATHLETE_APP_URL=${VITE_ATHLETE_APP_URL}
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter "@sport-app/${APP}" build

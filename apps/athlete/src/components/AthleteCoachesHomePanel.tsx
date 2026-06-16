@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchAthleteCoaches } from "@sport-app/api-client";
+import { fetchAthleteCoaches, resolveMediaUrl } from "@sport-app/api-client";
+import { SessionsBalanceBadge } from "@sport-app/ui";
 import type { AthleteCoachLink } from "@sport-app/shared";
 
 function headingByCount(count: number): string {
   return count === 1 ? "Мой тренер" : "Мои тренеры";
 }
 
-export function AthleteCoachesHomePanel() {
+export function AthleteCoachesHomePanel({ refreshKey }: { refreshKey?: string } = {}) {
   const [coaches, setCoaches] = useState<AthleteCoachLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     fetchAthleteCoaches()
       .then((items) => {
         if (!cancelled) setCoaches(items);
@@ -26,7 +28,7 @@ export function AthleteCoachesHomePanel() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
 
   const activeCoaches = useMemo(
     () => coaches.filter((coach) => coach.link_status === "active" || coach.link_status === "pending"),
@@ -60,17 +62,31 @@ export function AthleteCoachesHomePanel() {
         <p className="text-secondary">Пока нет подключённых тренеров. Добавь тренера в настройках по коду.</p>
       ) : (
         <ul className="athlete-home-coaches__list">
-          {activeCoaches.map((coach) => (
-            <li key={coach.link_id} className="athlete-home-coaches__item">
-              <div>
-                <div className="athlete-home-coaches__name">{coach.display_name}</div>
-                <div className="athlete-home-coaches__status text-muted">
-                  {coach.link_status === "pending" ? "Ожидает подтверждения" : "Активен"}
+          {activeCoaches.map((coach) => {
+            const avatarUrl = resolveMediaUrl(coach.avatar_url);
+            const initial = (coach.display_name?.slice(0, 1) ?? "?").toUpperCase();
+
+            return (
+              <li key={coach.link_id} className="athlete-home-coaches__item">
+                <div className="athlete-home-coaches__identity">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" className="athlete-home-coaches__avatar" />
+                  ) : (
+                    <div className="athlete-home-coaches__avatar athlete-home-coaches__avatar--placeholder" aria-hidden="true">
+                      {initial}
+                    </div>
+                  )}
+                  <div>
+                    <div className="athlete-home-coaches__name">{coach.display_name}</div>
+                    <div className="athlete-home-coaches__status text-muted">
+                      {coach.link_status === "pending" ? "Ожидает подтверждения" : "Активен"}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <span className="badge badge-accent">Тренировок: {coach.sessions_balance}</span>
-            </li>
-          ))}
+                <SessionsBalanceBadge balance={coach.sessions_balance} />
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

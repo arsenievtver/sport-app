@@ -106,6 +106,7 @@ services:
       dockerfile: infra/Dockerfile.frontend
       args:
         APP: coach
+        VITE_ATHLETE_APP_URL: https://my.${DOMAIN}
     volumes:
       - coach_static:/out
     profiles: [build]

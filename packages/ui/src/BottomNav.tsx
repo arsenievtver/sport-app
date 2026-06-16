@@ -20,12 +20,18 @@ export function BottomNav({ items, activeId, onChange }: BottomNavProps) {
 
   const itemsStyle = {
     "--bottom-nav-active-index": activeIndex,
+    "--bottom-nav-item-count": items.length,
   } as CSSProperties;
+
+  const compact = items.length >= 4;
 
   return (
     <nav className="bottom-nav" aria-label="Основное меню">
       <div className="bottom-nav__bar glass">
-        <div className="bottom-nav__items" style={itemsStyle}>
+        <div
+          className={`bottom-nav__items${compact ? " bottom-nav__items--compact" : ""}`}
+          style={itemsStyle}
+        >
           <div className="bottom-nav__spotlight-track" aria-hidden="true">
             <div className="bottom-nav__spotlight" />
           </div>
@@ -65,6 +71,46 @@ export function BottomNavIconHome() {
       <path d="M4.5 10.5 12 4.75 19.5 10.5" />
       <path d="M6.25 10.25V18.5a1 1 0 0 0 1 1h9.5a1 1 0 0 0 1-1V10.25" />
       <path d="M10 18.5v-5.25h4V18.5" />
+    </svg>
+  );
+}
+
+export function BottomNavIconAthletes() {
+  return (
+    <svg
+      className="bottom-nav__icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+export function BottomNavIconInvite() {
+  return (
+    <svg
+      className="bottom-nav__icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M19 8v6" />
+      <path d="M22 11h-6" />
     </svg>
   );
 }

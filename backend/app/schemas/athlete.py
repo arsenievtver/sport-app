@@ -86,6 +86,7 @@ class AthleteCoachResponse(BaseModel):
     link_id: UUID
     coach_id: UUID
     display_name: str
+    avatar_url: str | None = None
     link_status: CoachAthleteLinkStatus
     sessions_balance: int = 0
 

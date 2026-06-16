@@ -1,17 +1,22 @@
 import { useState, type ReactNode } from "react";
-import { ROLE_LABELS, ROLE_LABELS_PLURAL } from "@sport-app/shared";
+import { ROLE_LABELS } from "@sport-app/shared";
 import {
   AppShell,
   AuthScreen,
   BottomNav,
+  BottomNavIconAthletes,
   BottomNavIconHome,
+  BottomNavIconInvite,
   BottomNavIconSettings,
   CoachAthletesPanel,
+  CoachInvitePanel,
+  CoachSettings,
   PwaInstallBanner,
   useAuthSession,
 } from "@sport-app/ui";
+import { getAthleteAppUrl } from "./athlete-app-url";
 
-type CoachTab = "home" | "settings";
+type CoachTab = "home" | "athletes" | "invite" | "settings";
 
 export default function App() {
   const { user, setUser, checking, logout } = useAuthSession("coach");
@@ -48,44 +53,54 @@ export default function App() {
         icon: <BottomNavIconHome />,
       },
       {
+        id: "athletes",
+        label: "Атлеты",
+        icon: <BottomNavIconAthletes />,
+      },
+      {
+        id: "invite",
+        label: "Пригласить",
+        icon: <BottomNavIconInvite />,
+      },
+      {
         id: "settings",
         label: "Настройки",
         icon: <BottomNavIconSettings />,
       },
     ];
 
+    const title =
+      tab === "home"
+        ? coachName
+        : tab === "athletes"
+          ? "Атлеты"
+          : tab === "invite"
+            ? "Пригласить атлета"
+            : "Настройки";
+
     content = (
       <AppShell
-        title={tab === "home" ? coachName : "Настройки"}
+        title={title}
         bottomNav={<BottomNav items={navItems} activeId={tab} onChange={(id) => setTab(id as CoachTab)} />}
       >
         {tab === "home" ? (
-          <>
-            <p className="text-secondary" style={{ marginTop: 0 }}>
-              Добро пожаловать. Делись кодом {inviteCode} с {ROLE_LABELS_PLURAL.athlete}.
-            </p>
-            <h2 style={{ margin: "var(--space-5) 0 var(--space-3)", fontSize: "var(--text-lg)" }}>Мои атлеты</h2>
-            <CoachAthletesPanel />
-          </>
+          <p className="text-secondary" style={{ marginTop: 0 }}>
+            Добро пожаловать. Приглашай атлетов через вкладку «Пригласить».
+          </p>
+        ) : tab === "athletes" ? (
+          <CoachAthletesPanel />
+        ) : tab === "invite" ? (
+          inviteCode ? (
+            <CoachInvitePanel
+              inviteCode={inviteCode}
+              coachName={coachName}
+              athleteAppBaseUrl={getAthleteAppUrl()}
+            />
+          ) : (
+            <p className="text-muted">Код приглашения недоступен. Обратись к администратору.</p>
+          )
         ) : (
-          <>
-            <p className="text-secondary" style={{ marginTop: 0 }}>
-              Настройки профиля тренера и аккаунта.
-            </p>
-            {inviteCode ? (
-              <p className="text-secondary" style={{ marginTop: "var(--space-4)" }}>
-                Код приглашения: <strong>{inviteCode}</strong>
-              </p>
-            ) : null}
-            <button
-              type="button"
-              className="auth-switch__link"
-              style={{ marginTop: "var(--space-4)" }}
-              onClick={logout}
-            >
-              Выйти
-            </button>
-          </>
+          <CoachSettings user={user} onUserUpdated={setUser} onLogout={logout} />
         )}
       </AppShell>
     );

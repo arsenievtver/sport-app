@@ -211,6 +211,7 @@ def user_to_response(user: User) -> UserResponse:
     if user.coach_profile:
         coach_profile = CoachProfileResponse(
             display_name=user.coach_profile.display_name,
+            avatar_url=user.coach_profile.avatar_url,
             invite_code=user.coach_profile.invite_code,
             is_verified=user.coach_profile.is_verified,
         )

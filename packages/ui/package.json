@@ -15,9 +15,11 @@
   },
   "dependencies": {
     "@sport-app/api-client": "workspace:*",
-    "@sport-app/shared": "workspace:*"
+    "@sport-app/shared": "workspace:*",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.18",
     "typescript": "^5.7.2"
   }

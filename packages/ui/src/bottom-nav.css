@@ -38,6 +38,25 @@
   gap: var(--bottom-nav-slot-gap);
 }
 
+.bottom-nav__items--compact {
+  --bottom-nav-slot-size: 46px;
+  --bottom-nav-icon-size: 26px;
+  display: grid;
+  grid-template-columns: repeat(var(--bottom-nav-item-count, 4), minmax(0, 1fr));
+  gap: 0;
+}
+
+.bottom-nav__items--compact .bottom-nav__spotlight-track {
+  width: calc(100% / var(--bottom-nav-item-count, 4));
+  transform: translateX(calc(var(--bottom-nav-active-index, 0) * 100%));
+}
+
+.bottom-nav__items--compact .bottom-nav__item {
+  flex: unset;
+  width: var(--bottom-nav-slot-size);
+  justify-self: center;
+}
+
 .bottom-nav__spotlight-track {
   position: absolute;
   bottom: 0;

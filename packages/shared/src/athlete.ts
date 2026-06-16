@@ -58,12 +58,22 @@ export interface AthleteCoachLink {
   link_id: string;
   coach_id: string;
   display_name: string;
+  avatar_url?: string | null;
   link_status: "pending" | "active" | "paused" | "ended";
   sessions_balance: number;
 }
 
 export interface JoinCoachPayload {
   invite_code: string;
+}
+
+export type CoachAthleteSessionEntryKind = "credit" | "debit";
+
+export interface CoachAthleteSessionHistoryEntry {
+  id: string;
+  kind: CoachAthleteSessionEntryKind;
+  sessions_count: number;
+  entry_date: string;
 }
 
 export interface CoachAthleteSummary {
@@ -73,6 +83,7 @@ export interface CoachAthleteSummary {
   link_id: string;
   link_status: "pending" | "active" | "paused" | "ended";
   sessions_balance: number;
+  sessions_completed: number;
   gender?: Gender | null;
   birth_date?: string | null;
   focus_strength?: number | null;
@@ -90,6 +101,7 @@ export interface CoachAthleteSessionsResponse {
   athlete_id: string;
   link_id: string;
   sessions_balance: number;
+  sessions_completed: number;
 }
 
 export function isAthleteOnboardingComplete(profile: AthleteProfile | null | undefined): boolean {

@@ -1,5 +1,10 @@
-import { useState, type ReactNode } from "react";
-import { ROLE_LABELS, isAthleteOnboardingComplete } from "@sport-app/shared";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  captureInviteCodeFromUrl,
+  isAthleteOnboardingComplete,
+  readPendingInviteCode,
+  ROLE_LABELS,
+} from "@sport-app/shared";
 import {
   AppShell,
   AthleteOnboarding,
@@ -12,6 +17,7 @@ import {
   PwaInstallBanner,
   ThemePreview,
   useAuthSession,
+  usePendingCoachInvite,
 } from "@sport-app/ui";
 import { WhoopHomePanel } from "./components/WhoopHomePanel";
 import { WhoopOAuthListener } from "./components/WhoopOAuthListener";
@@ -25,6 +31,15 @@ export default function App() {
   const { user, setUser, checking, logout } = useAuthSession("athlete");
   const [showThemes, setShowThemes] = useState(isThemePreviewMode());
   const [tab, setTab] = useState<AthleteTab>("home");
+  const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() => readPendingInviteCode());
+
+  useEffect(() => {
+    const code = captureInviteCodeFromUrl();
+    if (code) setPendingInviteCode(code);
+  }, []);
+
+  const onboardingComplete = Boolean(user && isAthleteOnboardingComplete(user.athlete_profile));
+  const { joining, notice, coachesRefreshKey, error: inviteError } = usePendingCoachInvite(onboardingComplete);
 
   if (showThemes) {
     return <ThemePreview onClose={() => setShowThemes(false)} />;
@@ -47,6 +62,11 @@ export default function App() {
         role="athlete"
         roleLabel={ROLE_LABELS.athlete}
         tagline={"Тренировки с тренером\nПрогресс который мотивирует"}
+        inviteHint={
+          pendingInviteCode
+            ? "Тренер пригласил тебя в sport-app. Войди или зарегистрируйся — мы сразу свяжем вас."
+            : undefined
+        }
         onAuthenticated={(u) => setUser(u)}
       />
     );
@@ -79,9 +99,12 @@ export default function App() {
           title={tab === "home" ? `Привет, ${displayName}!` : "Настройки"}
           bottomNav={<BottomNav items={navItems} activeId={tab} onChange={(id) => setTab(id as AthleteTab)} />}
         >
+          {joining ? <p className="invite-banner invite-banner--info">Подключаем тренера…</p> : null}
+          {notice ? <p className="invite-banner invite-banner--success">{notice}</p> : null}
+          {inviteError ? <p className="invite-banner invite-banner--error">{inviteError}</p> : null}
           {tab === "home" ? (
             <>
-              <AthleteCoachesHomePanel />
+              <AthleteCoachesHomePanel refreshKey={coachesRefreshKey > 0 ? String(coachesRefreshKey) : undefined} />
               <WhoopHomePanel />
             </>
           ) : (

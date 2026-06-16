@@ -22,6 +22,7 @@ export interface RegisterPayload extends LoginPayload {
 
 export interface CoachProfile {
   display_name: string;
+  avatar_url?: string | null;
   invite_code: string;
   is_verified: boolean;
 }

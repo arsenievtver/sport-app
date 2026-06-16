@@ -1,0 +1,86 @@
+.invite-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.invite-page__lead {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-secondary);
+}
+
+.invite-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+}
+
+.invite-card__qr {
+  width: min(220px, 70vw);
+  height: min(220px, 70vw);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: var(--shadow-glow-primary);
+}
+
+.invite-card__qr img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.invite-card__hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.invite-link {
+  width: 100%;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  word-break: break-all;
+  color: var(--color-text-secondary);
+  background: var(--glass-bg-input);
+  border: 1px solid var(--glass-border);
+}
+
+.invite-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.invite-banner {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.invite-banner--info {
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+.invite-banner--success {
+  color: var(--color-success);
+  background: var(--color-success-muted);
+}
+
+.invite-banner--error {
+  color: var(--color-danger);
+  background: var(--color-danger-muted);
+}

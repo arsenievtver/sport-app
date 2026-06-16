@@ -334,6 +334,13 @@
   width: 100%;
   min-height: 44px;
   padding: var(--space-2) var(--space-3);
+  color: var(--color-text);
+  -webkit-text-fill-color: var(--color-text);
+}
+
+.coach-athlete-card__session-input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
 }
 
 .coach-athlete-card__session-btn {
@@ -346,4 +353,90 @@
 
 .coach-athlete-card__session-controls > .coach-athlete-card__session-btn:last-child {
   grid-column: 1 / -1;
+}
+
+.coach-athlete-card--accordion {
+  padding: 0;
+  overflow: hidden;
+}
+
+.coach-athlete-card__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-4);
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.coach-athlete-card__summary .coach-athlete-card__name {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coach-athlete-card__expanded {
+  padding: 0 var(--space-4) var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.coach-athlete-card__expanded .coach-athlete-card__meta {
+  margin-top: var(--space-3);
+}
+
+.coach-athlete-card__goto {
+  width: 100%;
+  margin-top: var(--space-4) !important;
+}
+
+.coach-athlete-card__completed {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+}
+
+.coach-btn {
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 2px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.coach-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.coach-btn--primary {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.coach-btn--warning {
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+}
+
+.coach-btn--muted {
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+
+.coach-athlete-profile__back {
+  width: auto !important;
+  margin: 0 0 var(--space-4) !important;
+  padding-left: var(--space-3) !important;
 }

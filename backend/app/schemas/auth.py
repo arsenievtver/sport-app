@@ -51,8 +51,11 @@ class TokenResponse(BaseModel):
 
 class CoachProfileResponse(BaseModel):
     display_name: str
+    avatar_url: str | None = None
     invite_code: str
     is_verified: bool
+
+    model_config = {"from_attributes": True}
 
 
 class UserResponse(BaseModel):

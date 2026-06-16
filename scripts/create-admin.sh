@@ -18,8 +18,7 @@ PHONE=$1
 PIN=$2
 NAME=$3
 shift 3
-EXTRA_ARGS=("$@")
-PY_ARGS=("$PHONE" "$PIN" "$NAME" "${EXTRA_ARGS[@]}")
+PY_ARGS=("$PHONE" "$PIN" "$NAME" "$@")
 
 run_local() {
   # shellcheck source=lib/common.sh

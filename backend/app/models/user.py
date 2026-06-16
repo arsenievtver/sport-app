@@ -51,6 +51,7 @@ class CoachProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         nullable=False,
     )
     display_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    avatar_url: Mapped[str | None] = mapped_column(String(512))
     bio: Mapped[str | None] = mapped_column(Text)
     invite_code: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -128,4 +129,8 @@ class CoachAthleteLink(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     athlete: Mapped["AthleteProfile"] = relationship(
         back_populates="coach_links",
         foreign_keys=[athlete_id],
+    )
+    session_entries: Mapped[list["CoachAthleteSessionEntry"]] = relationship(
+        back_populates="link",
+        cascade="all, delete-orphan",
     )

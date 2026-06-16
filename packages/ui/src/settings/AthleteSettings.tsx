@@ -18,6 +18,7 @@ import {
 } from "@sport-app/shared";
 
 import { AvatarCropModal } from "./AvatarCropModal";
+import { SessionsBalanceBadge } from "../sessions/SessionsBalanceBadge";
 
 interface AthleteSettingsProps {
   user: UserResponse;
@@ -309,25 +310,39 @@ export function AthleteSettings({
           <p className="settings-placeholder">Загрузка…</p>
         ) : coaches.length > 0 ? (
           <ul className="settings-coach-list">
-            {coaches.map((coach) => (
-              <li key={coach.link_id} className="settings-coach-list__item">
-                <div>
-                  <div className="settings-coach-list__name">{coach.display_name}</div>
-                  <div className="settings-coach-list__meta">
-                    {coach.link_status === "pending" ? "Ожидает подтверждения" : "Активен"} · Тренировок:{" "}
-                    <strong>{coach.sessions_balance}</strong>
+            {coaches.map((coach) => {
+              const coachAvatarUrl = resolveMediaUrl(coach.avatar_url);
+              const initial = (coach.display_name?.slice(0, 1) ?? "?").toUpperCase();
+
+              return (
+                <li key={coach.link_id} className="settings-coach-list__item">
+                  <div className="settings-coach-list__identity">
+                    {coachAvatarUrl ? (
+                      <img src={coachAvatarUrl} alt="" className="settings-coach-list__avatar" />
+                    ) : (
+                      <div className="settings-coach-list__avatar settings-coach-list__avatar--placeholder" aria-hidden="true">
+                        {initial}
+                      </div>
+                    )}
+                    <div>
+                      <div className="settings-coach-list__name">{coach.display_name}</div>
+                      <div className="settings-coach-list__meta">
+                        {coach.link_status === "pending" ? "Ожидает подтверждения" : "Активен"}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  className="settings-btn settings-btn--ghost"
-                  onClick={() => void handleRemoveCoach(coach.link_id)}
-                  disabled={savingCoach}
-                >
-                  Удалить
-                </button>
-              </li>
-            ))}
+                  <SessionsBalanceBadge balance={coach.sessions_balance} />
+                  <button
+                    type="button"
+                    className="settings-btn settings-btn--ghost"
+                    onClick={() => void handleRemoveCoach(coach.link_id)}
+                    disabled={savingCoach}
+                  >
+                    Удалить
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="settings-placeholder">Пока нет подключённых тренеров.</p>
