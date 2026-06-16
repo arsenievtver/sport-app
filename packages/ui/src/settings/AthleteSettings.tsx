@@ -314,7 +314,8 @@ export function AthleteSettings({
                 <div>
                   <div className="settings-coach-list__name">{coach.display_name}</div>
                   <div className="settings-coach-list__meta">
-                    {coach.link_status === "pending" ? "Ожидает подтверждения" : "Активен"}
+                    {coach.link_status === "pending" ? "Ожидает подтверждения" : "Активен"} · Тренировок:{" "}
+                    <strong>{coach.sessions_balance}</strong>
                   </div>
                 </div>
                 <button

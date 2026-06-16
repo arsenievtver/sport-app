@@ -118,6 +118,8 @@ class CoachAthleteLink(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     notes: Mapped[str | None] = mapped_column(Text)
+    # Remaining paid sessions for this coach–athlete pair (can go negative).
+    sessions_balance: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     coach: Mapped["CoachProfile"] = relationship(
         back_populates="athlete_links",

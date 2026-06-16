@@ -132,4 +132,5 @@ class AthleteService:
             coach_id=link.coach_id,
             display_name=link.coach.display_name,
             link_status=link.status,
+            sessions_balance=link.sessions_balance,
         )

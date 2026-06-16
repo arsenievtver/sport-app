@@ -476,3 +476,50 @@
     justify-content: flex-start;
   }
 }
+
+.athlete-home-coaches {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+}
+
+.athlete-home-coaches__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.athlete-home-coaches__title {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.athlete-home-coaches__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.athlete-home-coaches__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  background: color-mix(in srgb, var(--glass-bg) 72%, transparent);
+}
+
+.athlete-home-coaches__name {
+  font-weight: var(--font-semibold);
+}
+
+.athlete-home-coaches__status {
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+}

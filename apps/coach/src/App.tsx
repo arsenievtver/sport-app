@@ -64,7 +64,7 @@ export default function App() {
             <p className="text-secondary" style={{ marginTop: 0 }}>
               Добро пожаловать. Делись кодом {inviteCode} с {ROLE_LABELS_PLURAL.athlete}.
             </p>
-            <h2 style={{ margin: "var(--space-5) 0 var(--space-3)", fontSize: "var(--text-lg)" }}>Атлеты и их цели</h2>
+            <h2 style={{ margin: "var(--space-5) 0 var(--space-3)", fontSize: "var(--text-lg)" }}>Мои атлеты</h2>
             <CoachAthletesPanel />
           </>
         ) : (

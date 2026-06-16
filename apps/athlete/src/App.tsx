@@ -16,6 +16,7 @@ import {
 import { WhoopHomePanel } from "./components/WhoopHomePanel";
 import { WhoopOAuthListener } from "./components/WhoopOAuthListener";
 import { WhoopSettingsPanel } from "./components/WhoopSettingsPanel";
+import { AthleteCoachesHomePanel } from "./components/AthleteCoachesHomePanel";
 import "./components/whoop.css";
 
 type AthleteTab = "home" | "settings";
@@ -79,7 +80,10 @@ export default function App() {
           bottomNav={<BottomNav items={navItems} activeId={tab} onChange={(id) => setTab(id as AthleteTab)} />}
         >
           {tab === "home" ? (
-            <WhoopHomePanel />
+            <>
+              <AthleteCoachesHomePanel />
+              <WhoopHomePanel />
+            </>
           ) : (
             <AthleteSettings
               user={user}
