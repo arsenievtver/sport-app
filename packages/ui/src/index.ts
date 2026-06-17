@@ -22,6 +22,7 @@ export { PinInput } from "./auth/PinInput";
 export { ThemePreview, isThemePreviewMode } from "./preview/ThemePreview";
 export { applyTheme, DEFAULT_THEME_ID, getStoredTheme, initTheme, themePresets, THEME_BG } from "./themes/presets";
 export type { ThemeId, ThemePreset } from "./themes/presets";
+export { initViewport, syncViewportHeight } from "./viewport";
 export { PwaInstallBanner } from "./pwa/PwaInstallBanner";
 export { AthleteOnboarding } from "./onboarding/AthleteOnboarding";
 export { CoachAthletesPanel } from "./onboarding/CoachAthletesPanel";

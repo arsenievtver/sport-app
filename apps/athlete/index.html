@@ -2,7 +2,10 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    />
     <meta name="theme-color" content="#050508" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -10,6 +13,26 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icon.svg" />
     <title>sport-app — Атлет</title>
+    <script>
+      (function () {
+        function syncViewportHeight() {
+          var height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+          if (height > 0) {
+            document.documentElement.style.setProperty("--viewport-height", Math.round(height) + "px");
+          }
+        }
+        syncViewportHeight();
+        window.addEventListener("resize", syncViewportHeight);
+        window.addEventListener("pageshow", syncViewportHeight);
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener("resize", syncViewportHeight);
+          window.visualViewport.addEventListener("scroll", syncViewportHeight);
+        }
+        [0, 50, 100, 250, 500, 1000].forEach(function (ms) {
+          setTimeout(syncViewportHeight, ms);
+        });
+      })();
+    </script>
   </head>
   <body>
     <div id="app-backdrop" aria-hidden="true"></div>

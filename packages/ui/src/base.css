@@ -16,7 +16,7 @@ html {
 body {
   position: relative;
   margin: 0;
-  min-height: 100dvh;
+  min-height: var(--viewport-height, 100dvh);
   font-family: var(--font-sans);
   font-size: var(--text-base);
   font-weight: var(--font-normal);
@@ -27,15 +27,16 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* В index.html — sibling перед #root. Расширяем за safe area (как auth-screen__bg). */
+/* В index.html — sibling перед #root. Высота из visualViewport (см. viewport.ts). */
 #app-backdrop {
   position: fixed;
   z-index: 0;
   pointer-events: none;
+  left: 0;
+  right: 0;
   top: calc(-1 * var(--safe-top));
-  right: calc(-1 * var(--safe-right));
-  bottom: calc(-1 * var(--safe-bottom));
-  left: calc(-1 * var(--safe-left));
+  width: 100%;
+  height: calc(var(--viewport-height, 100dvh) + var(--safe-top) + var(--safe-bottom));
   background: var(--gradient-app-bg);
   background-color: var(--color-bg);
 }
@@ -43,7 +44,7 @@ body {
 #root {
   position: relative;
   z-index: 1;
-  min-height: 100dvh;
+  min-height: var(--viewport-height, 100dvh);
 }
 
 a {
