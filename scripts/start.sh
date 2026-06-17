@@ -33,8 +33,8 @@ done
 if [ -f "$PID_DIR/api.pid" ] && kill -0 "$(cat "$PID_DIR/api.pid")" 2>/dev/null; then
   warn "Dev stack seems already running. Run ./scripts/stop.sh first."
   LAN_IP=$(get_lan_ip)
-  write_frontend_env "$LAN_IP"
   ensure_dev_certs "$LAN_IP" || true
+  write_frontend_env "$LAN_IP"
   print_urls "$LAN_IP"
   exit 0
 fi
@@ -63,8 +63,8 @@ else
   log "Skipping migrations (--skip-migrate)"
 fi
 
-write_frontend_env "$LAN_IP"
 ensure_dev_certs "$LAN_IP" || true
+write_frontend_env "$LAN_IP"
 
 # ── 3. Dev servers ─────────────────────────────────────────────────
 ensure_pnpm

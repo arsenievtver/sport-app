@@ -106,7 +106,8 @@ dev_url_scheme() {
 }
 
 dev_certs_ready() {
-  [ -f "$DEV_CERT_DIR/cert.pem" ] && [ -f "$DEV_CERT_DIR/key.pem" ]
+  [ -f "$DEV_CERT_DIR/cert.pem" ] && [ -f "$DEV_CERT_DIR/key.pem" ] \
+    && [ -f "$DEV_CERT_DIR/.mkcert" ]
 }
 
 ensure_dev_certs() {
@@ -119,9 +120,13 @@ ensure_dev_certs() {
   mkdir -p "$DEV_CERT_DIR"
 
   if [ -f "$cert_file" ] && [ -f "$key_file" ] && [ -f "$meta_file" ] \
+    && [ -f "$DEV_CERT_DIR/.mkcert" ] \
     && grep -qx "LAN_IP=${lan_ip}" "$meta_file" 2>/dev/null; then
     return 0
   fi
+
+  # Drop legacy self-signed certs — they break localhost in Chrome (chrome-error://chromewebdata/).
+  rm -f "$cert_file" "$key_file" "$meta_file" "$DEV_CERT_DIR/.mkcert"
 
   if command -v mkcert >/dev/null 2>&1; then
     log "Generating HTTPS certs (mkcert) for localhost + ${lan_ip}..."
@@ -129,26 +134,17 @@ ensure_dev_certs() {
     if mkcert -cert-file "$cert_file" -key-file "$key_file" \
       localhost 127.0.0.1 ::1 "$lan_ip"; then
       echo "LAN_IP=${lan_ip}" >"$meta_file"
+      echo "mkcert" >"$DEV_CERT_DIR/.mkcert"
       ok "HTTPS certs ready"
       return 0
     fi
-    warn "mkcert failed — trying openssl fallback"
+    warn "mkcert failed"
   else
-    warn "mkcert not found (brew install mkcert) — using self-signed openssl cert"
+    warn "mkcert not found (brew install mkcert) — frontends will use HTTP"
   fi
 
-  log "Generating self-signed HTTPS cert for localhost + ${lan_ip}..."
-  if openssl req -x509 -newkey rsa:2048 -nodes \
-    -keyout "$key_file" -out "$cert_file" -days 825 \
-    -subj "/CN=localhost" \
-    -addext "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:${lan_ip}" 2>/dev/null; then
-    echo "LAN_IP=${lan_ip}" >"$meta_file"
-    ok "Self-signed HTTPS certs ready (browser will warn until trusted)"
-    return 0
-  fi
-
-  warn "HTTPS cert generation failed — frontends will use HTTP"
-  rm -f "$cert_file" "$key_file" "$meta_file"
+  warn "HTTPS unavailable — frontends will use HTTP (install mkcert for PWA on phone)"
+  rm -f "$cert_file" "$key_file" "$meta_file" "$DEV_CERT_DIR/.mkcert"
   return 1
 }
 
@@ -381,7 +377,7 @@ EOF
     local athlete_url=""
     if [ "$app" = "coach" ]; then
       athlete_url=$(
-        if [ "$USE_HTTPS" = "1" ]; then
+        if [ "$(dev_url_scheme)" = "https" ]; then
           echo "https://${lan_ip}:${PORT_ATHLETE}"
         else
           echo "http://${lan_ip}:${PORT_ATHLETE}"
@@ -444,7 +440,7 @@ print_urls() {
     if command -v mkcert >/dev/null 2>&1; then
       echo -e "  ${C_YELLOW}Phone CA:${C_RESET} install $(mkcert -CAROOT)/rootCA.pem once (see README)"
     else
-      echo -e "  ${C_YELLOW}Phone:${C_RESET} self-signed cert — accept browser warning, or: brew install mkcert"
+      echo -e "  ${C_YELLOW}HTTPS:${C_RESET} brew install mkcert && mkcert -install, then restart"
     fi
   fi
   if is_lan_ip "$lan_ip"; then

@@ -16,7 +16,8 @@ export const API_PROXY = {
 function readHttpsCredentials() {
   const certPath = path.join(CERT_DIR, "cert.pem");
   const keyPath = path.join(CERT_DIR, "key.pem");
-  if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
+  const mkcertMarker = path.join(CERT_DIR, ".mkcert");
+  if (!fs.existsSync(certPath) || !fs.existsSync(keyPath) || !fs.existsSync(mkcertMarker)) {
     return undefined;
   }
   return {
@@ -53,5 +54,8 @@ export function createDevServer(options) {
 }
 
 export function devUsesHttps() {
-  return fs.existsSync(path.join(CERT_DIR, "cert.pem"));
+  return (
+    fs.existsSync(path.join(CERT_DIR, "cert.pem")) &&
+    fs.existsSync(path.join(CERT_DIR, ".mkcert"))
+  );
 }
