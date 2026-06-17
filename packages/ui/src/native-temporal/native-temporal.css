@@ -41,6 +41,7 @@
   box-sizing: border-box;
   text-align: center;
   overflow: hidden;
+  position: relative;
 }
 
 .native-temporal__input.glass-input {
@@ -58,10 +59,25 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
+.native-temporal__input[type="date"]::-webkit-datetime-edit,
+.native-temporal__input[type="time"]::-webkit-datetime-edit,
+.native-temporal__input[type="datetime-local"]::-webkit-datetime-edit {
+  display: inline-flex;
+  flex: 1 1 auto;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.native-temporal__input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+.native-temporal__input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+
 .native-temporal__input[type="time"]::-webkit-date-and-time-value,
 .native-temporal__input[type="date"]::-webkit-date-and-time-value,
 .native-temporal__input[type="datetime-local"]::-webkit-date-and-time-value {
-  display: block;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -72,7 +88,11 @@
 .native-temporal__input[type="time"]::-webkit-calendar-picker-indicator,
 .native-temporal__input[type="date"]::-webkit-calendar-picker-indicator,
 .native-temporal__input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  width: 0;
+  height: 0;
   margin: 0;
   padding: 0;
-  flex-shrink: 0;
+  opacity: 0;
+  pointer-events: none;
 }

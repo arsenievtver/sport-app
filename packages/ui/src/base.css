@@ -197,35 +197,35 @@ input[type="time"]::-webkit-date-and-time-value {
   min-height: 1lh;
 }
 
-input[type="date"]::-webkit-datetime-edit,
-input[type="datetime-local"]::-webkit-datetime-edit {
+input[type="date"]:not(.native-temporal__input)::-webkit-datetime-edit,
+input[type="datetime-local"]:not(.native-temporal__input)::-webkit-datetime-edit {
   display: inline-flex;
   overflow: hidden;
   min-width: 0;
   flex: 1 1 auto;
 }
 
-input[type="date"]::-webkit-datetime-edit-fields-wrapper,
-input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+input[type="date"]:not(.native-temporal__input)::-webkit-datetime-edit-fields-wrapper,
+input[type="datetime-local"]:not(.native-temporal__input)::-webkit-datetime-edit-fields-wrapper {
   padding: 0;
   min-width: 0;
 }
 
-input[type="date"]::-webkit-datetime-edit,
-input[type="date"]::-webkit-datetime-edit-year-field,
-input[type="date"]::-webkit-datetime-edit-month-field,
-input[type="date"]::-webkit-datetime-edit-day-field,
-input[type="datetime-local"]::-webkit-datetime-edit,
-input[type="datetime-local"]::-webkit-datetime-edit-year-field,
-input[type="datetime-local"]::-webkit-datetime-edit-month-field,
-input[type="datetime-local"]::-webkit-datetime-edit-day-field,
-input[type="datetime-local"]::-webkit-datetime-edit-hour-field,
-input[type="datetime-local"]::-webkit-datetime-edit-minute-field {
+input[type="date"]:not(.native-temporal__input)::-webkit-datetime-edit,
+input[type="date"]:not(.native-temporal__input)::-webkit-datetime-edit-year-field,
+input[type="date"]:not(.native-temporal__input)::-webkit-datetime-edit-month-field,
+input[type="date"]:not(.native-temporal__input)::-webkit-datetime-edit-day-field,
+input[type="datetime-local"]:not(.native-temporal__input)::-webkit-datetime-edit,
+input[type="datetime-local"]:not(.native-temporal__input)::-webkit-datetime-edit-year-field,
+input[type="datetime-local"]:not(.native-temporal__input)::-webkit-datetime-edit-month-field,
+input[type="datetime-local"]:not(.native-temporal__input)::-webkit-datetime-edit-day-field,
+input[type="datetime-local"]:not(.native-temporal__input)::-webkit-datetime-edit-hour-field,
+input[type="datetime-local"]:not(.native-temporal__input)::-webkit-datetime-edit-minute-field {
   padding-block: 0;
 }
 
-input[type="date"]::-webkit-calendar-picker-indicator,
-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+input[type="date"]:not(.native-temporal__input)::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]:not(.native-temporal__input)::-webkit-calendar-picker-indicator {
   margin: 0;
   padding: 0;
   flex-shrink: 0;
