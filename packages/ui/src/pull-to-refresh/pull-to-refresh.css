@@ -1,0 +1,87 @@
+.pull-to-refresh {
+  position: relative;
+}
+
+.pull-to-refresh__indicator {
+  position: fixed;
+  left: 50%;
+  z-index: 75;
+  width: 40px;
+  height: 40px;
+  margin-left: -20px;
+  top: calc(var(--shell-header-float-offset) + var(--space-1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background:
+    linear-gradient(145deg, var(--glass-tint) 0%, transparent 52%),
+    var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-12px) scale(0.82);
+  transition:
+    opacity 0.2s ease,
+    transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.pull-to-refresh__indicator--visible {
+  opacity: 1;
+}
+
+.pull-to-refresh__indicator--refreshing {
+  opacity: 1;
+  transform: translateY(10px) scale(1);
+}
+
+.pull-to-refresh__arrow {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-secondary);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.pull-to-refresh__indicator--ready .pull-to-refresh__arrow {
+  transform: rotate(180deg);
+  color: var(--color-accent);
+}
+
+.pull-to-refresh__spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
+  border-top-color: var(--color-accent);
+  border-radius: var(--radius-full);
+  animation: pull-to-refresh-spin 0.7s linear infinite;
+}
+
+.pull-to-refresh__surface {
+  will-change: transform;
+  transition: transform 0.38s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.pull-to-refresh__surface--dragging,
+.pull-to-refresh__surface--refreshing {
+  transition: none;
+}
+
+@keyframes pull-to-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pull-to-refresh__indicator,
+  .pull-to-refresh__surface {
+    transition: none;
+  }
+
+  .pull-to-refresh__spinner {
+    animation-duration: 1.2s;
+  }
+}

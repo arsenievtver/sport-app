@@ -115,6 +115,29 @@ export function BottomNavIconInvite() {
   );
 }
 
+export function BottomNavIconSchedule() {
+  return (
+    <svg
+      className="bottom-nav__icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <path d="M3 9h18" />
+      <path d="M8 3v3" />
+      <path d="M16 3v3" />
+      <path d="M8 13h2" />
+      <path d="M14 13h2" />
+      <path d="M8 17h2" />
+    </svg>
+  );
+}
+
 export function BottomNavIconSettings() {
   return (
     <svg

@@ -19,10 +19,12 @@ import {
   ThemePreview,
   useAuthSession,
   usePendingCoachInvite,
+  PullToRefresh,
 } from "@sport-app/ui";
 import { WhoopOAuthListener } from "./components/WhoopOAuthListener";
 import { WhoopTabPanel } from "./components/WhoopTabPanel";
 import { AthleteCoachesHomePanel } from "./components/AthleteCoachesHomePanel";
+import { AthleteUpcomingSessionsPanel } from "./components/AthleteUpcomingSessionsPanel";
 import "./components/whoop.css";
 
 type AthleteTab = "home" | "whoop" | "settings";
@@ -118,12 +120,13 @@ export default function App() {
           bottomNav={<BottomNav items={navItems} activeId={tab} onChange={(id) => setTab(id as AthleteTab)} />}
         >
           {tab === "home" ? (
-            <>
+            <PullToRefresh>
               {joining ? <p className="invite-banner invite-banner--info">Подключаем тренера…</p> : null}
               {notice ? <p className="invite-banner invite-banner--success">{notice}</p> : null}
               {inviteError ? <p className="invite-banner invite-banner--error">{inviteError}</p> : null}
               <AthleteCoachesHomePanel refreshKey={coachesRefreshKey > 0 ? String(coachesRefreshKey) : undefined} />
-            </>
+              <AthleteUpcomingSessionsPanel refreshKey={coachesRefreshKey > 0 ? String(coachesRefreshKey) : undefined} />
+            </PullToRefresh>
           ) : null}
           {tab === "whoop" ? <WhoopTabPanel /> : null}
           {tab === "settings" ? (

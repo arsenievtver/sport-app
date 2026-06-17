@@ -5,22 +5,23 @@ import {
   AuthScreen,
   BottomNav,
   BottomNavIconAthletes,
-  BottomNavIconHome,
   BottomNavIconInvite,
+  BottomNavIconSchedule,
   BottomNavIconSettings,
   CoachAthletesPanel,
   CoachInvitePanel,
+  CoachSchedulePanel,
   CoachSettings,
   PwaInstallBanner,
   useAuthSession,
 } from "@sport-app/ui";
 import { getAthleteAppUrl } from "./athlete-app-url";
 
-type CoachTab = "home" | "athletes" | "invite" | "settings";
+type CoachTab = "schedule" | "athletes" | "invite" | "settings";
 
 export default function App() {
   const { user, setUser, checking, logout } = useAuthSession("coach");
-  const [tab, setTab] = useState<CoachTab>("home");
+  const [tab, setTab] = useState<CoachTab>("schedule");
 
   let content: ReactNode;
 
@@ -48,9 +49,9 @@ export default function App() {
     const inviteCode = user.coach_profile?.invite_code;
     const navItems = [
       {
-        id: "home",
-        label: "Главная",
-        icon: <BottomNavIconHome />,
+        id: "schedule",
+        label: "Расписание",
+        icon: <BottomNavIconSchedule />,
       },
       {
         id: "athletes",
@@ -70,8 +71,8 @@ export default function App() {
     ];
 
     const title =
-      tab === "home"
-        ? coachName
+      tab === "schedule"
+        ? "Расписание"
         : tab === "athletes"
           ? "Атлеты"
           : tab === "invite"
@@ -81,12 +82,12 @@ export default function App() {
     content = (
       <AppShell
         title={title}
+        subtitle={tab === "schedule" ? coachName : undefined}
+        className={tab === "schedule" ? "app-shell--schedule-landscape" : undefined}
         bottomNav={<BottomNav items={navItems} activeId={tab} onChange={(id) => setTab(id as CoachTab)} />}
       >
-        {tab === "home" ? (
-          <p className="text-secondary" style={{ marginTop: 0 }}>
-            Добро пожаловать. Приглашай атлетов через вкладку «Пригласить».
-          </p>
+        {tab === "schedule" ? (
+          <CoachSchedulePanel />
         ) : tab === "athletes" ? (
           <CoachAthletesPanel />
         ) : tab === "invite" ? (

@@ -6,6 +6,7 @@ export * from "./auth";
 export * from "./admin";
 export * from "./athlete";
 export * from "./coach";
+export * from "./schedule";
 export * from "./whoop";
 export { getApiBaseUrl } from "./config";
 

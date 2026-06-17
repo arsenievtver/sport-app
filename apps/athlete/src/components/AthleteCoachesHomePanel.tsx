@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchAthleteCoaches, resolveMediaUrl } from "@sport-app/api-client";
-import { SessionsBalanceBadge } from "@sport-app/ui";
+import { SessionsBalanceBadge, usePullToRefresh } from "@sport-app/ui";
 import type { AthleteCoachLink } from "@sport-app/shared";
 
 function headingByCount(count: number): string {
@@ -12,23 +12,32 @@ export function AthleteCoachesHomePanel({ refreshKey }: { refreshKey?: string } 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const loadCoaches = useCallback(async (options?: { silent?: boolean }) => {
+    if (!options?.silent) {
+      setLoading(true);
+    }
+    setError(null);
+    try {
+      const items = await fetchAthleteCoaches();
+      setCoaches(items);
+    } catch (err) {
+      if (!options?.silent) {
+        setError(err instanceof Error ? err.message : "Ошибка загрузки");
+      }
+    } finally {
+      if (!options?.silent) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  const refreshCoaches = useCallback(() => loadCoaches({ silent: true }), [loadCoaches]);
+
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    fetchAthleteCoaches()
-      .then((items) => {
-        if (!cancelled) setCoaches(items);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Ошибка загрузки");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshKey]);
+    void loadCoaches();
+  }, [loadCoaches, refreshKey]);
+
+  usePullToRefresh(refreshCoaches);
 
   const activeCoaches = useMemo(
     () => coaches.filter((coach) => coach.link_status === "active" || coach.link_status === "pending"),
@@ -55,7 +64,6 @@ export function AthleteCoachesHomePanel({ refreshKey }: { refreshKey?: string } 
     <section className="athlete-home-coaches glass glass--panel">
       <div className="athlete-home-coaches__header">
         <h2 className="athlete-home-coaches__title">{headingByCount(activeCoaches.length)}</h2>
-        <span className="badge badge-primary">{activeCoaches.length}</span>
       </div>
 
       {activeCoaches.length === 0 ? (

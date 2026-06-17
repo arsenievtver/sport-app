@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -14,9 +14,11 @@ from app.schemas.athlete import (
     JoinCoachRequest,
 )
 from app.schemas.auth import UserResponse
+from app.schemas.schedule import AthleteUpcomingSessionResponse
 from app.services.athlete import AthleteService
 from app.services.auth import user_to_response
 from app.services.media import save_avatar
+from app.services.schedule import ScheduleService
 
 router = APIRouter(prefix="/athlete")
 
@@ -111,3 +113,15 @@ async def remove_coach(
 
     service = AthleteService(db)
     await service.remove_coach(user.athlete_profile, link_id)
+
+
+@router.get("/schedule/upcoming", response_model=list[AthleteUpcomingSessionResponse])
+async def list_upcoming_sessions(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=8)] = 4,
+) -> list[AthleteUpcomingSessionResponse]:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    return await ScheduleService(db).list_upcoming_for_athlete(user.athlete_profile, limit=limit)

@@ -3,6 +3,7 @@ import type {
   AthleteOnboardingPayload,
   AthleteProfile,
   AthleteProfileUpdatePayload,
+  AthleteUpcomingSession,
   JoinCoachPayload,
   UserResponse,
 } from "@sport-app/shared";
@@ -56,6 +57,11 @@ export async function joinAthleteCoach(payload: JoinCoachPayload): Promise<Athle
 
 export async function removeAthleteCoach(linkId: string): Promise<void> {
   await authenticatedFetchOk(`/athlete/coaches/${linkId}`, { method: "DELETE" });
+}
+
+export async function fetchAthleteUpcomingSessions(limit = 4): Promise<AthleteUpcomingSession[]> {
+  const res = await authenticatedFetchOk(`/athlete/schedule/upcoming?limit=${limit}`);
+  return res.json() as Promise<AthleteUpcomingSession[]>;
 }
 
 export function resolveMediaUrl(path: string | null | undefined): string | null {
