@@ -17,8 +17,8 @@ export default defineConfig(({ mode }) => {
         includeAssets: ["icon.svg"],
         manifest: {
           id: "/",
-          name: "sport-app — Coach",
-          short_name: "Coach",
+          name: "Тренер",
+          short_name: "Тренер",
           description: "Мобильный кабинет тренера",
           theme_color: "#0c0f14",
           background_color: "#0c0f14",

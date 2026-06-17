@@ -23,6 +23,7 @@ from app.schemas.athlete import JoinCoachRequest
 from app.schemas.auth import (
     AthleteProfileResponse,
     CoachProfileResponse,
+    InvitePreviewResponse,
     RegisterRequest,
     TokenResponse,
     UserResponse,
@@ -80,15 +81,28 @@ class AuthService:
             )
             self.db.add(profile)
         elif data.role == UserRole.athlete:
-            profile = AthleteProfile(
-                user_id=user.id,
-                display_name=data.display_name,
-            )
-            self.db.add(profile)
-            await self.db.flush()
-            if data.invite_code:
-                athlete_service = AthleteService(self.db)
-                await athlete_service.join_coach(profile, JoinCoachRequest(invite_code=data.invite_code))
+            if data.claim_athlete_id is not None:
+                if not data.invite_code:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Для привязки к существующему профилю нужен код приглашения",
+                    )
+                profile = await self._claim_managed_athlete(
+                    user=user,
+                    claim_athlete_id=data.claim_athlete_id,
+                    invite_code=data.invite_code,
+                    display_name=data.display_name,
+                )
+            else:
+                profile = AthleteProfile(
+                    user_id=user.id,
+                    display_name=data.display_name,
+                )
+                self.db.add(profile)
+                await self.db.flush()
+                if data.invite_code:
+                    athlete_service = AthleteService(self.db)
+                    await athlete_service.join_coach(profile, JoinCoachRequest(invite_code=data.invite_code))
 
         await self.db.flush()
         await self.db.refresh(user, attribute_names=["coach_profile", "athlete_profile"])
@@ -200,6 +214,75 @@ class AuthService:
             refresh_token=create_refresh_token(user_id),
             expires_in=settings.access_token_expire_minutes * 60,
         )
+
+    async def invite_preview(self, invite_code: str, claim_athlete_id: UUID | None = None) -> InvitePreviewResponse:
+        code = invite_code.strip().upper()
+        if not code:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Введите код приглашения")
+
+        coach_result = await self.db.execute(select(CoachProfile).where(CoachProfile.invite_code == code))
+        coach = coach_result.scalar_one_or_none()
+        if coach is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Тренер с таким кодом не найден")
+
+        suggested_display_name: str | None = None
+        if claim_athlete_id is not None:
+            athlete_result = await self.db.execute(
+                select(AthleteProfile).where(
+                    AthleteProfile.id == claim_athlete_id,
+                    AthleteProfile.managed_by_coach_id == coach.id,
+                    AthleteProfile.user_id.is_(None),
+                )
+            )
+            athlete = athlete_result.scalar_one_or_none()
+            if athlete is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Приглашение недействительно или уже использовано",
+                )
+            suggested_display_name = athlete.display_name
+
+        return InvitePreviewResponse(
+            coach_name=coach.display_name,
+            invite_code=coach.invite_code,
+            suggested_display_name=suggested_display_name,
+        )
+
+    async def _claim_managed_athlete(
+        self,
+        *,
+        user: User,
+        claim_athlete_id: UUID,
+        invite_code: str,
+        display_name: str,
+    ) -> AthleteProfile:
+        code = invite_code.strip().upper()
+        coach_result = await self.db.execute(select(CoachProfile).where(CoachProfile.invite_code == code))
+        coach = coach_result.scalar_one_or_none()
+        if coach is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Тренер с таким кодом не найден")
+
+        result = await self.db.execute(
+            select(AthleteProfile).where(
+                AthleteProfile.id == claim_athlete_id,
+                AthleteProfile.user_id.is_(None),
+                AthleteProfile.managed_by_coach_id == coach.id,
+            )
+        )
+        profile = result.scalar_one_or_none()
+        if profile is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Профиль для привязки не найден или уже занят",
+            )
+
+        profile.user_id = user.id
+        profile.claimed_at = datetime.now(UTC)
+        name = display_name.strip()
+        if name:
+            profile.display_name = name
+        await self.db.flush()
+        return profile
 
     async def _unique_invite_code(self) -> str:
         for _ in range(10):

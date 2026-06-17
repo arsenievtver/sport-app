@@ -1,4 +1,4 @@
-import type { LoginPayload, RegisterPayload, TokenResponse, UserResponse } from "@sport-app/shared";
+import type { InvitePreview, LoginPayload, RegisterPayload, TokenResponse, UserResponse } from "@sport-app/shared";
 
 import { getApiBaseUrl } from "./config";
 
@@ -173,6 +173,19 @@ export async function login(payload: LoginPayload): Promise<TokenResponse> {
 
 export async function register(payload: RegisterPayload): Promise<TokenResponse> {
   return postJson<TokenResponse>("/auth/register", payload);
+}
+
+export async function fetchInvitePreview(
+  inviteCode: string,
+  claimAthleteId?: string | null,
+): Promise<InvitePreview> {
+  const params = new URLSearchParams({ code: inviteCode });
+  if (claimAthleteId?.trim()) {
+    params.set("claim", claimAthleteId.trim());
+  }
+  const res = await fetch(`${getApiBaseUrl()}/auth/invite-preview?${params.toString()}`);
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json() as Promise<InvitePreview>;
 }
 
 export async function fetchMe(): Promise<UserResponse> {

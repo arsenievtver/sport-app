@@ -65,6 +65,7 @@ export interface AthleteCoachLink {
 
 export interface JoinCoachPayload {
   invite_code: string;
+  claim_athlete_id?: string;
 }
 
 export type CoachAthleteSessionEntryKind = "credit" | "debit";
@@ -76,9 +77,19 @@ export interface CoachAthleteSessionHistoryEntry {
   entry_date: string;
 }
 
+export const ATHLETE_APP_STATUS_LABELS = {
+  withApp: "В приложении",
+  withoutApp: "Без приложения",
+} as const;
+
+export function getAthleteAppStatusLabel(hasApp: boolean): string {
+  return hasApp ? ATHLETE_APP_STATUS_LABELS.withApp : ATHLETE_APP_STATUS_LABELS.withoutApp;
+}
+
 export interface CoachAthleteSummary {
   athlete_id: string;
   display_name: string;
+  has_app: boolean;
   avatar_url?: string | null;
   link_id: string;
   link_status: "pending" | "active" | "paused" | "ended";

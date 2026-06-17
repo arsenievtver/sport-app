@@ -1,11 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" width="512" height="512">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop stop-color="#2dd4bf"/><stop offset="1" stop-color="#34d399"/>
-    </linearGradient>
-  </defs>
-  <g transform="translate(0.000000,1254.000000) scale(0.100000,-0.100000)"
-fill="url(#bg)" stroke="none">
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN"
+ "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg version="1.0" xmlns="http://www.w3.org/2000/svg"
+ width="1254.000000pt" height="1254.000000pt" viewBox="0 0 1254.000000 1254.000000"
+ preserveAspectRatio="xMidYMid meet">
+
+<g transform="translate(0.000000,1254.000000) scale(0.100000,-0.100000)"
+fill="#000000" stroke="none">
 <path d="M3355 11930 c-859 -51 -1590 -445 -2037 -1100 -214 -314 -333 -618
 -401 -1025 l-21 -130 -4 -3165 c-2 -2199 0 -3219 8 -3342 22 -360 95 -647 245
 -955 136 -280 267 -465 485 -683 223 -224 451 -387 735 -526 299 -146 586

@@ -80,6 +80,7 @@ class AthleteProfileUpdateRequest(BaseModel):
 
 class JoinCoachRequest(BaseModel):
     invite_code: str = Field(min_length=4, max_length=32)
+    claim_athlete_id: UUID | None = None
 
 
 class AthleteCoachResponse(BaseModel):

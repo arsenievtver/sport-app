@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import {
   addCoachAthleteSessions,
   completeCoachAthleteSession,
+  createManagedAthlete,
   fetchCoachAthletes,
   resolveMediaUrl,
 } from "@sport-app/api-client";
 import {
   GENDER_LABELS,
   TRAINING_TRAIT_LABELS,
+  getAthleteAppStatusLabel,
   type CoachAthleteSummary,
   type TrainingTrait,
 } from "@sport-app/shared";
@@ -51,6 +53,18 @@ function AthleteAvatar({ athlete }: { athlete: CoachAthleteSummary }) {
 
 const TRAITS = ["strength", "flexibility", "endurance", "coordination"] as TrainingTrait[];
 
+function AthleteAppStatus({ hasApp }: { hasApp: boolean }) {
+  return (
+    <span
+      className={`coach-athlete-card__app-status${
+        hasApp ? " coach-athlete-card__app-status--with-app" : " coach-athlete-card__app-status--without-app"
+      }`}
+    >
+      {getAthleteAppStatusLabel(hasApp)}
+    </span>
+  );
+}
+
 function AthleteDetails({ athlete }: { athlete: CoachAthleteSummary }) {
   const onboarded = Boolean(athlete.onboarding_completed_at);
 
@@ -61,7 +75,9 @@ function AthleteDetails({ athlete }: { athlete: CoachAthleteSummary }) {
         {formatBirthDate(athlete.birth_date) ? ` · ${formatBirthDate(athlete.birth_date)}` : ""}
       </p>
 
-      {!onboarded ? (
+      {!athlete.has_app ? (
+        <p className="coach-athlete-card__pending">Атлет ещё не установил приложение</p>
+      ) : !onboarded ? (
         <p className="coach-athlete-card__pending">Квиз ещё не пройден</p>
       ) : (
         <>
@@ -167,6 +183,7 @@ function CoachAthleteProfile({ athlete, onBack }: CoachAthleteProfileProps) {
             <AthleteAvatar athlete={athlete} />
             <div>
               <h3 className="coach-athlete-card__name">{athlete.display_name}</h3>
+              <AthleteAppStatus hasApp={athlete.has_app} />
             </div>
           </div>
           <SessionsBalanceCircle balance={athlete.sessions_balance} />
@@ -206,12 +223,17 @@ export function CoachAthletesPanel() {
   const [addCounts, setAddCounts] = useState<Record<string, string>>({});
   const [busyAthleteId, setBusyAthleteId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newAthleteName, setNewAthleteName] = useState("");
+  const [creatingAthlete, setCreatingAthlete] = useState(false);
 
-  useEffect(() => {
+  const loadAthletes = () =>
     fetchCoachAthletes()
       .then(setAthletes)
-      .catch((err) => setError(err instanceof Error ? err.message : "Ошибка загрузки"))
-      .finally(() => setLoading(false));
+      .catch((err) => setError(err instanceof Error ? err.message : "Ошибка загрузки"));
+
+  useEffect(() => {
+    void loadAthletes().finally(() => setLoading(false));
   }, []);
 
   const handleAddSessions = async (athleteId: string) => {
@@ -253,14 +275,106 @@ export function CoachAthletesPanel() {
     setExpandedId((prev) => (prev === athleteId ? null : athleteId));
   };
 
-  if (loading) return <p className="text-muted">Загрузка атлетов…</p>;
-  if (error) return <p className="auth-error">{error}</p>;
+  const handleCreateAthlete = async () => {
+    const name = newAthleteName.trim();
+    if (!name) return;
+
+    setCreatingAthlete(true);
+    setActionError(null);
+    try {
+      const created = await createManagedAthlete({ display_name: name });
+      setAthletes((prev) => [created, ...prev]);
+      setNewAthleteName("");
+      setShowAddForm(false);
+      setExpandedId(created.athlete_id);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Не удалось добавить атлета");
+    } finally {
+      setCreatingAthlete(false);
+    }
+  };
+
+  const panelHeader = (
+    <div className="coach-athletes__header">
+      <p className="coach-athletes__hint text-secondary">Клиенты и учёт тренировок</p>
+      <button
+        type="button"
+        className="coach-athletes__add-btn"
+        aria-label="Добавить атлета"
+        onClick={() => setShowAddForm((value) => !value)}
+      >
+        +
+      </button>
+    </div>
+  );
+
+  const addForm = showAddForm ? (
+    <form
+      className="coach-athletes__add-form glass glass--panel"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void handleCreateAthlete();
+      }}
+    >
+      <label className="coach-athletes__add-label" htmlFor="managed-athlete-name">
+        Имя атлета
+      </label>
+      <input
+        id="managed-athlete-name"
+        className="glass-input coach-athletes__add-input"
+        type="text"
+        value={newAthleteName}
+        placeholder="Например, Иван"
+        disabled={creatingAthlete}
+        onChange={(event) => setNewAthleteName(event.target.value)}
+      />
+      <div className="coach-athletes__add-actions">
+        <button
+          type="button"
+          className="coach-btn coach-btn--muted"
+          disabled={creatingAthlete}
+          onClick={() => {
+            setShowAddForm(false);
+            setNewAthleteName("");
+          }}
+        >
+          Отмена
+        </button>
+        <button
+          type="submit"
+          className="coach-btn coach-btn--primary"
+          disabled={creatingAthlete || !newAthleteName.trim()}
+        >
+          {creatingAthlete ? "Добавляем…" : "Добавить"}
+        </button>
+      </div>
+    </form>
+  ) : null;
+
+  if (loading) {
+    return (
+      <>
+        {panelHeader}
+        <p className="text-muted">Загрузка атлетов…</p>
+      </>
+    );
+  }
+  if (error) {
+    return (
+      <>
+        {panelHeader}
+        <p className="auth-error">{error}</p>
+      </>
+    );
+  }
 
   const profileAthlete = profileId ? athletes.find((a) => a.athlete_id === profileId) : null;
 
   if (profileAthlete) {
     return (
       <>
+        {panelHeader}
+        {addForm}
         {actionError ? <p className="auth-error">{actionError}</p> : null}
         <CoachAthleteProfile athlete={profileAthlete} onBack={() => setProfileId(null)} />
       </>
@@ -269,14 +383,22 @@ export function CoachAthletesPanel() {
 
   if (athletes.length === 0) {
     return (
-      <p className="text-secondary">
-        Пока нет подключённых атлетов. Поделись кодом приглашения — после связки здесь появятся их цели.
-      </p>
+      <>
+        {panelHeader}
+        {addForm}
+        {actionError ? <p className="auth-error">{actionError}</p> : null}
+        <p className="text-secondary">
+          Пока нет атлетов. Добавь клиента кнопкой «+» или поделись приглашением — атлет с приложением
+          появится здесь автоматически.
+        </p>
+      </>
     );
   }
 
   return (
     <>
+      {panelHeader}
+      {addForm}
       {actionError ? <p className="auth-error">{actionError}</p> : null}
       <div className="coach-athletes">
         {athletes.map((athlete) => {
@@ -295,7 +417,10 @@ export function CoachAthletesPanel() {
               >
                 <div className="coach-athlete-card__identity">
                   <AthleteAvatar athlete={athlete} />
-                  <h3 className="coach-athlete-card__name">{athlete.display_name}</h3>
+                  <div className="coach-athlete-card__title-block">
+                    <h3 className="coach-athlete-card__name">{athlete.display_name}</h3>
+                    <AthleteAppStatus hasApp={athlete.has_app} />
+                  </div>
                 </div>
                 <SessionsBalanceCircle balance={athlete.sessions_balance} />
               </button>

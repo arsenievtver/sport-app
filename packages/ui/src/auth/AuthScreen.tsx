@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   clearTokens,
+  fetchInvitePreview,
   fetchMe,
   isValidPhone,
   isValidPin,
@@ -9,7 +10,7 @@ import {
   saveTokens,
 } from "@sport-app/api-client";
 import type { TokenResponse, UserResponse, UserRole } from "@sport-app/shared";
-import { clearPendingInviteCode, hasRole } from "@sport-app/shared";
+import { clearPendingInviteCode, hasRole, readPendingClaimAthleteId } from "@sport-app/shared";
 
 import { BrandMark } from "./BrandMark";
 import { PhoneInput } from "./PhoneInput";
@@ -61,13 +62,37 @@ export function AuthScreen({
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resolvedInviteHint, setResolvedInviteHint] = useState<string | null>(inviteHint ?? null);
+
+  const isRegister = allowRegister && mode === "register";
+
+  useEffect(() => {
+    if (!pendingInviteCode || !isRegister) return;
+
+    const claimAthleteId = readPendingClaimAthleteId();
+    let cancelled = false;
+
+    void fetchInvitePreview(pendingInviteCode, claimAthleteId)
+      .then((preview) => {
+        if (cancelled) return;
+        setResolvedInviteHint(`Тренер ${preview.coach_name} приглашает тебя в sport-app.`);
+        if (preview.suggested_display_name) {
+          setDisplayName(preview.suggested_display_name);
+        }
+      })
+      .catch(() => {
+        if (!cancelled && inviteHint) setResolvedInviteHint(inviteHint);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pendingInviteCode, isRegister, inviteHint]);
 
   const canSubmit =
     isValidPhone(phone) &&
     isValidPin(pin) &&
-    (!allowRegister || mode === "login" || displayName.trim().length >= 1);
-
-  const isRegister = allowRegister && mode === "register";
+    (!isRegister || displayName.trim().length >= 1);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -76,6 +101,7 @@ export function AuthScreen({
     setError(null);
     setLoading(true);
     try {
+      const claimAthleteId = readPendingClaimAthleteId();
       const tokens = isRegister
         ? await register({
             phone,
@@ -83,6 +109,7 @@ export function AuthScreen({
             role: role as Exclude<UserRole, "admin">,
             display_name: displayName.trim(),
             ...(pendingInviteCode ? { invite_code: pendingInviteCode } : {}),
+            ...(claimAthleteId && pendingInviteCode ? { claim_athlete_id: claimAthleteId } : {}),
           })
         : await login({ phone, pin });
 
@@ -155,7 +182,7 @@ export function AuthScreen({
           {isRegister && (
             <p className="auth-card__subtitle">Создай аккаунт за минуту</p>
           )}
-          {inviteHint ? <p className="auth-hint auth-hint--invite">{inviteHint}</p> : null}
+          {resolvedInviteHint ? <p className="auth-hint auth-hint--invite">{resolvedInviteHint}</p> : null}
 
           {error && <p className="auth-error" role="alert">{error}</p>}
 

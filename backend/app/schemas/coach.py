@@ -1,15 +1,28 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.models.enums import CoachAthleteLinkStatus, CoachAthleteSessionEntryKind, Gender
+
+
+class CreateManagedAthleteRequest(BaseModel):
+    display_name: str = Field(min_length=1, max_length=120)
+
+    @field_validator("display_name")
+    @classmethod
+    def normalize_display_name(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Имя не может быть пустым")
+        return stripped
 
 
 class CoachAthleteSummary(BaseModel):
     athlete_id: UUID
     link_id: UUID
     display_name: str
+    has_app: bool = False
     avatar_url: str | None = None
     link_status: CoachAthleteLinkStatus
     sessions_balance: int = 0

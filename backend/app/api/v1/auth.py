@@ -1,14 +1,31 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import CurrentUser
-from app.schemas.auth import PhonePinLogin, RefreshRequest, RegisterRequest, TokenResponse, UserResponse
+from app.schemas.auth import (
+    InvitePreviewResponse,
+    PhonePinLogin,
+    RefreshRequest,
+    RegisterRequest,
+    TokenResponse,
+    UserResponse,
+)
 from app.services.auth import AuthService, user_to_response
 
 router = APIRouter(prefix="/auth")
+
+
+@router.get("/invite-preview", response_model=InvitePreviewResponse)
+async def invite_preview(
+    code: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    claim: UUID | None = None,
+) -> InvitePreviewResponse:
+    return await AuthService(db).invite_preview(code, claim)
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)

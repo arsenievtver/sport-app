@@ -7,6 +7,14 @@ export async function fetchCoachAthletes(): Promise<CoachAthleteSummary[]> {
   return res.json() as Promise<CoachAthleteSummary[]>;
 }
 
+export async function createManagedAthlete(payload: { display_name: string }): Promise<CoachAthleteSummary> {
+  const res = await authenticatedFetchOk("/coach/athletes", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<CoachAthleteSummary>;
+}
+
 export async function uploadCoachAvatar(file: Blob): Promise<UserResponse> {
   const formData = new FormData();
   formData.append("file", file, "avatar.jpg");

@@ -13,6 +13,7 @@ from app.schemas.coach import (
     CoachAthleteSessionHistoryEntry,
     CoachAthleteSessionsResponse,
     CoachAthleteSummary,
+    CreateManagedAthleteRequest,
 )
 from app.services.auth import user_to_response
 from app.services.coach import CoachService
@@ -54,6 +55,15 @@ async def list_athletes(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> list[CoachAthleteSummary]:
     return await CoachService(db).list_athletes(coach_profile)
+
+
+@router.post("/athletes", response_model=CoachAthleteSummary, status_code=status.HTTP_201_CREATED)
+async def create_managed_athlete(
+    data: CreateManagedAthleteRequest,
+    coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> CoachAthleteSummary:
+    return await CoachService(db).create_managed_athlete(coach_profile, data)
 
 
 @router.get(

@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.enums import CoachAthleteSessionEntryKind
+from app.models.enums import CoachAthleteLinkStatus, CoachAthleteSessionEntryKind
 from app.models.session_ledger import CoachAthleteSessionEntry
 from app.models.user import AthleteProfile, CoachAthleteLink, CoachProfile
 from app.schemas.auth import CoachProfileResponse
@@ -14,6 +14,7 @@ from app.schemas.coach import (
     CoachAthleteSessionHistoryEntry,
     CoachAthleteSessionsResponse,
     CoachAthleteSummary,
+    CreateManagedAthleteRequest,
 )
 
 
@@ -38,6 +39,30 @@ class CoachService:
         )
         links = result.scalars().all()
         return [self._link_to_summary(link) for link in links]
+
+    async def create_managed_athlete(
+        self,
+        coach_profile: CoachProfile,
+        data: CreateManagedAthleteRequest,
+    ) -> CoachAthleteSummary:
+        athlete = AthleteProfile(
+            user_id=None,
+            managed_by_coach_id=coach_profile.id,
+            display_name=data.display_name,
+        )
+        self.db.add(athlete)
+        await self.db.flush()
+
+        link = CoachAthleteLink(
+            coach_id=coach_profile.id,
+            athlete_id=athlete.id,
+            status=CoachAthleteLinkStatus.active,
+            started_at=datetime.now(UTC),
+        )
+        self.db.add(link)
+        await self.db.flush()
+        await self.db.refresh(link, attribute_names=["athlete", "session_entries"])
+        return self._link_to_summary(link)
 
     async def add_sessions(
         self,
@@ -122,6 +147,7 @@ class CoachService:
             athlete_id=athlete.id,
             link_id=link.id,
             display_name=athlete.display_name,
+            has_app=athlete.user_id is not None,
             avatar_url=athlete.avatar_url,
             link_status=link.status,
             sessions_balance=link.sessions_balance,

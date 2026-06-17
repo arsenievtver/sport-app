@@ -73,7 +73,7 @@ export default function App() {
         tagline={"Тренировки с тренером\nПрогресс который мотивирует"}
         inviteHint={
           pendingInviteCode
-            ? "Тренер пригласил тебя в sport-app. Войди или зарегистрируйся — мы сразу свяжем вас."
+            ? "Тренер пригласил тебя. Зарегистрируйся — мы сразу свяжем вас."
             : undefined
         }
         pendingInviteCode={pendingInviteCode}

@@ -66,12 +66,19 @@ class CoachProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 class AthleteProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "athlete_profiles"
 
-    user_id: Mapped[uuid.UUID] = mapped_column(
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         unique=True,
-        nullable=False,
+        nullable=True,
     )
+    managed_by_coach_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("coach_profiles.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     display_name: Mapped[str] = mapped_column(String(120), nullable=False)
     gender: Mapped[Gender | None] = mapped_column(gender_enum, nullable=True)
     birth_date: Mapped[date | None] = mapped_column(Date)

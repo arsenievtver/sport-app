@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, field_validator
 
 from app.core.security import validate_phone, validate_pin
 from app.models.enums import UserRole
@@ -30,6 +30,7 @@ class RegisterRequest(PhonePinLogin):
     role: UserRole = Field(examples=[UserRole.athlete])
     display_name: str = Field(min_length=1, max_length=120, examples=["Иван"])
     invite_code: str | None = Field(default=None, min_length=4, max_length=32)
+    claim_athlete_id: UUID | None = None
 
     @field_validator("role")
     @classmethod
@@ -69,3 +70,9 @@ class UserResponse(BaseModel):
     athlete_profile: AthleteProfileResponse | None = None
 
     model_config = {"from_attributes": True}
+
+
+class InvitePreviewResponse(BaseModel):
+    coach_name: str
+    invite_code: str
+    suggested_display_name: str | None = None

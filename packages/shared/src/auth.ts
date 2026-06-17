@@ -19,6 +19,7 @@ export interface RegisterPayload extends LoginPayload {
   role: Exclude<UserRole, "admin">;
   display_name: string;
   invite_code?: string;
+  claim_athlete_id?: string;
 }
 
 export interface CoachProfile {
@@ -35,7 +36,9 @@ export {
   FOCUS_IMPORTANCE_MIN,
   GENDER_LABELS,
   TRAINING_TRAIT_LABELS,
+  ATHLETE_APP_STATUS_LABELS,
   clampFocusImportance,
+  getAthleteAppStatusLabel,
   isAthleteOnboardingComplete,
 } from "./athlete";
 
@@ -47,6 +50,12 @@ export interface UserResponse {
   last_login_at: string | null;
   coach_profile: CoachProfile | null;
   athlete_profile: AthleteProfile | null;
+}
+
+export interface InvitePreview {
+  coach_name: string;
+  invite_code: string;
+  suggested_display_name?: string | null;
 }
 
 export function hasRole(user: Pick<UserResponse, "roles">, role: UserRole): boolean {
