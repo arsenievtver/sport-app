@@ -68,6 +68,8 @@
 }
 
 .glass-input {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, transparent 45%),
     var(--glass-bg-input);

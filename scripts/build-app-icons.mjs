@@ -16,32 +16,26 @@ ${details}
   </g>`;
 }
 
-function makeIcon({ id, viewBox, stops, glow }) {
+function makeIcon({ id, stops }) {
   const gradientStops = stops
     .map((s) => `      <stop offset="${s.offset}" stop-color="${s.color}"/>`)
     .join("\n");
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" width="512" height="512">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" width="512" height="512">
   <defs>
     <linearGradient id="${id}-bg" x1="0%" y1="0%" x2="100%" y2="100%">
 ${gradientStops}
     </linearGradient>
-    <radialGradient id="${id}-glow" cx="78%" cy="12%" r="50%">
-      <stop stop-color="${glow}" stop-opacity="0.3"/>
-      <stop offset="1" stop-color="${stops[0].color}" stop-opacity="0"/>
-    </radialGradient>
   </defs>
-  <rect width="1254" height="1254" fill="#f5f0e6"/>
-  ${figurePaths(`url(#${id}-bg)`)}
-  <rect width="1254" height="1254" fill="url(#${id}-glow)" style="mix-blend-mode:soft-light"/>
+  <rect width="1254" height="1254" fill="url(#${id}-bg)"/>
+  ${figurePaths("#ffffff")}
 </svg>
 `;
 }
 
+// Фирменные цвета: neon-pulse (тренер) и neon-crimson (атлет)
 const athlete = makeIcon({
   id: "athlete",
-  viewBox: "380 0 720 1254",
-  glow: "#ff2d95",
   stops: [
     { offset: "0%", color: "#ff3355" },
     { offset: "55%", color: "#ff6600" },
@@ -51,11 +45,9 @@ const athlete = makeIcon({
 
 const coach = makeIcon({
   id: "coach",
-  viewBox: "150 0 720 1254",
-  glow: "#14b8a6",
   stops: [
-    { offset: "0%", color: "#2dd4bf" },
-    { offset: "100%", color: "#34d399" },
+    { offset: "0%", color: "#00ffaa" },
+    { offset: "100%", color: "#00e5ff" },
   ],
 });
 

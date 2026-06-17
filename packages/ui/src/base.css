@@ -160,16 +160,81 @@ a:hover {
   color: var(--color-accent);
 }
 
-/* iOS Safari: date inputs ignore width:100% and overflow padded containers */
+/* iOS Safari: auto-zoom on focus when font-size < 16px */
+textarea,
+select,
+input:is(
+  [type="text"],
+  [type="tel"],
+  [type="email"],
+  [type="password"],
+  [type="search"],
+  [type="url"],
+  [type="number"],
+  [type="date"],
+  [type="datetime-local"],
+  [type="month"],
+  [type="time"],
+  [type="week"]
+):not(.auth-pin__cell) {
+  font-size: var(--text-base);
+}
+
+/* iOS Safari: temporal inputs (date/time) — width & inner layout */
 input[type="date"],
-input[type="datetime-local"] {
-  display: block;
+input[type="datetime-local"],
+input[type="time"],
+input[type="month"],
+input[type="week"] {
   width: 100%;
   min-width: 0;
   max-width: 100%;
+  overflow: hidden;
+  /* Keep default inline-flex — display:block breaks width on iOS */
 }
 
-input[type="date"]::-webkit-date-and-time-value {
+input[type="date"]::-webkit-date-and-time-value,
+input[type="datetime-local"]::-webkit-date-and-time-value {
   min-width: 0;
+  min-height: 1lh;
   text-align: left;
+}
+
+input[type="date"]::-webkit-datetime-edit,
+input[type="datetime-local"]::-webkit-datetime-edit {
+  display: inline-flex;
+  overflow: hidden;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+  min-width: 0;
+}
+
+input[type="date"]::-webkit-datetime-edit,
+input[type="date"]::-webkit-datetime-edit-year-field,
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="datetime-local"]::-webkit-datetime-edit,
+input[type="datetime-local"]::-webkit-datetime-edit-year-field,
+input[type="datetime-local"]::-webkit-datetime-edit-month-field,
+input[type="datetime-local"]::-webkit-datetime-edit-day-field,
+input[type="datetime-local"]::-webkit-datetime-edit-hour-field,
+input[type="datetime-local"]::-webkit-datetime-edit-minute-field {
+  padding-block: 0;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+input::-webkit-inner-spin-button {
+  height: auto;
 }

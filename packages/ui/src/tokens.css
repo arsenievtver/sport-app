@@ -13,6 +13,7 @@
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
+  /* --text-base (16px) — минимум для input/textarea/select (iOS Safari не зумит при фокусе) */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;

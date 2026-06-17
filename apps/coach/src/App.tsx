@@ -109,7 +109,7 @@ export default function App() {
   return (
     <>
       {content}
-      <PwaInstallBanner appName="Coach" />
+      <PwaInstallBanner appName={ROLE_LABELS.coach} />
     </>
   );
 }

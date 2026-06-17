@@ -324,7 +324,7 @@
   width: 100%;
   padding: var(--space-3);
   font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   color: var(--color-text);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--glass-border);
