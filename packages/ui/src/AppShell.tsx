@@ -1,6 +1,4 @@
-import { useLayoutEffect, type ReactNode } from "react";
-
-import { syncViewportHeight } from "./viewport";
+import type { ReactNode } from "react";
 
 interface AppShellProps {
   title: string;
@@ -10,17 +8,10 @@ interface AppShellProps {
 }
 
 export function AppShell({ title, subtitle, children, bottomNav }: AppShellProps) {
-  useLayoutEffect(() => {
-    syncViewportHeight();
-    const frame = requestAnimationFrame(syncViewportHeight);
-    return () => cancelAnimationFrame(frame);
-  }, []);
-
   return (
     <div
       className={`app-shell${bottomNav ? " app-shell--with-bottom-nav" : ""}${subtitle ? " app-shell--with-subtitle" : ""}`}
     >
-      <div className="app-shell__bg" aria-hidden />
       <header className="app-shell__header">
         <div className="app-shell__header-bar glass glass--floating-bar">
           <h1 className="app-shell__title">{title}</h1>

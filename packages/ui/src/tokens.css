@@ -5,7 +5,6 @@
 @import "./themes/themes.css";
 
 :root {
-  --app-height: 100dvh;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
