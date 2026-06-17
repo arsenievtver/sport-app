@@ -18,7 +18,7 @@ import {
 import { ONBOARDING_STEPS } from "./onboarding-types";
 import { setSessionRefreshPaused } from "../auth/useAuthSession";
 import { FocusImportanceSlider } from "./FocusImportanceSlider";
-import { DateField } from "../date-field/DateField";
+import { NativeTemporalInput } from "../native-temporal/NativeTemporalInput";
 
 const TRAINING_TRAITS: TrainingTrait[] = ["strength", "flexibility", "endurance", "coordination"];
 
@@ -206,10 +206,13 @@ export function AthleteOnboarding({ displayName, onComplete }: AthleteOnboarding
           {step === "birth" && (
             <label className="onboarding__field">
               <span>Дата рождения</span>
-              <DateField
+              <NativeTemporalInput
+                type="date"
+                wrapperClassName="onboarding__temporal"
+                className="onboarding__input"
                 value={birthDate}
                 max={new Date().toISOString().slice(0, 10)}
-                onChange={setBirthDate}
+                onChange={(event) => setBirthDate(event.target.value)}
                 onKeyDown={(event) => handleEnterAsNext(event, goNext)}
               />
             </label>

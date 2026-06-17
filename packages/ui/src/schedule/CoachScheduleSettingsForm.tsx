@@ -1,11 +1,47 @@
 import { useState } from "react";
 import type { CoachScheduleSettings } from "@sport-app/shared";
 import { WEEKDAY_OPTIONS } from "@sport-app/shared";
+import { NativeTemporalInput } from "../native-temporal/NativeTemporalInput";
 
 interface CoachScheduleSettingsFormProps {
   settings: CoachScheduleSettings;
   saving?: boolean;
   onSave: (settings: CoachScheduleSettings) => void;
+}
+
+function TimeRangeRow({
+  start,
+  end,
+  onStartChange,
+  onEndChange,
+}: {
+  start: string;
+  end: string;
+  onStartChange: (value: string) => void;
+  onEndChange: (value: string) => void;
+}) {
+  return (
+    <div className="schedule-settings-form__time-row">
+      <label className="schedule-settings-form__time-pair">
+        <span className="schedule-settings-form__time-label">С</span>
+        <NativeTemporalInput
+          type="time"
+          wrapperClassName="native-temporal--schedule"
+          value={start}
+          onChange={(event) => onStartChange(event.target.value)}
+        />
+      </label>
+      <label className="schedule-settings-form__time-pair">
+        <span className="schedule-settings-form__time-label">До</span>
+        <NativeTemporalInput
+          type="time"
+          wrapperClassName="native-temporal--schedule"
+          value={end}
+          onChange={(event) => onEndChange(event.target.value)}
+        />
+      </label>
+    </div>
+  );
 }
 
 export function CoachScheduleSettingsForm({ settings, saving = false, onSave }: CoachScheduleSettingsFormProps) {
@@ -49,61 +85,33 @@ export function CoachScheduleSettingsForm({ settings, saving = false, onSave }: 
 
       <div className="schedule-settings-form__row">
         <span className="schedule-settings-form__label">Окно слотов</span>
-        <div className="schedule-settings-form__inputs schedule-settings-form__inputs--pair">
-          <label className="schedule-settings-form__field">
-            <span className="schedule-settings-form__label">С</span>
-            <input
-              className="schedule-settings-form__input schedule-settings-form__input--time"
-              type="time"
-              value={draft.slot_start}
-              onChange={(event) => setDraft((prev) => ({ ...prev, slot_start: event.target.value }))}
-            />
-          </label>
-          <label className="schedule-settings-form__field">
-            <span className="schedule-settings-form__label">До</span>
-            <input
-              className="schedule-settings-form__input schedule-settings-form__input--time"
-              type="time"
-              value={draft.slot_end}
-              onChange={(event) => setDraft((prev) => ({ ...prev, slot_end: event.target.value }))}
-            />
-          </label>
-        </div>
+        <TimeRangeRow
+          start={draft.slot_start}
+          end={draft.slot_end}
+          onStartChange={(slot_start) => setDraft((prev) => ({ ...prev, slot_start }))}
+          onEndChange={(slot_end) => setDraft((prev) => ({ ...prev, slot_end }))}
+        />
       </div>
 
       <div className="schedule-settings-form__row">
         <span className="schedule-settings-form__label">Обед (необязательно)</span>
-        <div className="schedule-settings-form__inputs schedule-settings-form__inputs--pair">
-          <label className="schedule-settings-form__field">
-            <span className="schedule-settings-form__label">С</span>
-            <input
-              className="schedule-settings-form__input schedule-settings-form__input--time"
-              type="time"
-              value={draft.lunch_start ?? ""}
-              onChange={(event) =>
-                setDraft((prev) => ({
-                  ...prev,
-                  lunch_start: event.target.value || null,
-                  lunch_end: event.target.value ? prev.lunch_end : null,
-                }))
-              }
-            />
-          </label>
-          <label className="schedule-settings-form__field">
-            <span className="schedule-settings-form__label">До</span>
-            <input
-              className="schedule-settings-form__input schedule-settings-form__input--time"
-              type="time"
-              value={draft.lunch_end ?? ""}
-              onChange={(event) =>
-                setDraft((prev) => ({
-                  ...prev,
-                  lunch_end: event.target.value || null,
-                }))
-              }
-            />
-          </label>
-        </div>
+        <TimeRangeRow
+          start={draft.lunch_start ?? ""}
+          end={draft.lunch_end ?? ""}
+          onStartChange={(lunch_start) =>
+            setDraft((prev) => ({
+              ...prev,
+              lunch_start: lunch_start || null,
+              lunch_end: lunch_start ? prev.lunch_end : null,
+            }))
+          }
+          onEndChange={(lunch_end) =>
+            setDraft((prev) => ({
+              ...prev,
+              lunch_end: lunch_end || null,
+            }))
+          }
+        />
       </div>
 
       <div className="schedule-settings-form__row">

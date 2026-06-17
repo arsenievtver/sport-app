@@ -418,6 +418,29 @@
   gap: var(--space-3);
 }
 
+.schedule-settings-form__time-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.schedule-settings-form__time-pair {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.schedule-settings-form__time-label {
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+}
+
 .schedule-settings-form__field {
   display: flex;
   flex-direction: column;
@@ -438,21 +461,6 @@
   font: inherit;
   font-size: var(--text-base);
   box-sizing: border-box;
-}
-
-.schedule-settings-form__input--time {
-  display: block;
-  text-align: center;
-}
-
-.schedule-settings-form__inputs--pair {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-@media (min-width: 520px) {
-  .schedule-settings-form__inputs--pair {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 .schedule-settings-form__save {

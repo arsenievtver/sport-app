@@ -146,6 +146,20 @@
   font-family: inherit;
 }
 
+.onboarding__temporal {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+}
+
+.onboarding__temporal .onboarding__input,
+.onboarding__temporal .native-temporal__input {
+  width: 100%;
+  border: none;
+  background: transparent;
+}
+
 .onboarding__textarea {
   resize: vertical;
   min-height: 120px;

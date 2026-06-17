@@ -17,7 +17,7 @@ import {
 } from "@sport-app/shared";
 
 import { AvatarCropModal } from "./AvatarCropModal";
-import { DateField } from "../date-field/DateField";
+import { NativeTemporalInput } from "../native-temporal/NativeTemporalInput";
 
 interface AthleteSettingsProps {
   user: UserResponse;
@@ -247,11 +247,13 @@ export function AthleteSettings({
           </label>
           <label className="settings-field">
             <span className="settings-field__label">Дата рождения</span>
-            <DateField
+            <NativeTemporalInput
+              type="date"
+              wrapperClassName="native-temporal--inline native-temporal--glass"
+              className="glass-input"
               value={birthDate}
               max={new Date().toISOString().slice(0, 10)}
-              onChange={setBirthDate}
-              inputClassName="glass-input"
+              onChange={(event) => setBirthDate(event.target.value)}
             />
           </label>
         </div>

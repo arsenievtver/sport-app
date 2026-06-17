@@ -1,0 +1,78 @@
+/* iOS Safari clips native date/time controls that overflow their box */
+.native-temporal {
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.native-temporal--inline {
+  flex: none;
+  display: inline-block;
+  width: auto;
+  max-width: 100%;
+}
+
+.native-temporal--schedule {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.native-temporal--glass {
+  border-radius: var(--radius-lg);
+}
+
+.native-temporal__input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-3);
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-base);
+  box-sizing: border-box;
+  text-align: center;
+  overflow: hidden;
+}
+
+.native-temporal__input.glass-input {
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  background: transparent;
+}
+
+.native-temporal--glass {
+  border: 1px solid var(--glass-border, var(--color-border));
+  background: var(--glass-bg, var(--color-bg-elevated));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+.native-temporal__input[type="time"]::-webkit-date-and-time-value,
+.native-temporal__input[type="date"]::-webkit-date-and-time-value,
+.native-temporal__input[type="datetime-local"]::-webkit-date-and-time-value {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+.native-temporal__input[type="time"]::-webkit-calendar-picker-indicator,
+.native-temporal__input[type="date"]::-webkit-calendar-picker-indicator,
+.native-temporal__input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+}
