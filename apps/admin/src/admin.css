@@ -1,7 +1,6 @@
 .admin-layout {
   display: flex;
-  min-height: 100dvh;
-  min-height: 100svh;
+  min-height: var(--app-height);
 }
 
 .admin-sidebar {

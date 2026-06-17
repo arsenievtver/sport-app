@@ -1,10 +1,7 @@
 .app-shell {
   position: relative;
   isolation: isolate;
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
-  min-height: 100svh;
-  min-height: 100dvh;
+  min-height: var(--app-height);
   display: flex;
   flex-direction: column;
   overflow-x: clip;
@@ -53,7 +50,9 @@
 .app-shell__main {
   position: relative;
   z-index: 1;
-  flex: 1;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
   padding:
     calc(var(--space-5) + var(--shell-header-float-offset))
     max(var(--space-5), var(--safe-right))

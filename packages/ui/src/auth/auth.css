@@ -1,9 +1,6 @@
 .auth-screen {
   position: relative;
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
-  min-height: 100svh;
-  min-height: 100dvh;
+  min-height: var(--app-height);
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
