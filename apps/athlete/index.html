@@ -2,30 +2,15 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#050508" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0c0f14" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Атлет" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icon.svg" />
     <title>sport-app — Атлет</title>
-    <script>
-      (function () {
-        function nudge() {
-          if (window.scrollY !== 0) return;
-          window.scrollTo(0, 1);
-          requestAnimationFrame(function () {
-            window.scrollTo(0, 0);
-          });
-        }
-        nudge();
-        window.addEventListener("pageshow", nudge);
-      })();
-    </script>
   </head>
   <body>
-    <div id="app-backdrop" aria-hidden="true"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

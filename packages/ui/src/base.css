@@ -6,6 +6,15 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -14,37 +23,15 @@ html {
 }
 
 body {
-  position: relative;
-  margin: 0;
-  /* +1px: iOS PWA не скроллит короткие страницы — без этого scrollTo-хак не срабатывает */
-  min-height: calc(100dvh + 1px);
   font-family: var(--font-sans);
   font-size: var(--text-base);
   font-weight: var(--font-normal);
   line-height: var(--leading-normal);
   color: var(--color-text);
-  background: var(--gradient-app-bg);
   background-color: var(--color-bg);
+  background: var(--gradient-app-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-#app-backdrop {
-  position: fixed;
-  z-index: 0;
-  pointer-events: none;
-  top: calc(-1 * var(--safe-top));
-  right: calc(-1 * var(--safe-right));
-  bottom: calc(-1 * var(--safe-bottom));
-  left: calc(-1 * var(--safe-left));
-  background: var(--gradient-app-bg);
-  background-color: var(--color-bg);
-}
-
-#root {
-  position: relative;
-  z-index: 1;
-  min-height: calc(100dvh + 1px);
 }
 
 a {

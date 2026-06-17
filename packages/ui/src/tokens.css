@@ -53,9 +53,7 @@
   --bottom-nav-margin: var(--shell-bar-margin);
   --bottom-nav-inner-height: var(--bottom-nav-slot-size);
   --bottom-nav-height: calc(var(--bottom-nav-bar-padding-y) * 2 + var(--bottom-nav-inner-height));
-  --bottom-nav-float-offset: calc(
-    var(--bottom-nav-height) + max(var(--bottom-nav-margin), var(--safe-bottom))
-  );
+  --bottom-nav-float-offset: calc(var(--bottom-nav-height) + var(--bottom-nav-margin));
   --content-max-width: 480px;
   --content-max-width-desktop: 1280px;
 

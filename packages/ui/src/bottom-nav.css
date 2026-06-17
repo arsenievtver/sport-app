@@ -3,7 +3,7 @@
   z-index: 80;
   left: max(var(--bottom-nav-margin), var(--safe-left));
   right: max(var(--bottom-nav-margin), var(--safe-right));
-  bottom: max(var(--bottom-nav-margin), var(--safe-bottom));
+  bottom: var(--bottom-nav-margin);
   pointer-events: none;
 }
 
