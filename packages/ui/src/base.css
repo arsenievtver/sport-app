@@ -10,45 +10,40 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   color-scheme: dark;
-  height: 100%;
-  background-color: var(--color-bg);
-}
-
-/* Full-bleed backdrop — sibling of #root in index.html */
-#app-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: var(--gradient-app-bg);
   background-color: var(--color-bg);
 }
 
 body {
   position: relative;
   margin: 0;
-  height: 100%;
-  overflow: hidden;
+  min-height: 100dvh;
   font-family: var(--font-sans);
   font-size: var(--text-base);
   font-weight: var(--font-normal);
   line-height: var(--leading-normal);
   color: var(--color-text);
-  background: var(--gradient-app-bg);
   background-color: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* iOS PWA: fixed shell = always full screen; scroll inside */
-#root {
+/* В index.html — sibling перед #root. Расширяем за safe area (как auth-screen__bg). */
+#app-backdrop {
   position: fixed;
-  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  top: calc(-1 * var(--safe-top));
+  right: calc(-1 * var(--safe-right));
+  bottom: calc(-1 * var(--safe-bottom));
+  left: calc(-1 * var(--safe-left));
+  background: var(--gradient-app-bg);
+  background-color: var(--color-bg);
+}
+
+#root {
+  position: relative;
   z-index: 1;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: none;
+  min-height: 100dvh;
 }
 
 a {
