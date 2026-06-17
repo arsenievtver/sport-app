@@ -1,36 +1,25 @@
 /**
- * iOS PWA: на холодном старте layout viewport короче экрана.
- * После scroll/tap visualViewport пересчитывается — синхронизируем --viewport-height.
+ * iOS PWA: layout viewport на холодном старте короче экрана.
+ * scrollTo(0, 1) → scrollTo(0, 0) — тот же пересчёт, что при протягивании вниз.
  */
-export function syncViewportHeight(): void {
-  if (typeof window === "undefined" || typeof document === "undefined") return;
+export function nudgeIosViewport(): void {
+  if (typeof window === "undefined") return;
 
-  const height = window.visualViewport?.height ?? window.innerHeight;
-  if (height > 0) {
-    document.documentElement.style.setProperty("--viewport-height", `${Math.round(height)}px`);
-  }
+  const y = window.scrollY;
+  if (y !== 0) return;
+
+  window.scrollTo(0, 1);
+  requestAnimationFrame(() => {
+    window.scrollTo(0, y);
+  });
 }
 
 export function initViewport(): void {
   if (typeof window === "undefined") return;
 
-  let frame = 0;
+  nudgeIosViewport();
 
-  const schedule = () => {
-    cancelAnimationFrame(frame);
-    frame = requestAnimationFrame(syncViewportHeight);
-  };
-
-  syncViewportHeight();
-  schedule();
-
-  for (const delay of [50, 100, 250, 500, 1000]) {
-    window.setTimeout(syncViewportHeight, delay);
-  }
-
-  window.addEventListener("resize", schedule);
-  window.addEventListener("orientationchange", schedule);
-  window.addEventListener("pageshow", syncViewportHeight);
-  window.visualViewport?.addEventListener("resize", schedule);
-  window.visualViewport?.addEventListener("scroll", schedule);
+  window.addEventListener("pageshow", nudgeIosViewport);
+  window.addEventListener("orientationchange", nudgeIosViewport);
+  window.visualViewport?.addEventListener("resize", nudgeIosViewport);
 }
