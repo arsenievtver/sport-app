@@ -17,6 +17,7 @@ import {
 } from "@sport-app/shared";
 
 import { AvatarCropModal } from "./AvatarCropModal";
+import { DateField } from "../date-field/DateField";
 
 interface AthleteSettingsProps {
   user: UserResponse;
@@ -246,12 +247,11 @@ export function AthleteSettings({
           </label>
           <label className="settings-field">
             <span className="settings-field__label">Дата рождения</span>
-            <input
-              className="settings-field__input glass-input"
-              type="date"
+            <DateField
               value={birthDate}
               max={new Date().toISOString().slice(0, 10)}
-              onChange={(event) => setBirthDate(event.target.value)}
+              onChange={setBirthDate}
+              inputClassName="glass-input"
             />
           </label>
         </div>

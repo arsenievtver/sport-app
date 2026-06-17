@@ -3,6 +3,9 @@
   flex-direction: column;
   gap: var(--space-4);
   margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .schedule-toolbar {
@@ -173,6 +176,9 @@
   text-align: center;
   cursor: pointer;
   padding: var(--space-1);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .schedule-cell--empty .schedule-cell__btn {
@@ -235,15 +241,29 @@
     max(var(--space-4), var(--safe-right))
     max(var(--space-4), var(--safe-bottom))
     max(var(--space-4), var(--safe-left));
+  overscroll-behavior: none;
+  touch-action: none;
 }
 
 .schedule-sheet {
   width: min(100%, var(--content-max-width));
-  max-height: min(70vh, 520px);
+  max-height: min(85vh, 560px);
   display: flex;
   flex-direction: column;
   border-radius: var(--radius-xl);
   overflow: hidden;
+  touch-action: pan-y;
+}
+
+.schedule-sheet__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: var(--space-4);
 }
 
 .schedule-sheet__header {
@@ -351,12 +371,14 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  min-width: 0;
 }
 
 .schedule-settings-form__row {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  min-width: 0;
 }
 
 .schedule-settings-form__label {
@@ -366,20 +388,21 @@
 }
 
 .schedule-settings-form__chips {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: var(--space-2);
 }
 
 .schedule-settings-form__chip {
   min-height: 40px;
-  padding: 0 var(--space-3);
+  min-width: 0;
+  padding: 0 var(--space-1);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-full);
   background: transparent;
   color: var(--color-text-secondary);
   font: inherit;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   cursor: pointer;
 }
 
@@ -391,12 +414,21 @@
 
 .schedule-settings-form__inputs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
+}
+
+.schedule-settings-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
 }
 
 .schedule-settings-form__input {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: var(--touch-target);
   padding: 0 var(--space-3);
   border: 1px solid var(--color-border-subtle);
@@ -405,6 +437,22 @@
   color: var(--color-text);
   font: inherit;
   font-size: var(--text-base);
+  box-sizing: border-box;
+}
+
+.schedule-settings-form__input--time {
+  display: block;
+  text-align: center;
+}
+
+.schedule-settings-form__inputs--pair {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 520px) {
+  .schedule-settings-form__inputs--pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .schedule-settings-form__save {

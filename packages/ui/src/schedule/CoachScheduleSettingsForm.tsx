@@ -49,20 +49,20 @@ export function CoachScheduleSettingsForm({ settings, saving = false, onSave }: 
 
       <div className="schedule-settings-form__row">
         <span className="schedule-settings-form__label">Окно слотов</span>
-        <div className="schedule-settings-form__inputs">
-          <label>
+        <div className="schedule-settings-form__inputs schedule-settings-form__inputs--pair">
+          <label className="schedule-settings-form__field">
             <span className="schedule-settings-form__label">С</span>
             <input
-              className="schedule-settings-form__input"
+              className="schedule-settings-form__input schedule-settings-form__input--time"
               type="time"
               value={draft.slot_start}
               onChange={(event) => setDraft((prev) => ({ ...prev, slot_start: event.target.value }))}
             />
           </label>
-          <label>
+          <label className="schedule-settings-form__field">
             <span className="schedule-settings-form__label">До</span>
             <input
-              className="schedule-settings-form__input"
+              className="schedule-settings-form__input schedule-settings-form__input--time"
               type="time"
               value={draft.slot_end}
               onChange={(event) => setDraft((prev) => ({ ...prev, slot_end: event.target.value }))}
@@ -73,11 +73,11 @@ export function CoachScheduleSettingsForm({ settings, saving = false, onSave }: 
 
       <div className="schedule-settings-form__row">
         <span className="schedule-settings-form__label">Обед (необязательно)</span>
-        <div className="schedule-settings-form__inputs">
-          <label>
+        <div className="schedule-settings-form__inputs schedule-settings-form__inputs--pair">
+          <label className="schedule-settings-form__field">
             <span className="schedule-settings-form__label">С</span>
             <input
-              className="schedule-settings-form__input"
+              className="schedule-settings-form__input schedule-settings-form__input--time"
               type="time"
               value={draft.lunch_start ?? ""}
               onChange={(event) =>
@@ -89,10 +89,10 @@ export function CoachScheduleSettingsForm({ settings, saving = false, onSave }: 
               }
             />
           </label>
-          <label>
+          <label className="schedule-settings-form__field">
             <span className="schedule-settings-form__label">До</span>
             <input
-              className="schedule-settings-form__input"
+              className="schedule-settings-form__input schedule-settings-form__input--time"
               type="time"
               value={draft.lunch_end ?? ""}
               onChange={(event) =>

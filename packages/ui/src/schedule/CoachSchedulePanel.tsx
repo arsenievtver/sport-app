@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import {
   clearCoachScheduleWeekSlot,
   fetchCoachAthletes,
@@ -228,8 +228,10 @@ export function CoachSchedulePanel() {
     longPressCell.current = null;
   };
 
-  const startLongPress = (cell: ScheduleSlotCell) => {
+  const startLongPress = (cell: ScheduleSlotCell, event: PointerEvent<HTMLButtonElement>) => {
     if (mode !== "week" || !cell.date || !cell.athlete) return;
+    event.preventDefault();
+    window.getSelection()?.removeAllRanges();
     clearLongPress();
     longPressCell.current = {
       dayOfWeek: cell.day_of_week,
@@ -246,6 +248,7 @@ export function CoachSchedulePanel() {
         athleteName: longPressCell.current.athleteName ?? "",
       });
       setSelectedCell(null);
+      window.getSelection()?.removeAllRanges();
       if (navigator.vibrate) navigator.vibrate(20);
       clearLongPress();
     }, LONG_PRESS_MS);
@@ -433,7 +436,7 @@ function ScheduleGridRow({
   cellMap: Map<string, ScheduleSlotCell>;
   moveSource: MoveSource | null;
   onOpen: (cell: ScheduleSlotCell) => void;
-  onLongPressStart: (cell: ScheduleSlotCell) => void;
+  onLongPressStart: (cell: ScheduleSlotCell, event: PointerEvent<HTMLButtonElement>) => void;
   onLongPressEnd: () => void;
 }) {
   return (
@@ -465,7 +468,7 @@ function ScheduleGridRow({
               type="button"
               className="schedule-cell__btn"
               onClick={() => onOpen(cell)}
-              onPointerDown={() => onLongPressStart(cell)}
+              onPointerDown={(event) => onLongPressStart(cell, event)}
               onPointerUp={onLongPressEnd}
               onPointerLeave={onLongPressEnd}
               onPointerCancel={onLongPressEnd}
@@ -587,6 +590,14 @@ function ScheduleSettingsSheet({
   onSave: (settings: CoachScheduleSettings) => void;
   onClose: () => void;
 }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   return (
     <div className="schedule-sheet-backdrop" onClick={onClose}>
       <div className="schedule-sheet glass glass--panel" onClick={(event) => event.stopPropagation()}>
@@ -596,7 +607,7 @@ function ScheduleSettingsSheet({
             ✕
           </button>
         </div>
-        <div style={{ overflowY: "auto", padding: "var(--space-4)" }}>
+        <div className="schedule-sheet__body">
           <CoachScheduleSettingsForm settings={settings} saving={saving} onSave={onSave} />
         </div>
       </div>
