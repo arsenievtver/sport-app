@@ -10,6 +10,28 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icon.svg" />
     <title>sport-app — Coach</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background-color: #050508;
+      }
+
+      #app-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background-color: #050508;
+      }
+
+      #root {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        overflow: auto;
+      }
+    </style>
   </head>
   <body>
     <div id="app-backdrop" aria-hidden="true"></div>

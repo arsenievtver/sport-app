@@ -10,22 +10,16 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   color-scheme: dark;
+  height: 100%;
   background-color: var(--color-bg);
-  min-height: 100%;
-  min-height: -webkit-fill-available;
-  min-height: 100lvh;
-  min-height: 100dvh;
 }
 
-/* Fixed layer in index.html — надёжнее pseudo-element на iOS. */
+/* Full-bleed backdrop — sibling of #root in index.html */
 #app-backdrop {
   position: fixed;
+  inset: 0;
   z-index: 0;
   pointer-events: none;
-  top: calc(-1 * var(--safe-top));
-  right: calc(-1 * var(--safe-right));
-  bottom: calc(-1 * var(--safe-bottom));
-  left: calc(-1 * var(--safe-left));
   background: var(--gradient-app-bg);
   background-color: var(--color-bg);
 }
@@ -33,27 +27,28 @@ html {
 body {
   position: relative;
   margin: 0;
-  min-height: 100%;
-  min-height: -webkit-fill-available;
-  min-height: 100lvh;
-  min-height: 100dvh;
+  height: 100%;
+  overflow: hidden;
   font-family: var(--font-sans);
   font-size: var(--text-base);
   font-weight: var(--font-normal);
   line-height: var(--leading-normal);
   color: var(--color-text);
-  background: transparent;
+  background: var(--gradient-app-bg);
+  background-color: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* iOS PWA: fixed shell = always full screen; scroll inside */
 #root {
-  position: relative;
+  position: fixed;
+  inset: 0;
   z-index: 1;
-  min-height: 100%;
-  min-height: -webkit-fill-available;
-  min-height: 100lvh;
-  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
 }
 
 a {
