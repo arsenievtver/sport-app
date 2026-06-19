@@ -19,18 +19,7 @@
 }
 
 [data-theme^="neon-"] .auth-screen__bg::after {
-  content: "";
-  position: absolute;
-  width: min(280px, 60vw);
-  height: min(280px, 60vw);
-  top: 40%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: radial-gradient(circle, var(--orb-tertiary, rgba(0, 229, 255, 0.35)) 0%, transparent 70%);
-  filter: blur(60px);
-  opacity: 0.6;
-  animation: auth-float 15s ease-in-out infinite reverse;
+  display: none;
 }
 
 [data-theme^="neon-"] .auth-screen__grid {

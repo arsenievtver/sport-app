@@ -1,7 +1,7 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import Date, Enum as SQLEnum, ForeignKey, Integer
+from sqlalchemy import Date, Enum as SQLEnum, Float, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -34,5 +34,17 @@ class CoachAthleteSessionEntry(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
     sessions_count: Mapped[int] = mapped_column(Integer, nullable=False)
     entry_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    activity_type_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("activity_types.id", ondelete="SET NULL"),
+        index=True,
+    )
+    duration_min: Mapped[int | None] = mapped_column(Integer)
+    effort: Mapped[int | None] = mapped_column(Integer)
+    effective_met: Mapped[float | None] = mapped_column(Float)
+    load_met_minutes: Mapped[float | None] = mapped_column(Float)
+    weight_kg_used: Mapped[float | None] = mapped_column(Float)
+    calories_kcal: Mapped[float | None] = mapped_column(Float)
 
     link: Mapped["CoachAthleteLink"] = relationship(back_populates="session_entries")
+    activity_type: Mapped["ActivityType | None"] = relationship()

@@ -9,6 +9,9 @@ from app.models.health import HealthConnection
 from app.models.progress import AnalyticsEvent, ProgressSnapshot
 from app.models.schedule import CoachScheduleSettings, ScheduleTemplateSlot, ScheduleWeekException
 from app.models.user import AthleteProfile, CoachAthleteLink, CoachProfile, User
+from app.models.activity_type import ActivityType
+from app.models.athlete_weight import AthleteWeightEntry
+from app.models.session_ledger import CoachAthleteSessionEntry
 from app.models.workout import Workout, WorkoutExercise, WorkoutLog, WorkoutLogExercise
 
 __all__ = [
@@ -18,6 +21,8 @@ __all__ = [
     "AthleteProfile",
     "CoachAthleteLink",
     "CoachAthleteSessionEntry",
+    "ActivityType",
+    "AthleteWeightEntry",
     "CoachScheduleSettings",
     "ScheduleTemplateSlot",
     "ScheduleWeekException",

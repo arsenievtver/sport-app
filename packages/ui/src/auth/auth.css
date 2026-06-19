@@ -13,16 +13,11 @@
   z-index: 0;
   pointer-events: none;
   inset: 0;
-  background: var(--gradient-app-bg);
-  background-color: var(--color-bg);
+  background: transparent;
 }
 
 .auth-screen__orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.55;
-  animation: auth-float 12s ease-in-out infinite;
+  display: none;
 }
 
 .auth-screen__orb--primary {
@@ -43,14 +38,7 @@
 }
 
 .auth-screen__grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: linear-gradient(to bottom, black 0%, transparent 85%);
-  opacity: 0.5;
+  display: none;
 }
 
 @keyframes auth-float {

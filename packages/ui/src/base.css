@@ -23,15 +23,8 @@ html {
 }
 
 body {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  font-weight: var(--font-normal);
-  line-height: var(--leading-normal);
-  color: var(--color-text);
-  background-color: var(--color-bg);
-  background: var(--gradient-app-bg);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
 }
 
 a {
@@ -58,13 +51,15 @@ a:hover {
 .card {
   padding: var(--space-5);
   border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border-panel);
   background:
-    linear-gradient(145deg, var(--glass-tint) 0%, transparent 52%),
-    var(--glass-bg);
+    linear-gradient(165deg, color-mix(in srgb, #ffffff 7%, transparent) 0%, transparent 48%),
+    var(--glass-bg-panel);
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
+  box-shadow:
+    var(--glass-shadow-panel),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
   position: relative;
   overflow: hidden;
 }
@@ -73,7 +68,8 @@ a:hover {
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--glass-highlight);
+  background: var(--glass-highlight-panel);
+  opacity: 0.65;
   pointer-events: none;
 }
 

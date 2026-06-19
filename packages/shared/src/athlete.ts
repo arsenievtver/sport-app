@@ -61,6 +61,53 @@ export interface AthleteCoachLink {
   avatar_url?: string | null;
   link_status: "pending" | "active" | "paused" | "ended";
   sessions_balance: number;
+  sessions_completed: number;
+}
+
+export interface AthleteSessionsStats {
+  sessions_completed: number;
+}
+
+export interface AthleteCompleteSessionResponse {
+  link_id: string;
+  sessions_balance: number;
+  sessions_completed: number;
+  activity_name?: string | null;
+  duration_min?: number | null;
+  effort?: number | null;
+  effective_met?: number | null;
+  load_met_minutes?: number | null;
+  weight_kg_used?: number | null;
+  calories_kcal?: number | null;
+}
+
+export interface AthleteCompleteSessionPayload {
+  link_id?: string;
+  activity_type_id: string;
+  duration_min: number;
+  effort: number;
+}
+
+export interface AthleteLastSession {
+  entry_date: string;
+  activity_name?: string | null;
+  duration_min?: number | null;
+  effort?: number | null;
+  effective_met?: number | null;
+  load_met_minutes?: number | null;
+  weight_kg_used?: number | null;
+  calories_kcal?: number | null;
+  coach_display_name?: string | null;
+}
+
+export function formatAthleteLastSessionDate(entryDate: string): string {
+  const date = new Date(`${entryDate}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return entryDate;
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
 }
 
 export interface JoinCoachPayload {

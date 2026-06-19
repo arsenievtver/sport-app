@@ -14,7 +14,7 @@ export function AthleteUpcomingSessionsPanel({ refreshKey }: { refreshKey?: stri
     }
     setError(null);
     try {
-      const items = await fetchAthleteUpcomingSessions(4);
+      const items = await fetchAthleteUpcomingSessions(1);
       setSessions(items);
     } catch (err) {
       if (!options?.silent) {
@@ -36,63 +36,56 @@ export function AthleteUpcomingSessionsPanel({ refreshKey }: { refreshKey?: stri
   useLiveDataRefresh(refreshSessions);
   usePullToRefresh(refreshSessions);
 
-  if (loading) {
-    return (
-      <section className="athlete-home-sessions glass glass--panel">
-        <p className="text-muted">Загрузка расписания…</p>
-      </section>
-    );
-  }
-
-  if (error) {
-    return (
-      <section className="athlete-home-sessions glass glass--panel">
-        <p className="auth-error">{error}</p>
-      </section>
-    );
-  }
+  const nextSession = sessions[0] ?? null;
+  const avatarUrl = nextSession ? resolveMediaUrl(nextSession.coach_avatar_url) : null;
+  const coachInitial = (nextSession?.coach_display_name?.slice(0, 1) ?? "?").toUpperCase();
+  const whenLabel = nextSession ? formatAthleteUpcomingSession(nextSession) : "";
 
   return (
-    <section className="athlete-home-sessions glass glass--panel">
-      <div className="athlete-home-sessions__header">
-        <h2 className="athlete-home-sessions__title">Ближайшие тренировки</h2>
-      </div>
+    <div className="athlete-home-section">
+      <h2 className="athlete-home-section__title">Ближайшие тренировки</h2>
 
-      {sessions.length === 0 ? (
-        <p className="text-secondary">Пока нет запланированных тренировок. Тренер назначит их в расписании.</p>
+      {loading ? (
+        <section className="athlete-home-sessions glass glass--panel">
+          <p className="text-muted">Загрузка расписания…</p>
+        </section>
+      ) : error ? (
+        <section className="athlete-home-sessions glass glass--panel">
+          <p className="auth-error">{error}</p>
+        </section>
+      ) : nextSession == null ? (
+        <section className="athlete-home-sessions glass glass--panel">
+          <div className="athlete-empty-state">
+            <span className="athlete-empty-state__icon" aria-hidden="true">
+              📅
+            </span>
+            <p className="athlete-empty-state__text">
+              Ближайших тренировок нет. Тренер назначит их в расписании.
+            </p>
+          </div>
+        </section>
       ) : (
-        <ul className="athlete-home-sessions__list">
-          {sessions.map((session) => {
-            const avatarUrl = resolveMediaUrl(session.coach_avatar_url);
-            const initial = (session.coach_display_name?.slice(0, 1) ?? "?").toUpperCase();
-            const whenLabel = formatAthleteUpcomingSession(session);
-
-            return (
-              <li
-                key={`${session.coach_id}-${session.occurrence_date}-${session.start_time}`}
-                className="athlete-home-sessions__item"
-              >
-                <div className="athlete-home-sessions__when">{whenLabel}</div>
-                <div className="athlete-home-sessions__coach">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt="" className="athlete-home-sessions__avatar" />
-                  ) : (
-                    <div
-                      className="athlete-home-sessions__avatar athlete-home-sessions__avatar--placeholder"
-                      aria-hidden="true"
-                    >
-                      {initial}
-                    </div>
-                  )}
-                  <span className="athlete-home-sessions__coach-name">
-                    Тренер: {session.coach_display_name}
-                  </span>
+        <section className="athlete-home-sessions glass glass--panel">
+          <div className="athlete-home-sessions__item">
+            <div className="athlete-home-sessions__when">{whenLabel}</div>
+            <div className="athlete-home-sessions__coach">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" className="athlete-home-sessions__avatar" />
+              ) : (
+                <div
+                  className="athlete-home-sessions__avatar athlete-home-sessions__avatar--placeholder"
+                  aria-hidden="true"
+                >
+                  {coachInitial}
                 </div>
-              </li>
-            );
-          })}
-        </ul>
+              )}
+              <span className="athlete-home-sessions__coach-name">
+                Тренер: {nextSession.coach_display_name}
+              </span>
+            </div>
+          </div>
+        </section>
       )}
-    </section>
+    </div>
   );
 }

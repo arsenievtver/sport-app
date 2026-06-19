@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   fetchAthleteCoaches,
+  fetchAthleteWeightDynamics,
   formatPhoneDisplay,
   joinAthleteCoach,
   resolveMediaUrl,
@@ -10,6 +11,7 @@ import {
 import {
   calculateAge,
   formatBirthDateDisplay,
+  formatWeightKg,
   GENDER_LABELS,
   type AthleteCoachLink,
   type Gender,
@@ -24,6 +26,7 @@ interface AthleteSettingsProps {
   onUserUpdated: (user: UserResponse) => void;
   onOpenThemes: () => void;
   onLogout: () => void;
+  whoopSection?: ReactNode;
 }
 
 function SettingsSection({
@@ -82,6 +85,7 @@ export function AthleteSettings({
   onUserUpdated,
   onOpenThemes,
   onLogout,
+  whoopSection,
 }: AthleteSettingsProps) {
   const profile = user.athlete_profile;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -96,6 +100,8 @@ export function AthleteSettings({
   const [savingCoach, setSavingCoach] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [currentWeightKg, setCurrentWeightKg] = useState<number | null>(null);
+  const [loadingWeight, setLoadingWeight] = useState(true);
 
   const avatarUrl = resolveMediaUrl(profile?.avatar_url);
   const age = calculateAge(birthDate);
@@ -120,6 +126,24 @@ export function AthleteSettings({
       })
       .finally(() => {
         if (!cancelled) setLoadingCoaches(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingWeight(true);
+    fetchAthleteWeightDynamics()
+      .then((data) => {
+        if (!cancelled) setCurrentWeightKg(data.current_weight_kg ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setCurrentWeightKg(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingWeight(false);
       });
     return () => {
       cancelled = true;
@@ -273,10 +297,26 @@ export function AthleteSettings({
       </SettingsSection>
 
       <SettingsSection title="Физические данные">
-        <p className="settings-placeholder">
-          Скоро: вес, рост, целевой диапазон и другие параметры для программы тренировок.
-        </p>
+        <SettingsRow
+          label="Текущий вес"
+          value={loadingWeight ? "Загрузка…" : currentWeightKg != null ? `${formatWeightKg(currentWeightKg)} кг` : "—"}
+          hint="Последнее измерение из динамики веса"
+        />
+        {profile?.weight_target_min_kg != null || profile?.weight_target_max_kg != null ? (
+          <SettingsRow
+            label="Целевой диапазон"
+            value={`${formatWeightKg(profile?.weight_target_min_kg)}–${formatWeightKg(profile?.weight_target_max_kg)} кг`}
+          />
+        ) : (
+          <SettingsRow
+            label="Целевой диапазон"
+            value="Не задан"
+            hint="Указывается при онбординге"
+          />
+        )}
       </SettingsSection>
+
+      {whoopSection ? <SettingsSection title="WHOOP">{whoopSection}</SettingsSection> : null}
 
       <SettingsSection title="Результаты тренировок">
         <p className="settings-placeholder">

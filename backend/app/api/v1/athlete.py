@@ -6,16 +6,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import AthleteUser
+from app.schemas.activity_type import ActivityTypesListResponse
 from app.schemas.athlete import (
     AthleteCoachResponse,
+    AthleteCompleteSessionRequest,
+    AthleteCompleteSessionResponse,
+    AthleteLastSessionResponse,
     AthleteOnboardingRequest,
     AthleteProfileResponse,
     AthleteProfileUpdateRequest,
+    AthleteSessionsStatsResponse,
     JoinCoachRequest,
+)
+from app.schemas.athlete_weight import (
+    AthleteWeightDynamicsResponse,
+    AthleteWeightMeasurementRequest,
 )
 from app.schemas.auth import UserResponse
 from app.schemas.schedule import AthleteUpcomingSessionResponse
+from app.services.activity_type import ActivityTypeService
 from app.services.athlete import AthleteService
+from app.services.athlete_weight import AthleteWeightService
 from app.services.auth import user_to_response
 from app.services.media import save_avatar
 from app.services.schedule import ScheduleService
@@ -113,6 +124,77 @@ async def remove_coach(
 
     service = AthleteService(db)
     await service.remove_coach(user.athlete_profile, link_id)
+
+
+@router.get("/sessions/stats", response_model=AthleteSessionsStatsResponse)
+async def get_sessions_stats(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AthleteSessionsStatsResponse:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    service = AthleteService(db)
+    return await service.get_sessions_stats(user.athlete_profile)
+
+
+@router.get("/sessions/last", response_model=AthleteLastSessionResponse | None)
+async def get_last_completed_session(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AthleteLastSessionResponse | None:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    service = AthleteService(db)
+    return await service.get_last_completed_session(user.athlete_profile)
+
+
+@router.get("/activity-types", response_model=ActivityTypesListResponse)
+async def list_activity_types(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ActivityTypesListResponse:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    return await ActivityTypeService(db).list_for_athlete(user.athlete_profile)
+
+
+@router.post("/sessions/complete", response_model=AthleteCompleteSessionResponse)
+async def complete_session(
+    data: AthleteCompleteSessionRequest,
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AthleteCompleteSessionResponse:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    service = AthleteService(db)
+    return await service.complete_session(user.athlete_profile, data)
+
+
+@router.get("/weight/dynamics", response_model=AthleteWeightDynamicsResponse)
+async def get_weight_dynamics(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AthleteWeightDynamicsResponse:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    return await AthleteWeightService(db).get_dynamics(user.athlete_profile)
+
+
+@router.post("/weight/measurements", response_model=AthleteWeightDynamicsResponse)
+async def add_weight_measurement(
+    data: AthleteWeightMeasurementRequest,
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AthleteWeightDynamicsResponse:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    return await AthleteWeightService(db).add_measurement(user.athlete_profile, data)
 
 
 @router.get("/schedule/upcoming", response_model=list[AthleteUpcomingSessionResponse])

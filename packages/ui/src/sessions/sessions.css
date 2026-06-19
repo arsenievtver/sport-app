@@ -37,3 +37,154 @@
   font-weight: var(--font-bold);
   line-height: 1;
 }
+
+.workouts-completed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--glass-white) 62%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 28%, transparent);
+  animation: workouts-badge-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.workouts-completed-badge__lightning {
+  position: absolute;
+  inset: -20% -40%;
+  z-index: 2;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    color-mix(in srgb, var(--color-accent) 35%, transparent) 46%,
+    rgba(255, 255, 255, 0.72) 50%,
+    color-mix(in srgb, var(--color-accent) 30%, transparent) 54%,
+    transparent 62%
+  );
+  opacity: 0;
+  transform: translateX(-120%) skewX(-18deg);
+  animation: workouts-badge-lightning 0.9s ease-out 0.2s 1 both;
+  pointer-events: none;
+}
+
+.workouts-completed-badge__fire {
+  font-size: 1.35em;
+  line-height: 1;
+  display: inline-block;
+  transform-origin: center bottom;
+  animation:
+    workouts-badge-fire-pulse 1.15s ease-in-out 0.1s 1 both,
+    workouts-badge-fire-glow 1.15s ease-out 0.1s 1 both;
+}
+
+.workouts-completed-badge__count {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  line-height: 1;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  animation: workouts-badge-count-pop 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.35s 1 both;
+}
+
+@keyframes workouts-badge-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.88) translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes workouts-badge-lightning {
+  0% {
+    opacity: 0;
+    transform: translateX(-120%) skewX(-18deg);
+  }
+
+  18% {
+    opacity: 0;
+  }
+
+  42% {
+    opacity: 0.95;
+  }
+
+  58% {
+    opacity: 0;
+    transform: translateX(120%) skewX(-18deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(120%) skewX(-18deg);
+  }
+}
+
+@keyframes workouts-badge-fire-pulse {
+  0% {
+    transform: scale(0.75) rotate(-6deg);
+  }
+
+  28% {
+    transform: scale(1.28) rotate(2deg);
+  }
+
+  48% {
+    transform: scale(1.05) rotate(-1deg);
+  }
+
+  68% {
+    transform: scale(1.18) rotate(1deg);
+  }
+
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes workouts-badge-fire-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+
+  28% {
+    filter:
+      drop-shadow(0 0 6px color-mix(in srgb, var(--color-accent) 80%, transparent))
+      drop-shadow(0 0 14px rgba(255, 210, 80, 0.55));
+  }
+
+  48% {
+    filter: drop-shadow(0 0 2px color-mix(in srgb, var(--color-accent) 35%, transparent));
+  }
+
+  68% {
+    filter:
+      drop-shadow(0 0 8px color-mix(in srgb, var(--color-accent) 70%, transparent))
+      drop-shadow(0 0 12px rgba(255, 180, 50, 0.45));
+  }
+}
+
+@keyframes workouts-badge-count-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workouts-completed-badge,
+  .workouts-completed-badge__lightning,
+  .workouts-completed-badge__fire,
+  .workouts-completed-badge__count {
+    animation: none;
+  }
+}

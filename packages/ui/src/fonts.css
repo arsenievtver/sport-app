@@ -1,0 +1,10 @@
+@font-face {
+  font-family: "Recama";
+  src:
+    local("Recama"),
+    local("Racama-U"),
+    url("../assets/fonts/Racama-U.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}

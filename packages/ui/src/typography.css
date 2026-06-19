@@ -1,0 +1,42 @@
+/**
+ * Global typography — единственная точка применения шрифта в UI.
+ * Racama-U: одно начертание; weight-токены ниже тоже normal.
+ */
+
+*,
+*::before,
+*::after {
+  font-synthesis: none;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-normal);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  color: var(--color-text);
+  background: transparent;
+}
+
+:where(button, input, select, textarea, optgroup) {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+:where(h1, h2, h3, h4, h5, h6, p, label, span, a, li, td, th) {
+  font-family: inherit;
+  letter-spacing: inherit;
+}

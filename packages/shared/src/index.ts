@@ -6,3 +6,6 @@ export * from "./admin";
 export * from "./whoop";
 export * from "./invite";
 export * from "./schedule";
+export * from "./activity";
+export * from "./activity-load";
+export * from "./weight";

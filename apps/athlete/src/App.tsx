@@ -11,27 +11,33 @@ import {
   AthleteSettings,
   AuthScreen,
   BottomNav,
+  BottomNavIconAdd,
   BottomNavIconHome,
   BottomNavIconSettings,
-  BottomNavIconStats,
   isThemePreviewMode,
   PwaInstallBanner,
   ThemePreview,
   useAuthSession,
   usePendingCoachInvite,
   PullToRefresh,
+  useAthleteSessionsStats,
+  WorkoutsCompletedBadge,
 } from "@sport-app/ui";
 import { WhoopOAuthListener } from "./components/WhoopOAuthListener";
-import { WhoopTabPanel } from "./components/WhoopTabPanel";
+import { AthleteDataTabPanel } from "./components/AthleteDataTabPanel";
+import { BottomNavIconData } from "./components/BottomNavIconData";
+import { WhoopSettingsPanel } from "./components/WhoopSettingsPanel";
 import { AthleteCoachesHomePanel } from "./components/AthleteCoachesHomePanel";
 import { AthleteUpcomingSessionsPanel } from "./components/AthleteUpcomingSessionsPanel";
+import { AthleteLastSessionPanel } from "./components/AthleteLastSessionPanel";
+import { AthleteAddWorkoutModal } from "./components/AthleteAddWorkoutModal";
 import "./components/whoop.css";
 
-type AthleteTab = "home" | "whoop" | "settings";
+type AthleteTab = "home" | "data" | "settings";
 
 const TAB_TITLES: Record<AthleteTab, string | ((name: string) => string)> = {
   home: (name) => `Привет, ${name}!`,
-  whoop: "WHOOP",
+  data: "Данные",
   settings: "Настройки",
 };
 
@@ -40,8 +46,9 @@ export default function App() {
   const [showThemes, setShowThemes] = useState(isThemePreviewMode());
   const [tab, setTab] = useState<AthleteTab>(() => {
     const whoop = new URLSearchParams(window.location.search).get("whoop");
-    return whoop ? "whoop" : "home";
+    return whoop ? "data" : "home";
   });
+  const [addWorkoutOpen, setAddWorkoutOpen] = useState(false);
   const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() => readPendingInviteCode());
 
   useEffect(() => {
@@ -51,6 +58,11 @@ export default function App() {
 
   const onboardingComplete = Boolean(user && isAthleteOnboardingComplete(user.athlete_profile));
   const { joining, notice, coachesRefreshKey, error: inviteError } = usePendingCoachInvite(onboardingComplete);
+  const {
+    sessionsCompleted,
+    refresh: refreshSessionsStats,
+    setSessionsCompleted,
+  } = useAthleteSessionsStats(onboardingComplete);
 
   if (showThemes) {
     return <ThemePreview onClose={() => setShowThemes(false)} />;
@@ -98,9 +110,9 @@ export default function App() {
         icon: <BottomNavIconHome />,
       },
       {
-        id: "whoop",
-        label: "WHOOP",
-        icon: <BottomNavIconStats />,
+        id: "data",
+        label: "Данные",
+        icon: <BottomNavIconData />,
       },
       {
         id: "settings",
@@ -117,27 +129,54 @@ export default function App() {
         <WhoopOAuthListener />
         <AppShell
           title={title}
-          bottomNav={<BottomNav items={navItems} activeId={tab} onChange={(id) => setTab(id as AthleteTab)} />}
+          headerEnd={<WorkoutsCompletedBadge count={sessionsCompleted} />}
+          bottomNav={
+            <BottomNav
+              items={navItems}
+              activeId={tab}
+              showLabels
+              onChange={(id) => setTab(id as AthleteTab)}
+              action={{
+                id: "add-workout",
+                label: "Добавить тренировку",
+                icon: <BottomNavIconAdd />,
+                active: addWorkoutOpen,
+                onClick: () => setAddWorkoutOpen(true),
+              }}
+            />
+          }
         >
           {tab === "home" ? (
-            <PullToRefresh>
+            <PullToRefresh onRefresh={refreshSessionsStats}>
               {joining ? <p className="invite-banner invite-banner--info">Подключаем тренера…</p> : null}
               {notice ? <p className="invite-banner invite-banner--success">{notice}</p> : null}
               {inviteError ? <p className="invite-banner invite-banner--error">{inviteError}</p> : null}
               <AthleteCoachesHomePanel refreshKey={coachesRefreshKey > 0 ? String(coachesRefreshKey) : undefined} />
               <AthleteUpcomingSessionsPanel refreshKey={coachesRefreshKey > 0 ? String(coachesRefreshKey) : undefined} />
+              <AthleteLastSessionPanel refreshKey={sessionsCompleted} />
             </PullToRefresh>
           ) : null}
-          {tab === "whoop" ? <WhoopTabPanel /> : null}
+          {tab === "data" ? <AthleteDataTabPanel /> : null}
           {tab === "settings" ? (
             <AthleteSettings
               user={user}
               onUserUpdated={setUser}
               onOpenThemes={() => setShowThemes(true)}
               onLogout={logout}
+              whoopSection={<WhoopSettingsPanel />}
             />
           ) : null}
         </AppShell>
+        <AthleteAddWorkoutModal
+          open={addWorkoutOpen}
+          refreshKey={coachesRefreshKey > 0 ? String(coachesRefreshKey) : undefined}
+          onClose={() => setAddWorkoutOpen(false)}
+          onGoToWeightData={() => {
+            setAddWorkoutOpen(false);
+            setTab("data");
+          }}
+          onWorkoutAdded={setSessionsCompleted}
+        />
       </>
     );
   }

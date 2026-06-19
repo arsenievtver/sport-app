@@ -1,0 +1,144 @@
+/**
+ * Два вида кнопок (для общения в задачах):
+ * — «заливка»  → .btn-solid  (фон залит цветом, текст контрастный)
+ * — «контур»   → .btn-outline (обводка 1px, текст того же цвета, фон прозрачный)
+ *
+ * Примеры:
+ *   class="btn btn-solid btn-solid--accent"
+ *   class="btn btn-outline btn-outline--primary"
+ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target);
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.btn--sm {
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+/* ── Заливка (solid) ─────────────────────────────────────── */
+
+.btn-solid--accent {
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
+  border-color: transparent;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--color-accent) 24%, transparent);
+}
+
+.btn-solid--accent:hover:not(:disabled) {
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--color-accent) 36%, transparent);
+  transform: translateY(-1px);
+}
+
+.btn-solid--accent:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-solid--primary {
+  color: var(--color-text-inverse);
+  background: var(--gradient-primary, var(--color-primary));
+  border-color: transparent;
+}
+
+.btn-solid--primary:hover:not(:disabled) {
+  box-shadow: var(--shadow-glow-primary);
+  transform: translateY(-1px);
+}
+
+.btn-solid--primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-solid--warning {
+  color: var(--color-bg, #050508);
+  background: var(--color-warning);
+  border-color: transparent;
+}
+
+/* ── Контур (outline) ────────────────────────────────────── */
+
+.btn-outline--accent {
+  color: var(--color-accent);
+  background: transparent;
+  border-color: var(--color-accent);
+}
+
+.btn-outline--accent:hover:not(:disabled) {
+  background: var(--color-accent-muted);
+}
+
+.btn-outline--primary {
+  color: var(--color-primary);
+  background: transparent;
+  border-color: var(--color-primary);
+}
+
+.btn-outline--primary:hover:not(:disabled) {
+  background: var(--color-primary-muted);
+}
+
+.btn-outline--warning {
+  color: var(--color-warning);
+  background: transparent;
+  border-color: var(--color-warning);
+}
+
+.btn-outline--warning:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-warning) 14%, transparent);
+}
+
+.btn-outline--muted {
+  color: var(--color-text-secondary);
+  background: transparent;
+  border-color: var(--color-border);
+}
+
+.btn-outline--muted:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--glass-bg) 80%, transparent);
+  color: var(--color-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+
+  .btn-solid--accent:hover:not(:disabled),
+  .btn-solid--primary:hover:not(:disabled) {
+    transform: none;
+  }
+}

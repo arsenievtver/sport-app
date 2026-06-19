@@ -1,10 +1,9 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -94,11 +93,16 @@ class AthleteProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     personal_goal_title: Mapped[str | None] = mapped_column(String(200))
     personal_goal_target: Mapped[float | None] = mapped_column(Float)
     onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    recent_activity_type_ids: Mapped[list] = mapped_column(JSONB, default=list, nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="athlete_profile")
     coach_links: Mapped[list["CoachAthleteLink"]] = relationship(
         back_populates="athlete",
         foreign_keys="CoachAthleteLink.athlete_id",
+    )
+    weight_entries: Mapped[list["AthleteWeightEntry"]] = relationship(
+        back_populates="athlete",
+        cascade="all, delete-orphan",
     )
 
 

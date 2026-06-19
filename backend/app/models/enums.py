@@ -24,6 +24,15 @@ class CoachAthleteSessionEntryKind(str, enum.Enum):
     debit = "debit"
 
 
+class ActivityCategory(str, enum.Enum):
+    cardio = "cardio"
+    strength = "strength"
+    flexibility = "flexibility"
+    team_sport = "team_sport"
+    combat = "combat"
+    other = "other"
+
+
 class ProgramStatus(str, enum.Enum):
     draft = "draft"
     active = "active"

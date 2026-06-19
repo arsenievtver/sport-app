@@ -11,7 +11,7 @@
   --color-border-strong: rgba(255, 255, 255, 0.14);
 
   --color-text: #f1f5f9;
-  --color-text-secondary: #94a3b8;
+  --color-text-secondary: #b0bac8;
   --color-text-muted: #64748b;
   --color-text-inverse: #0c0f14;
 
@@ -48,7 +48,7 @@
   --orb-primary: rgba(45, 212, 191, 0.35);
   --orb-accent: rgba(251, 146, 60, 0.22);
 
-  --glass-tint: rgba(45, 212, 191, 0.07);
+  --glass-tint: rgba(45, 212, 191, 0.055);
 }
 
 /* ── 2. Electric Pulse ──────────────────────────────────────── */
@@ -228,7 +228,7 @@
   --gradient-stats-accent: linear-gradient(135deg, #ff8800, #ff2d95);
 
   --glass-tint: rgba(0, 255, 170, 0.08);
-  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-bg: rgba(255, 255, 255, 0.062);
   --glass-border: rgba(0, 255, 170, 0.12);
 }
 
@@ -305,6 +305,6 @@
   --gradient-stats-accent: linear-gradient(135deg, #ff8800, #ff2d95);
 
   --glass-tint: rgba(255, 51, 85, 0.08);
-  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-bg: rgba(255, 255, 255, 0.062);
   --glass-border: rgba(255, 51, 85, 0.14);
 }

@@ -6,13 +6,23 @@ export interface BottomNavItem {
   icon: ReactNode;
 }
 
+export interface BottomNavAction {
+  id: string;
+  label: string;
+  icon: ReactNode;
+  onClick: () => void;
+  active?: boolean;
+}
+
 interface BottomNavProps {
   items: BottomNavItem[];
   activeId: string;
   onChange: (id: string) => void;
+  action?: BottomNavAction;
+  showLabels?: boolean;
 }
 
-export function BottomNav({ items, activeId, onChange }: BottomNavProps) {
+export function BottomNav({ items, activeId, onChange, action, showLabels = false }: BottomNavProps) {
   const activeIndex = Math.max(
     0,
     items.findIndex((item) => item.id === activeId),
@@ -23,34 +33,56 @@ export function BottomNav({ items, activeId, onChange }: BottomNavProps) {
     "--bottom-nav-item-count": items.length,
   } as CSSProperties;
 
-  const compact = items.length >= 4;
+  const compact = items.length >= 4 && !showLabels;
+  const split = Boolean(action);
+
+  const navItems = (
+    <div
+      className={`bottom-nav__items${compact ? " bottom-nav__items--compact" : ""}${showLabels ? " bottom-nav__items--labeled" : ""}`}
+      style={itemsStyle}
+    >
+      <div className="bottom-nav__spotlight-track" aria-hidden="true">
+        <div className="bottom-nav__spotlight" />
+      </div>
+      {items.map((item) => {
+        const isActive = item.id === activeId;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            className={`bottom-nav__item${isActive ? " bottom-nav__item--active" : ""}${showLabels ? " bottom-nav__item--labeled" : ""}`}
+            aria-current={isActive ? "page" : undefined}
+            aria-label={item.label}
+            onClick={() => onChange(item.id)}
+          >
+            <span className="bottom-nav__icon-wrap">{item.icon}</span>
+            {showLabels ? <span className="bottom-nav__label">{item.label}</span> : null}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
-    <nav className="bottom-nav" aria-label="Основное меню">
-      <div className="bottom-nav__bar glass">
-        <div
-          className={`bottom-nav__items${compact ? " bottom-nav__items--compact" : ""}`}
-          style={itemsStyle}
-        >
-          <div className="bottom-nav__spotlight-track" aria-hidden="true">
-            <div className="bottom-nav__spotlight" />
+    <nav
+      className={`bottom-nav${split ? " bottom-nav--split" : ""}${showLabels ? " bottom-nav--labeled" : ""}`}
+      aria-label="Основное меню"
+    >
+      <div className="bottom-nav__cluster">
+        <div className="bottom-nav__bar glass">{navItems}</div>
+        {action ? (
+          <div className="bottom-nav__action-bar glass">
+            <button
+              type="button"
+              className={`bottom-nav__action${action.active ? " bottom-nav__action--active" : ""}`}
+              aria-label={action.label}
+              aria-pressed={action.active}
+              onClick={action.onClick}
+            >
+              <span className="bottom-nav__action-icon-wrap">{action.icon}</span>
+            </button>
           </div>
-          {items.map((item) => {
-            const isActive = item.id === activeId;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className={`bottom-nav__item${isActive ? " bottom-nav__item--active" : ""}`}
-                aria-current={isActive ? "page" : undefined}
-                aria-label={item.label}
-                onClick={() => onChange(item.id)}
-              >
-                <span className="bottom-nav__icon-wrap">{item.icon}</span>
-              </button>
-            );
-          })}
-        </div>
+        ) : null}
       </div>
     </nav>
   );
@@ -172,6 +204,23 @@ export function BottomNavIconStats() {
       <path d="M12 19V7" />
       <path d="M19 19V10" />
       <path d="M3 19h18" />
+    </svg>
+  );
+}
+
+export function BottomNavIconAdd() {
+  return (
+    <svg
+      className="bottom-nav__icon bottom-nav__icon--add"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
     </svg>
   );
 }

@@ -90,6 +90,43 @@ class AthleteCoachResponse(BaseModel):
     avatar_url: str | None = None
     link_status: CoachAthleteLinkStatus
     sessions_balance: int = 0
+    sessions_completed: int = 0
+
+
+class AthleteSessionsStatsResponse(BaseModel):
+    sessions_completed: int = 0
+
+
+class AthleteCompleteSessionRequest(BaseModel):
+    link_id: UUID | None = None
+    activity_type_id: UUID
+    duration_min: int = Field(ge=5, le=600)
+    effort: int = Field(ge=1, le=10)
+
+
+class AthleteCompleteSessionResponse(BaseModel):
+    link_id: UUID
+    sessions_balance: int
+    sessions_completed: int
+    activity_name: str | None = None
+    duration_min: int | None = None
+    effort: int | None = None
+    effective_met: float | None = None
+    load_met_minutes: float | None = None
+    weight_kg_used: float | None = None
+    calories_kcal: float | None = None
+
+
+class AthleteLastSessionResponse(BaseModel):
+    entry_date: date
+    activity_name: str | None = None
+    duration_min: int | None = None
+    effort: int | None = None
+    effective_met: float | None = None
+    load_met_minutes: float | None = None
+    weight_kg_used: float | None = None
+    calories_kcal: float | None = None
+    coach_display_name: str | None = None
 
 
 class AthleteProfileResponse(BaseModel):

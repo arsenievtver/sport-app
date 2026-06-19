@@ -1,0 +1,64 @@
+/**
+ * Статичный фон приложения — fixed, не скроллится с контентом.
+ * Градиентные «орбы» берут цвета из активной темы (--orb-*, --color-bg).
+ */
+
+#root {
+  position: relative;
+  min-height: 100%;
+  isolation: isolate;
+}
+
+#root::before {
+  content: "";
+  position: fixed;
+  z-index: -2;
+  inset: 0;
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(
+      ellipse 92% 72% at 8% -12%,
+      color-mix(in srgb, var(--orb-primary, var(--color-primary)) 38%, transparent),
+      transparent 64%
+    ),
+    radial-gradient(
+      ellipse 78% 62% at 102% 18%,
+      color-mix(in srgb, var(--orb-accent, var(--color-accent)) 30%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 58% 48% at 48% 108%,
+      color-mix(in srgb, var(--orb-primary, var(--color-primary)) 16%, transparent),
+      transparent 68%
+    ),
+    radial-gradient(
+      ellipse 42% 36% at 82% 78%,
+      color-mix(in srgb, var(--orb-accent, var(--color-accent)) 12%, transparent),
+      transparent 72%
+    );
+  pointer-events: none;
+}
+
+#root::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: linear-gradient(to bottom, black 0%, transparent 92%);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  #root::before {
+    background-image: none;
+  }
+
+  #root::after {
+    display: none;
+  }
+}
