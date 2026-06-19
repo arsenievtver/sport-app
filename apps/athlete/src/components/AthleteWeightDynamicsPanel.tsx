@@ -74,6 +74,7 @@ function WeightChart({
     () => (bounds ? buildChartPoints(entries, bounds) : []),
     [bounds, entries],
   );
+  const linePath = useMemo(() => buildSmoothLinePath(points), [points]);
 
   if (!bounds || entries.length === 0) {
     return (
@@ -92,7 +93,6 @@ function WeightChart({
     ? weightToChartY(targetMin, bounds, PLOT_TOP, PLOT_BOTTOM)
     : null;
   const yTicks = [bounds.yMin, (bounds.yMin + bounds.yMax) / 2, bounds.yMax];
-  const linePath = useMemo(() => buildSmoothLinePath(points), [points]);
 
   return (
     <div className="weight-dynamics__chart-wrap">
@@ -182,7 +182,14 @@ function WeightChart({
   );
 }
 
-export function AthleteWeightDynamicsPanel() {
+export function AthleteWeightDynamicsPanel({
+  openFormSignal = 0,
+  onMeasurementAdded,
+}: {
+  /** Инкремент открывает форму (например, переход из «Добавить тренировку»). */
+  openFormSignal?: number;
+  onMeasurementAdded?: () => void;
+} = {}) {
   const [data, setData] = useState<AthleteWeightDynamics | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -207,6 +214,13 @@ export function AthleteWeightDynamicsPanel() {
     void loadData();
   }, [loadData]);
 
+  useEffect(() => {
+    if (openFormSignal > 0) {
+      setShowForm(true);
+      setError(null);
+    }
+  }, [openFormSignal]);
+
   const handleAddMeasurement = async () => {
     const parsed = parseWeightInput(weightInput);
     if (parsed == null) {
@@ -225,6 +239,7 @@ export function AthleteWeightDynamicsPanel() {
       setData(next);
       setWeightInput("");
       setShowForm(false);
+      onMeasurementAdded?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось сохранить измерение");
     } finally {

@@ -49,6 +49,8 @@ export default function App() {
     return whoop ? "data" : "home";
   });
   const [addWorkoutOpen, setAddWorkoutOpen] = useState(false);
+  const [openWeightFormSignal, setOpenWeightFormSignal] = useState(0);
+  const [returnToWorkoutAfterWeight, setReturnToWorkoutAfterWeight] = useState(false);
   const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() => readPendingInviteCode());
 
   useEffect(() => {
@@ -156,7 +158,17 @@ export default function App() {
               <AthleteLastSessionPanel refreshKey={sessionsCompleted} />
             </PullToRefresh>
           ) : null}
-          {tab === "data" ? <AthleteDataTabPanel /> : null}
+          {tab === "data" ? (
+            <AthleteDataTabPanel
+              openWeightFormSignal={openWeightFormSignal}
+              onWeightMeasurementAdded={() => {
+                if (returnToWorkoutAfterWeight) {
+                  setReturnToWorkoutAfterWeight(false);
+                  setAddWorkoutOpen(true);
+                }
+              }}
+            />
+          ) : null}
           {tab === "settings" ? (
             <AthleteSettings
               user={user}
@@ -173,6 +185,8 @@ export default function App() {
           onClose={() => setAddWorkoutOpen(false)}
           onGoToWeightData={() => {
             setAddWorkoutOpen(false);
+            setReturnToWorkoutAfterWeight(true);
+            setOpenWeightFormSignal((value) => value + 1);
             setTab("data");
           }}
           onWorkoutAdded={setSessionsCompleted}
