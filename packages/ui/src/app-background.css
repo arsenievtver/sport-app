@@ -1,95 +1,49 @@
 /**
- * Статичный фон — fixed-слой на body, расширенный под safe area.
- * На iOS negative z-index у html::before часто не рисуется под status bar.
+ * Статичный фон — один fixed-слой на #root.
+ * Градиент — круг primary из центра экрана.
  */
 
-:root {
-  --app-backdrop-gradient:
-    radial-gradient(
-      ellipse 92% 72% at 8% -12%,
-      color-mix(in srgb, var(--orb-primary, var(--color-primary)) 38%, transparent),
-      transparent 64%
-    ),
-    radial-gradient(
-      ellipse 78% 62% at 102% 18%,
-      color-mix(in srgb, var(--orb-accent, var(--color-accent)) 30%, transparent),
-      transparent 60%
-    ),
-    radial-gradient(
-      ellipse 58% 48% at 48% 108%,
-      color-mix(in srgb, var(--orb-primary, var(--color-primary)) 16%, transparent),
-      transparent 68%
-    ),
-    radial-gradient(
-      ellipse 42% 36% at 82% 78%,
-      color-mix(in srgb, var(--orb-accent, var(--color-accent)) 12%, transparent),
-      transparent 72%
-    );
-}
-
-html {
-  min-height: 100%;
-  min-height: 100dvh;
-  background-color: var(--color-bg);
-  /* Fallback: фон прямо на html — iOS надёжнее рисует под status bar */
-  background-image: var(--app-backdrop-gradient);
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-attachment: fixed;
-}
-
-body {
+#root {
   position: relative;
   min-height: 100%;
-  min-height: 100dvh;
+  isolation: isolate;
 }
 
-body::before {
+#root::before {
   content: "";
   position: fixed;
-  z-index: 0;
-  top: calc(-1 * env(safe-area-inset-top, 0px));
-  right: calc(-1 * env(safe-area-inset-right, 0px));
-  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
-  left: calc(-1 * env(safe-area-inset-left, 0px));
+  z-index: -1;
+  inset: 0;
   background-color: var(--color-bg);
-  background-image: var(--app-backdrop-gradient);
-  background-repeat: no-repeat;
-  background-size: cover;
+  background-image: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--orb-primary, var(--color-primary)) 36%, transparent) 0%,
+    color-mix(in srgb, var(--orb-primary, var(--color-primary)) 14%, transparent) 38%,
+    transparent 72%
+  );
   pointer-events: none;
 }
 
-body::after {
+#root::after {
   content: "";
   position: fixed;
-  z-index: 0;
-  top: calc(-1 * env(safe-area-inset-top, 0px));
-  right: calc(-1 * env(safe-area-inset-right, 0px));
-  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
-  left: calc(-1 * env(safe-area-inset-left, 0px));
+  z-index: -1;
+  inset: 0;
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
   background-size: 40px 40px;
-  mask-image: linear-gradient(to bottom, black 0%, transparent 92%);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 22%, black 92%, transparent);
   opacity: 0.4;
   pointer-events: none;
 }
 
-#root {
-  position: relative;
-  z-index: 1;
-  min-height: 100%;
-  min-height: 100dvh;
-}
-
 @media (prefers-reduced-transparency: reduce) {
-  html {
+  #root::before {
     background-image: none;
   }
 
-  body::before,
-  body::after {
+  #root::after {
     display: none;
   }
 }
