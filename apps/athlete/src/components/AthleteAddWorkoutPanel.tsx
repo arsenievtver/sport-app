@@ -8,6 +8,8 @@ import {
   ACTIVITY_EFFORT_DEFAULT,
   ACTIVITY_EFFORT_MAX,
   ACTIVITY_EFFORT_MIN,
+  ATHLETE_WORKOUT_WITHOUT_COACH,
+  ATHLETE_WORKOUT_WITHOUT_COACH_LABEL,
   RECENT_ACTIVITY_TYPES_LABEL,
   calculateEffectiveMet,
   calculateLoadMetMinutes,
@@ -46,7 +48,7 @@ export function AthleteAddWorkoutPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
+  const [selectedCoachChoice, setSelectedCoachChoice] = useState<string | null>(null);
   const [activityTypeId, setActivityTypeId] = useState("");
   const [durationMin, setDurationMin] = useState(45);
   const [effort, setEffort] = useState(ACTIVITY_EFFORT_DEFAULT);
@@ -91,14 +93,28 @@ export function AthleteAddWorkoutPanel({
   );
 
   useEffect(() => {
-    if (activeCoaches.length === 1) {
-      setSelectedLinkId(activeCoaches[0].link_id);
+    if (activeCoaches.length === 0) {
+      setSelectedCoachChoice(ATHLETE_WORKOUT_WITHOUT_COACH);
       return;
     }
-    if (selectedLinkId && !activeCoaches.some((coach) => coach.link_id === selectedLinkId)) {
-      setSelectedLinkId(null);
+    if (activeCoaches.length === 1 && selectedCoachChoice !== ATHLETE_WORKOUT_WITHOUT_COACH) {
+      setSelectedCoachChoice(activeCoaches[0].link_id);
+      return;
     }
-  }, [activeCoaches, selectedLinkId]);
+    if (
+      selectedCoachChoice != null
+      && selectedCoachChoice !== ATHLETE_WORKOUT_WITHOUT_COACH
+      && !activeCoaches.some((coach) => coach.link_id === selectedCoachChoice)
+    ) {
+      setSelectedCoachChoice(null);
+    }
+  }, [activeCoaches, selectedCoachChoice]);
+
+  const withoutCoach =
+    activeCoaches.length === 0 || selectedCoachChoice === ATHLETE_WORKOUT_WITHOUT_COACH;
+  const coachPickerRequired = activeCoaches.length > 1;
+  const hasCoachSelection =
+    withoutCoach || selectedCoachChoice != null;
 
   const selectedActivity = useMemo(
     () => activityTypes.find((item) => item.id === activityTypeId) ?? null,
@@ -145,9 +161,8 @@ export function AthleteAddWorkoutPanel({
   }, [selectedActivity, currentWeightKg, durationMin, effort]);
 
   const handleAddWorkout = async () => {
-    if (activeCoaches.length === 0) return;
-    if (activeCoaches.length > 1 && !selectedLinkId) {
-      setError("Выбери тренера для этой тренировки");
+    if (coachPickerRequired && !hasCoachSelection) {
+      setError("Выбери тренера или «Без тренера»");
       return;
     }
     if (!activityTypeId) {
@@ -160,7 +175,9 @@ export function AthleteAddWorkoutPanel({
     setNotice(null);
     try {
       const result = await completeAthleteSession({
-        ...(selectedLinkId ? { link_id: selectedLinkId } : {}),
+        ...(withoutCoach
+          ? { without_coach: true }
+          : { link_id: selectedCoachChoice ?? activeCoaches[0]?.link_id }),
         activity_type_id: activityTypeId,
         duration_min: clampActivityDurationMin(durationMin),
         effort: clampActivityEffort(effort),
@@ -194,36 +211,34 @@ export function AthleteAddWorkoutPanel({
     );
   }
 
-  if (activeCoaches.length === 0) {
-    return (
-      <section className={getPanelClassName(embedded)}>
-        <p className="text-secondary">
-          Чтобы отмечать тренировки, подключи тренера в настройках.
-        </p>
-      </section>
-    );
-  }
-
   return (
     <section className={getPanelClassName(embedded)}>
-      {activeCoaches.length > 1 ? (
+      {activeCoaches.length >= 1 ? (
         <div className="athlete-add-workout__coach-picker">
           <p className="athlete-add-workout__label text-secondary">Тренер</p>
           <div className="athlete-add-workout__coach-options">
             {activeCoaches.map((coach) => {
-              const selected = selectedLinkId === coach.link_id;
+              const selected = selectedCoachChoice === coach.link_id;
               return (
                 <button
                   key={coach.link_id}
                   type="button"
                   className={`athlete-add-workout__coach-option${selected ? " athlete-add-workout__coach-option--selected" : ""}`}
                   disabled={busy}
-                  onClick={() => setSelectedLinkId(coach.link_id)}
+                  onClick={() => setSelectedCoachChoice(coach.link_id)}
                 >
                   {coach.display_name}
                 </button>
               );
             })}
+            <button
+              type="button"
+              className={`athlete-add-workout__coach-option${selectedCoachChoice === ATHLETE_WORKOUT_WITHOUT_COACH ? " athlete-add-workout__coach-option--selected" : ""}`}
+              disabled={busy}
+              onClick={() => setSelectedCoachChoice(ATHLETE_WORKOUT_WITHOUT_COACH)}
+            >
+              {ATHLETE_WORKOUT_WITHOUT_COACH_LABEL}
+            </button>
           </div>
         </div>
       ) : null}
@@ -348,7 +363,7 @@ export function AthleteAddWorkoutPanel({
       <button
         type="button"
         className="btn btn-outline btn-outline--primary btn--block"
-        disabled={busy || (activeCoaches.length > 1 && !selectedLinkId) || !activityTypeId}
+        disabled={busy || (coachPickerRequired && !hasCoachSelection) || !activityTypeId}
         onClick={() => void handleAddWorkout()}
       >
         {busy ? "Сохраняем…" : "Добавить тренировку"}

@@ -69,8 +69,8 @@ export interface AthleteSessionsStats {
 }
 
 export interface AthleteCompleteSessionResponse {
-  link_id: string;
-  sessions_balance: number;
+  link_id?: string | null;
+  sessions_balance?: number | null;
   sessions_completed: number;
   activity_name?: string | null;
   duration_min?: number | null;
@@ -83,10 +83,15 @@ export interface AthleteCompleteSessionResponse {
 
 export interface AthleteCompleteSessionPayload {
   link_id?: string;
+  without_coach?: boolean;
   activity_type_id: string;
   duration_min: number;
   effort: number;
 }
+
+/** Значение выбора «без тренера» в UI добавления тренировки. */
+export const ATHLETE_WORKOUT_WITHOUT_COACH = "__without_coach__" as const;
+export const ATHLETE_WORKOUT_WITHOUT_COACH_LABEL = "Без тренера";
 
 export interface AthleteLastSession {
   entry_date: string;

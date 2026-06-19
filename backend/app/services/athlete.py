@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -101,10 +101,13 @@ class AthleteService:
     ) -> AthleteLastSessionResponse | None:
         result = await self.db.execute(
             select(CoachAthleteSessionEntry)
-            .join(CoachAthleteLink, CoachAthleteSessionEntry.link_id == CoachAthleteLink.id)
+            .outerjoin(CoachAthleteLink, CoachAthleteSessionEntry.link_id == CoachAthleteLink.id)
             .where(
-                CoachAthleteLink.athlete_id == profile.id,
                 CoachAthleteSessionEntry.kind == CoachAthleteSessionEntryKind.debit,
+                or_(
+                    CoachAthleteLink.athlete_id == profile.id,
+                    CoachAthleteSessionEntry.athlete_id == profile.id,
+                ),
             )
             .options(
                 selectinload(CoachAthleteSessionEntry.activity_type),
@@ -121,6 +124,7 @@ class AthleteService:
             return None
 
         activity_name = entry.activity_type.name_ru if entry.activity_type is not None else None
+        coach_display_name = entry.link.coach.display_name if entry.link is not None else None
         return AthleteLastSessionResponse(
             entry_date=entry.entry_date,
             activity_name=activity_name,
@@ -130,7 +134,7 @@ class AthleteService:
             load_met_minutes=entry.load_met_minutes,
             weight_kg_used=entry.weight_kg_used,
             calories_kcal=entry.calories_kcal,
-            coach_display_name=entry.link.coach.display_name,
+            coach_display_name=coach_display_name,
         )
 
     async def complete_session(
@@ -138,6 +142,54 @@ class AthleteService:
         profile: AthleteProfile,
         data: AthleteCompleteSessionRequest,
     ) -> AthleteCompleteSessionResponse:
+        activity_type = await self._get_activity_type(data.activity_type_id)
+        effort = clamp_activity_effort(data.effort)
+        effective_met = calculate_effective_met(activity_type.met_value, effort)
+        load_met_minutes = calculate_load_met_minutes(
+            activity_type.met_value,
+            data.duration_min,
+            effort,
+        )
+        weight_kg = await AthleteWeightService(self.db).get_current_weight_kg(profile)
+        calories_kcal = (
+            calculate_workout_calories(effective_met, data.duration_min, weight_kg)
+            if weight_kg is not None
+            else None
+        )
+
+        if data.without_coach:
+            entry = await self._record_session_entry(
+                None,
+                CoachAthleteSessionEntryKind.debit,
+                1,
+                athlete_id=profile.id,
+                activity_type_id=activity_type.id,
+                duration_min=data.duration_min,
+                effort=effort,
+                effective_met=effective_met,
+                load_met_minutes=load_met_minutes,
+                weight_kg_used=weight_kg,
+                calories_kcal=calories_kcal,
+            )
+            profile.recent_activity_type_ids = remember_recent_activity_type(
+                profile.recent_activity_type_ids,
+                activity_type.id,
+            )
+            await self.db.flush()
+
+            return AthleteCompleteSessionResponse(
+                link_id=None,
+                sessions_balance=None,
+                sessions_completed=await self._count_completed_sessions(profile.id),
+                activity_name=activity_type.name_ru,
+                duration_min=entry.duration_min,
+                effort=entry.effort,
+                effective_met=entry.effective_met,
+                load_met_minutes=entry.load_met_minutes,
+                weight_kg_used=entry.weight_kg_used,
+                calories_kcal=entry.calories_kcal,
+            )
+
         links = await self._get_active_links(profile.id)
         if not links:
             raise HTTPException(
@@ -160,21 +212,6 @@ class AthleteService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Укажите тренера — у вас несколько активных связей",
             )
-
-        activity_type = await self._get_activity_type(data.activity_type_id)
-        effort = clamp_activity_effort(data.effort)
-        effective_met = calculate_effective_met(activity_type.met_value, effort)
-        load_met_minutes = calculate_load_met_minutes(
-            activity_type.met_value,
-            data.duration_min,
-            effort,
-        )
-        weight_kg = await AthleteWeightService(self.db).get_current_weight_kg(profile)
-        calories_kcal = (
-            calculate_workout_calories(effective_met, data.duration_min, weight_kg)
-            if weight_kg is not None
-            else None
-        )
 
         link.sessions_balance -= 1
         entry = await self._record_session_entry(
@@ -272,10 +309,13 @@ class AthleteService:
         result = await self.db.execute(
             select(func.coalesce(func.sum(CoachAthleteSessionEntry.sessions_count), 0))
             .select_from(CoachAthleteSessionEntry)
-            .join(CoachAthleteLink, CoachAthleteSessionEntry.link_id == CoachAthleteLink.id)
+            .outerjoin(CoachAthleteLink, CoachAthleteSessionEntry.link_id == CoachAthleteLink.id)
             .where(
-                CoachAthleteLink.athlete_id == athlete_id,
                 CoachAthleteSessionEntry.kind == CoachAthleteSessionEntryKind.debit,
+                or_(
+                    CoachAthleteLink.athlete_id == athlete_id,
+                    CoachAthleteSessionEntry.athlete_id == athlete_id,
+                ),
             )
         )
         return int(result.scalar_one())
@@ -297,10 +337,11 @@ class AthleteService:
 
     async def _record_session_entry(
         self,
-        link: CoachAthleteLink,
+        link: CoachAthleteLink | None,
         kind: CoachAthleteSessionEntryKind,
         sessions_count: int,
         *,
+        athlete_id: UUID | None = None,
         activity_type_id: UUID | None = None,
         duration_min: int | None = None,
         effort: int | None = None,
@@ -310,7 +351,8 @@ class AthleteService:
         calories_kcal: float | None = None,
     ) -> CoachAthleteSessionEntry:
         entry = CoachAthleteSessionEntry(
-            link_id=link.id,
+            link_id=link.id if link is not None else None,
+            athlete_id=athlete_id,
             kind=kind,
             sessions_count=sessions_count,
             entry_date=datetime.now(UTC).date(),

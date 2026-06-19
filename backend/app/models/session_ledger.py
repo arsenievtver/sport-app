@@ -21,10 +21,16 @@ class CoachAthleteSessionEntry(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     __tablename__ = "coach_athlete_session_entries"
 
-    link_id: Mapped[uuid.UUID] = mapped_column(
+    link_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("coach_athlete_links.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
+        index=True,
+    )
+    athlete_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("athlete_profiles.id", ondelete="CASCADE"),
+        nullable=True,
         index=True,
     )
     kind: Mapped[CoachAthleteSessionEntryKind] = mapped_column(
@@ -46,5 +52,6 @@ class CoachAthleteSessionEntry(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     weight_kg_used: Mapped[float | None] = mapped_column(Float)
     calories_kcal: Mapped[float | None] = mapped_column(Float)
 
-    link: Mapped["CoachAthleteLink"] = relationship(back_populates="session_entries")
+    link: Mapped["CoachAthleteLink | None"] = relationship(back_populates="session_entries")
+    athlete: Mapped["AthleteProfile | None"] = relationship()
     activity_type: Mapped["ActivityType | None"] = relationship()

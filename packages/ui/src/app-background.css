@@ -1,19 +1,22 @@
 /**
- * Статичный фон приложения — fixed, не скроллится с контентом.
- * Градиентные «орбы» берут цвета из активной темы (--orb-*, --color-bg).
+ * Статичный фон — на html, чтобы градиент заходил под safe area (статус-бар / notch).
+ * Контент в body/#root остаётся с отступами safe-area как раньше.
  */
 
-#root {
-  position: relative;
+html {
   min-height: 100%;
-  isolation: isolate;
+  min-height: 100dvh;
+  background-color: var(--color-bg);
 }
 
-#root::before {
+html::before {
   content: "";
   position: fixed;
   z-index: -2;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background-color: var(--color-bg);
   background-image:
     radial-gradient(
@@ -39,11 +42,14 @@
   pointer-events: none;
 }
 
-#root::after {
+html::after {
   content: "";
   position: fixed;
   z-index: -1;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
@@ -53,12 +59,18 @@
   pointer-events: none;
 }
 
+body,
+#root {
+  min-height: 100%;
+  min-height: 100dvh;
+}
+
 @media (prefers-reduced-transparency: reduce) {
-  #root::before {
+  html::before {
     background-image: none;
   }
 
-  #root::after {
+  html::after {
     display: none;
   }
 }

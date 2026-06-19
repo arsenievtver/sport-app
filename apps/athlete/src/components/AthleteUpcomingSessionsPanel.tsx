@@ -43,7 +43,7 @@ export function AthleteUpcomingSessionsPanel({ refreshKey }: { refreshKey?: stri
 
   return (
     <div className="athlete-home-section">
-      <h2 className="athlete-home-section__title">Ближайшие тренировки</h2>
+      <h2 className="athlete-home-section__title">Следующая тренировка</h2>
 
       {loading ? (
         <section className="athlete-home-sessions glass glass--panel">
@@ -60,7 +60,7 @@ export function AthleteUpcomingSessionsPanel({ refreshKey }: { refreshKey?: stri
               📅
             </span>
             <p className="athlete-empty-state__text">
-              Ближайших тренировок нет. Тренер назначит их в расписании.
+              Следующей тренировки нет. Тренер назначит её в расписании.
             </p>
           </div>
         </section>

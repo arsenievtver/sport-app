@@ -99,14 +99,15 @@ class AthleteSessionsStatsResponse(BaseModel):
 
 class AthleteCompleteSessionRequest(BaseModel):
     link_id: UUID | None = None
+    without_coach: bool = False
     activity_type_id: UUID
     duration_min: int = Field(ge=5, le=600)
     effort: int = Field(ge=1, le=10)
 
 
 class AthleteCompleteSessionResponse(BaseModel):
-    link_id: UUID
-    sessions_balance: int
+    link_id: UUID | None = None
+    sessions_balance: int | None = None
     sessions_completed: int
     activity_name: str | None = None
     duration_min: int | None = None
