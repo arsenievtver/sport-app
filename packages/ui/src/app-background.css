@@ -1,24 +1,10 @@
 /**
- * Статичный фон — на html, чтобы градиент заходил под safe area (статус-бар / notch).
- * Контент в body/#root остаётся с отступами safe-area как раньше.
+ * Статичный фон — fixed-слой на body, расширенный под safe area.
+ * На iOS negative z-index у html::before часто не рисуется под status bar.
  */
 
-html {
-  min-height: 100%;
-  min-height: 100dvh;
-  background-color: var(--color-bg);
-}
-
-html::before {
-  content: "";
-  position: fixed;
-  z-index: -2;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  background-color: var(--color-bg);
-  background-image:
+:root {
+  --app-backdrop-gradient:
     radial-gradient(
       ellipse 92% 72% at 8% -12%,
       color-mix(in srgb, var(--orb-primary, var(--color-primary)) 38%, transparent),
@@ -39,17 +25,48 @@ html::before {
       color-mix(in srgb, var(--orb-accent, var(--color-accent)) 12%, transparent),
       transparent 72%
     );
+}
+
+html {
+  min-height: 100%;
+  min-height: 100dvh;
+  background-color: var(--color-bg);
+  /* Fallback: фон прямо на html — iOS надёжнее рисует под status bar */
+  background-image: var(--app-backdrop-gradient);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+body {
+  position: relative;
+  min-height: 100%;
+  min-height: 100dvh;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  z-index: 0;
+  top: calc(-1 * env(safe-area-inset-top, 0px));
+  right: calc(-1 * env(safe-area-inset-right, 0px));
+  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+  left: calc(-1 * env(safe-area-inset-left, 0px));
+  background-color: var(--color-bg);
+  background-image: var(--app-backdrop-gradient);
+  background-repeat: no-repeat;
+  background-size: cover;
   pointer-events: none;
 }
 
-html::after {
+body::after {
   content: "";
   position: fixed;
-  z-index: -1;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  z-index: 0;
+  top: calc(-1 * env(safe-area-inset-top, 0px));
+  right: calc(-1 * env(safe-area-inset-right, 0px));
+  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+  left: calc(-1 * env(safe-area-inset-left, 0px));
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
@@ -59,18 +76,20 @@ html::after {
   pointer-events: none;
 }
 
-body,
 #root {
+  position: relative;
+  z-index: 1;
   min-height: 100%;
   min-height: 100dvh;
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  html::before {
+  html {
     background-image: none;
   }
 
-  html::after {
+  body::before,
+  body::after {
     display: none;
   }
 }

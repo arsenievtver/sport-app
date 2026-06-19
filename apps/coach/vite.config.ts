@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
           short_name: "Тренер",
           description: "Мобильный кабинет тренера",
           theme_color: "#050508",
-          background_color: "#00cc99",
+          background_color: "#050508",
           display: "standalone",
           scope: "/",
           start_url: "/",
