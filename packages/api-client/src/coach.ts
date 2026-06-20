@@ -1,10 +1,15 @@
-import type { CoachAthleteSessionHistoryEntry, CoachAthleteSessionsResponse, CoachAthleteSummary, UserResponse } from "@sport-app/shared";
+import type { CoachAthleteSessionHistoryEntry, CoachAthleteSessionsResponse, CoachAthleteSummary, ActivityTypesList, UserResponse } from "@sport-app/shared";
 
 import { authenticatedFetchOk } from "./auth";
 
 export async function fetchCoachAthletes(): Promise<CoachAthleteSummary[]> {
   const res = await authenticatedFetchOk("/coach/athletes");
   return res.json() as Promise<CoachAthleteSummary[]>;
+}
+
+export async function fetchCoachActivityTypes(): Promise<ActivityTypesList> {
+  const res = await authenticatedFetchOk("/coach/activity-types");
+  return res.json() as Promise<ActivityTypesList>;
 }
 
 export async function createManagedAthlete(payload: { display_name: string }): Promise<CoachAthleteSummary> {

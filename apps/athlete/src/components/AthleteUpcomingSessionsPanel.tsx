@@ -68,6 +68,11 @@ export function AthleteUpcomingSessionsPanel({ refreshKey }: { refreshKey?: stri
         <section className="athlete-home-sessions glass glass--panel">
           <div className="athlete-home-sessions__item">
             <div className="athlete-home-sessions__when">{whenLabel}</div>
+            {nextSession.activity_name ? (
+              <div className="athlete-home-sessions__activity text-secondary">
+                {nextSession.activity_name}
+              </div>
+            ) : null}
             <div className="athlete-home-sessions__coach">
               {avatarUrl ? (
                 <img src={avatarUrl} alt="" className="athlete-home-sessions__avatar" />

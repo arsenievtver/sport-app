@@ -35,6 +35,7 @@ export async function setCoachScheduleSlot(payload: {
   day_of_week: number;
   start_time: string;
   athlete_id: string | null;
+  activity_type_id?: string | null;
   occurrence_date?: string | null;
 }): Promise<ScheduleGridResponse> {
   const res = await authenticatedFetchOk("/coach/schedule/slot", {

@@ -1,4 +1,4 @@
-/** Effort scale 1 (very light) … 10 (to failure). MET multiplier range for compendium baseline. */
+/** Effort scale 1 (very light) … 10 (maximum intensity). MET multiplier range for compendium baseline. */
 export const ACTIVITY_EFFORT_MIN = 1;
 export const ACTIVITY_EFFORT_MAX = 10;
 export const ACTIVITY_EFFORT_DEFAULT = 5;
@@ -15,11 +15,11 @@ export const ACTIVITY_EFFORT_LABELS: Record<number, string> = {
   3: "Спокойно",
   4: "Умеренно",
   5: "Средне",
-  6: "Средне-тяжело",
-  7: "Тяжело",
-  8: "Очень тяжело",
-  9: "Почти до отказа",
-  10: "До отказа",
+  6: "Выше среднего",
+  7: "Интенсивно",
+  8: "Очень интенсивно",
+  9: "Почти на максимум",
+  10: "Максимум",
 };
 
 export function clampActivityEffort(value: number): number {

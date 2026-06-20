@@ -7,7 +7,7 @@ function getScrollTop(): number {
 const TOP_LOCK_PX = 8;
 const HIDE_AFTER_PX = 24;
 
-function useScrollHeaderAutoHide(enabled: boolean) {
+function useScrollHeaderAutoHide(enabled: boolean, contentKey?: string | number) {
   const shellRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,22 +30,30 @@ function useScrollHeaderAutoHide(enabled: boolean) {
       shell.classList.toggle("app-shell--header-hidden", hidden);
     };
 
-    const onScroll = () => {
+    const syncHeader = () => {
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(apply);
     };
 
-    shell.classList.add("app-shell--scroll-header-autohide");
-    apply();
+    const resetForContent = () => {
+      hidden = false;
+      window.scrollTo(0, 0);
+      syncHeader();
+    };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
+    shell.classList.add("app-shell--scroll-header-autohide");
+    resetForContent();
+
+    window.addEventListener("scroll", syncHeader, { passive: true });
+    window.addEventListener("resize", syncHeader, { passive: true });
 
     return () => {
       cancelAnimationFrame(rafId);
-      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scroll", syncHeader);
+      window.removeEventListener("resize", syncHeader);
       shell.classList.remove("app-shell--scroll-header-autohide", "app-shell--header-hidden");
     };
-  }, [enabled]);
+  }, [enabled, contentKey]);
 
   return shellRef;
 }
@@ -58,6 +66,7 @@ interface AppShellProps {
   bottomNav?: ReactNode;
   className?: string;
   scrollHeaderFade?: boolean;
+  contentKey?: string | number;
 }
 
 export function AppShell({
@@ -68,8 +77,9 @@ export function AppShell({
   bottomNav,
   className,
   scrollHeaderFade = true,
+  contentKey,
 }: AppShellProps) {
-  const shellRef = useScrollHeaderAutoHide(scrollHeaderFade);
+  const shellRef = useScrollHeaderAutoHide(scrollHeaderFade, contentKey);
 
   return (
     <div

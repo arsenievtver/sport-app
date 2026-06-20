@@ -325,7 +325,7 @@ export function AthleteAddWorkoutPanel({
         />
         <div className="athlete-add-workout__effort-scale">
           <span>Легко</span>
-          <span>До отказа</span>
+          <span>Максимум</span>
         </div>
       </div>
 

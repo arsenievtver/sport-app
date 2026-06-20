@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import {
   clearCoachScheduleWeekSlot,
+  fetchCoachActivityTypes,
   fetchCoachAthletes,
   fetchCoachScheduleTemplate,
   fetchCoachScheduleWeek,
@@ -9,7 +10,13 @@ import {
   setCoachScheduleSlot,
   updateCoachScheduleSettings,
 } from "@sport-app/api-client";
-import type { CoachAthleteSummary, CoachScheduleSettings, ScheduleGridResponse, ScheduleSlotCell } from "@sport-app/shared";
+import type {
+  ActivityType,
+  CoachAthleteSummary,
+  CoachScheduleSettings,
+  ScheduleGridResponse,
+  ScheduleSlotCell,
+} from "@sport-app/shared";
 import {
   addDays,
   formatScheduleSlotContext,
@@ -20,6 +27,7 @@ import {
 } from "@sport-app/shared";
 
 import { CoachScheduleSettingsForm } from "./CoachScheduleSettingsForm";
+import { ScheduleActivityTypeField } from "./ScheduleActivityTypeField";
 import { useLiveDataRefresh } from "../hooks/useLiveDataRefresh";
 
 type ScheduleMode = "week" | "template";
@@ -28,7 +36,10 @@ interface SelectedCell {
   dayOfWeek: number;
   startTime: string;
   date: string | null;
+  athleteId: string | null;
   athleteName: string | null;
+  activityTypeId: string | null;
+  activityName: string | null;
 }
 
 interface MoveSource {
@@ -53,6 +64,7 @@ export function CoachSchedulePanel() {
   const [weekMonday, setWeekMonday] = useState(() => mondayOfWeek(new Date()));
   const [grid, setGrid] = useState<ScheduleGridResponse | null>(null);
   const [athletes, setAthletes] = useState<CoachAthleteSummary[]>([]);
+  const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +108,9 @@ export function CoachSchedulePanel() {
     void fetchCoachAthletes()
       .then(setAthletes)
       .catch(() => setAthletes([]));
+    void fetchCoachActivityTypes()
+      .then((data) => setActivityTypes(data.items))
+      .catch(() => setActivityTypes([]));
   }, []);
 
   const cellMap = useMemo(() => (grid ? buildCellMap(grid.cells) : new Map()), [grid]);
@@ -112,8 +127,8 @@ export function CoachSchedulePanel() {
     setSelectedCell(null);
   };
 
-  const handleAssign = async (athleteId: string) => {
-    if (!selectedCell || !grid) return;
+  const handleAssign = async (athleteId: string, activityTypeId: string) => {
+    if (!selectedCell || !grid || !activityTypeId) return;
     setSaving(true);
     setError(null);
     try {
@@ -121,12 +136,35 @@ export function CoachSchedulePanel() {
         day_of_week: selectedCell.dayOfWeek,
         start_time: selectedCell.startTime,
         athlete_id: athleteId,
+        activity_type_id: activityTypeId,
         occurrence_date: mode === "week" ? selectedCell.date : null,
       });
       setGrid(response);
       setSelectedCell(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось назначить атлета");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateActivity = async (activityTypeId: string) => {
+    if (!selectedCell?.athleteId || !grid || !activityTypeId) return;
+    if (activityTypeId === selectedCell.activityTypeId) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await setCoachScheduleSlot({
+        day_of_week: selectedCell.dayOfWeek,
+        start_time: selectedCell.startTime,
+        athlete_id: selectedCell.athleteId,
+        activity_type_id: activityTypeId,
+        occurrence_date: mode === "week" ? selectedCell.date : null,
+      });
+      setGrid(response);
+      setSelectedCell(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось обновить вид тренировки");
     } finally {
       setSaving(false);
     }
@@ -216,7 +254,10 @@ export function CoachSchedulePanel() {
       dayOfWeek: cell.day_of_week,
       startTime: cell.start_time,
       date: cell.date,
+      athleteId: cell.athlete?.athlete_id ?? null,
       athleteName: cell.athlete?.display_name ?? null,
+      activityTypeId: cell.activity_type_id,
+      activityName: cell.activity_name,
     });
   };
 
@@ -237,7 +278,10 @@ export function CoachSchedulePanel() {
       dayOfWeek: cell.day_of_week,
       startTime: cell.start_time,
       date: cell.date,
-      athleteName: cell.athlete.display_name,
+      athleteId: cell.athlete?.athlete_id ?? null,
+      athleteName: cell.athlete?.display_name ?? null,
+      activityTypeId: cell.activity_type_id,
+      activityName: cell.activity_name,
     };
     longPressTimer.current = window.setTimeout(() => {
       if (!longPressCell.current?.date) return;
@@ -396,14 +440,19 @@ export function CoachSchedulePanel() {
       {selectedCell ? (
         <ScheduleAthleteSheet
           athletes={athletes}
+          activityTypes={activityTypes}
           mode={mode}
           dayOfWeek={selectedCell.dayOfWeek}
           startTime={selectedCell.startTime}
           date={selectedCell.date}
           occupied={Boolean(selectedCell.athleteName)}
+          athleteName={selectedCell.athleteName}
+          activityTypeId={selectedCell.activityTypeId}
+          activityName={selectedCell.activityName}
           canMove={mode === "week" && Boolean(selectedCell.athleteName && selectedCell.date)}
           saving={saving}
           onAssign={handleAssign}
+          onUpdateActivity={handleUpdateActivity}
           onClear={handleClear}
           onMove={handleStartMove}
           onClose={() => setSelectedCell(null)}
@@ -491,39 +540,69 @@ function ScheduleGridRow({
 
 function ScheduleAthleteSheet({
   athletes,
+  activityTypes,
   mode,
   dayOfWeek,
   startTime,
   date,
   occupied,
+  athleteName,
+  activityTypeId,
+  activityName,
   canMove,
   saving,
   onAssign,
+  onUpdateActivity,
   onClear,
   onMove,
   onClose,
 }: {
   athletes: CoachAthleteSummary[];
+  activityTypes: ActivityType[];
   mode: ScheduleMode;
   dayOfWeek: number;
   startTime: string;
   date: string | null;
   occupied: boolean;
+  athleteName: string | null;
+  activityTypeId: string | null;
+  activityName: string | null;
   canMove: boolean;
   saving: boolean;
-  onAssign: (athleteId: string) => void;
+  onAssign: (athleteId: string, activityTypeId: string) => void;
+  onUpdateActivity: (activityTypeId: string) => void;
   onClear: () => void;
   onMove: () => void;
   onClose: () => void;
 }) {
+  const defaultActivityTypeId = activityTypes[0]?.id ?? "";
+  const [pendingAthlete, setPendingAthlete] = useState<CoachAthleteSummary | null>(null);
+  const [selectedActivityTypeId, setSelectedActivityTypeId] = useState(
+    activityTypeId ?? defaultActivityTypeId,
+  );
+
+  useEffect(() => {
+    setPendingAthlete(null);
+    setSelectedActivityTypeId(activityTypeId ?? defaultActivityTypeId);
+  }, [activityTypeId, defaultActivityTypeId, dayOfWeek, startTime, date, occupied]);
+
   const slotContext = formatScheduleSlotContext(mode, dayOfWeek, startTime, date);
+  const canSubmitNew =
+    pendingAthlete != null && selectedActivityTypeId.length > 0 && !saving;
+  const canSubmitActivityUpdate =
+    occupied &&
+    selectedActivityTypeId.length > 0 &&
+    selectedActivityTypeId !== activityTypeId &&
+    !saving;
 
   return (
     <div className="schedule-sheet-backdrop" onClick={onClose}>
       <div className="schedule-sheet glass glass--panel" onClick={(event) => event.stopPropagation()}>
         <div className="schedule-sheet__header">
           <div className="schedule-sheet__heading">
-            <h2 className="schedule-sheet__title">{occupied ? "Слот" : "Выберите атлета"}</h2>
+            <h2 className="schedule-sheet__title">
+              {occupied ? athleteName ?? "Слот" : pendingAthlete ? pendingAthlete.display_name : "Выберите атлета"}
+            </h2>
             <p className="schedule-sheet__subtitle">{slotContext}</p>
           </div>
           <button type="button" className="schedule-sheet__close" onClick={onClose} aria-label="Закрыть">
@@ -531,7 +610,7 @@ function ScheduleAthleteSheet({
           </button>
         </div>
 
-        {!occupied ? (
+        {!occupied && !pendingAthlete ? (
           <div className="schedule-sheet__list">
             {athletes.length === 0 ? (
               <p className="text-muted" style={{ padding: "var(--space-4)" }}>
@@ -547,7 +626,7 @@ function ScheduleAthleteSheet({
                     type="button"
                     className="schedule-sheet__athlete"
                     disabled={saving}
-                    onClick={() => onAssign(athlete.athlete_id)}
+                    onClick={() => setPendingAthlete(athlete)}
                   >
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" className="schedule-sheet__avatar" />
@@ -559,6 +638,59 @@ function ScheduleAthleteSheet({
                 );
               })
             )}
+          </div>
+        ) : null}
+
+        {!occupied && pendingAthlete ? (
+          <div className="schedule-sheet__body">
+            <button
+              type="button"
+              className="schedule-sheet__back"
+              disabled={saving}
+              onClick={() => setPendingAthlete(null)}
+            >
+              ← Другой атлет
+            </button>
+            <ScheduleActivityTypeField
+              activityTypes={activityTypes}
+              value={selectedActivityTypeId}
+              disabled={saving}
+              onChange={setSelectedActivityTypeId}
+            />
+            <button
+              type="button"
+              className="schedule-sheet__submit"
+              disabled={!canSubmitNew}
+              onClick={() => onAssign(pendingAthlete.athlete_id, selectedActivityTypeId)}
+            >
+              {saving ? "Сохраняем…" : "Назначить"}
+            </button>
+          </div>
+        ) : null}
+
+        {occupied ? (
+          <div className="schedule-sheet__body">
+            {activityName ? (
+              <p className="schedule-sheet__current-activity text-secondary">
+                Сейчас: {activityName}
+              </p>
+            ) : null}
+            <ScheduleActivityTypeField
+              activityTypes={activityTypes}
+              value={selectedActivityTypeId}
+              disabled={saving}
+              onChange={setSelectedActivityTypeId}
+            />
+            {canSubmitActivityUpdate ? (
+              <button
+                type="button"
+                className="schedule-sheet__submit"
+                disabled={saving}
+                onClick={() => onUpdateActivity(selectedActivityTypeId)}
+              >
+                {saving ? "Сохраняем…" : "Сохранить вид"}
+              </button>
+            ) : null}
           </div>
         ) : null}
 

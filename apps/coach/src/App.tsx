@@ -83,6 +83,7 @@ export default function App() {
       <AppShell
         title={title}
         subtitle={tab === "schedule" ? coachName : undefined}
+        contentKey={tab}
         className={tab === "schedule" ? "app-shell--schedule-landscape" : undefined}
         bottomNav={<BottomNav items={navItems} activeId={tab} onChange={(id) => setTab(id as CoachTab)} />}
       >

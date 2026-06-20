@@ -1,7 +1,7 @@
 from datetime import date as Date
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class CoachScheduleSettingsResponse(BaseModel):
@@ -51,6 +51,8 @@ class ScheduleSlotCell(BaseModel):
     date: Date | None = None
     start_time: str
     athlete: ScheduleAthleteRef | None = None
+    activity_type_id: UUID | None = None
+    activity_name: str | None = None
     is_exception: bool = False
     is_from_template: bool = False
 
@@ -69,7 +71,16 @@ class SetScheduleSlotRequest(BaseModel):
     day_of_week: int = Field(ge=0, le=6)
     start_time: str
     athlete_id: UUID | None = None
+    activity_type_id: UUID | None = None
     occurrence_date: Date | None = None
+
+    @model_validator(mode="after")
+    def validate_activity_with_athlete(self) -> "SetScheduleSlotRequest":
+        if self.athlete_id is not None and self.activity_type_id is None:
+            raise ValueError("Укажите вид тренировки")
+        if self.athlete_id is None and self.activity_type_id is not None:
+            raise ValueError("Вид тренировки указывается только при назначении атлета")
+        return self
 
 
 class MoveScheduleSlotRequest(BaseModel):
@@ -86,3 +97,5 @@ class AthleteUpcomingSessionResponse(BaseModel):
     occurrence_date: Date
     start_time: str
     duration_min: int
+    activity_type_id: UUID | None = None
+    activity_name: str | None = None

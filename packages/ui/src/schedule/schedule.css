@@ -367,6 +367,62 @@
   color: var(--color-danger);
 }
 
+.schedule-sheet__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.schedule-sheet__back {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.schedule-sheet__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.schedule-sheet__field-label {
+  font-size: var(--text-sm);
+}
+
+.schedule-sheet__select {
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-base);
+}
+
+.schedule-sheet__current-activity {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.schedule-sheet__submit {
+  min-height: var(--touch-target);
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--gradient-primary, var(--color-primary));
+  color: var(--color-text-inverse);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
 .schedule-settings-form {
   display: flex;
   flex-direction: column;

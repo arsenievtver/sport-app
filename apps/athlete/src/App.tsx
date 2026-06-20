@@ -131,6 +131,7 @@ export default function App() {
         <WhoopOAuthListener />
         <AppShell
           title={title}
+          contentKey={tab}
           headerEnd={<WorkoutsCompletedBadge count={sessionsCompleted} />}
           bottomNav={
             <BottomNav

@@ -27,6 +27,8 @@ export interface ScheduleSlotCell {
   date: string | null;
   start_time: string;
   athlete: ScheduleAthleteRef | null;
+  activity_type_id: string | null;
+  activity_name: string | null;
   is_exception: boolean;
   is_from_template: boolean;
 }
@@ -86,6 +88,8 @@ export interface AthleteUpcomingSession {
   occurrence_date: string;
   start_time: string;
   duration_min: number;
+  activity_type_id?: string | null;
+  activity_name?: string | null;
 }
 
 export function formatAthleteUpcomingSession(session: AthleteUpcomingSession): string {

@@ -9,6 +9,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.activity_type import ActivityType
 from app.models.enums import CoachAthleteLinkStatus
 from app.models.schedule import CoachScheduleSettings, ScheduleTemplateSlot, ScheduleWeekException
 from app.models.user import AthleteProfile, CoachAthleteLink, CoachProfile
@@ -159,6 +160,7 @@ class ScheduleService:
 
         if data.athlete_id is not None:
             await self._ensure_athlete_belongs_to_coach(coach_profile, data.athlete_id)
+            await self._ensure_activity_type(data.activity_type_id)
 
         if data.occurrence_date is None:
             if data.athlete_id is not None:
@@ -168,7 +170,13 @@ class ScheduleService:
                     start_time,
                     data.athlete_id,
                 )
-            await self._set_template_slot(coach_profile, data.day_of_week, start_time, data.athlete_id)
+            await self._set_template_slot(
+                coach_profile,
+                data.day_of_week,
+                start_time,
+                data.athlete_id,
+                data.activity_type_id,
+            )
             return await self.get_template_grid(coach_profile)
 
         if data.occurrence_date.weekday() != data.day_of_week:
@@ -198,6 +206,7 @@ class ScheduleService:
             data.occurrence_date,
             start_time,
             data.athlete_id,
+            data.activity_type_id,
         )
         return await self.get_week_grid(coach_profile, data.occurrence_date)
 
@@ -257,9 +266,16 @@ class ScheduleService:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Целевой слот занят")
 
         athlete_id = from_cell.athlete.athlete_id
+        activity_type_id = from_cell.activity_type_id
 
-        await self._set_week_exception(coach_profile, data.from_date, from_time, None)
-        await self._set_week_exception(coach_profile, data.to_date, to_time, athlete_id)
+        await self._set_week_exception(coach_profile, data.from_date, from_time, None, None)
+        await self._set_week_exception(
+            coach_profile,
+            data.to_date,
+            to_time,
+            athlete_id,
+            activity_type_id,
+        )
 
         return await self.get_week_grid(coach_profile, data.from_date)
 
@@ -329,6 +345,8 @@ class ScheduleService:
                         occurrence_date=current,
                         start_time=slot_str,
                         duration_min=settings.slot_duration_min,
+                        activity_type_id=cell.activity_type_id,
+                        activity_name=cell.activity_name,
                     )
                     candidates.append((slot_dt, session))
 
@@ -374,7 +392,10 @@ class ScheduleService:
         result = await self.db.execute(
             select(ScheduleTemplateSlot)
             .where(ScheduleTemplateSlot.coach_id == coach_profile.id)
-            .options(selectinload(ScheduleTemplateSlot.athlete))
+            .options(
+                selectinload(ScheduleTemplateSlot.athlete),
+                selectinload(ScheduleTemplateSlot.activity_type),
+            )
         )
         slots = result.scalars().all()
         return {(slot.day_of_week, slot.start_time): slot for slot in slots}
@@ -392,7 +413,10 @@ class ScheduleService:
                 ScheduleWeekException.occurrence_date >= week_start,
                 ScheduleWeekException.occurrence_date <= week_end,
             )
-            .options(selectinload(ScheduleWeekException.athlete))
+            .options(
+                selectinload(ScheduleWeekException.athlete),
+                selectinload(ScheduleWeekException.activity_type),
+            )
         )
         items = result.scalars().all()
         return {(item.occurrence_date, item.start_time): item for item in items}
@@ -419,6 +443,35 @@ class ScheduleService:
         )
         if result.scalar_one_or_none() is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Атлет не найден")
+
+    async def _ensure_activity_type(self, activity_type_id: UUID | None) -> None:
+        if activity_type_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Укажите вид тренировки",
+            )
+        result = await self.db.execute(
+            select(ActivityType.id).where(
+                ActivityType.id == activity_type_id,
+                ActivityType.is_active.is_(True),
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Вид тренировки не найден",
+            )
+
+    def _activity_fields_from_slot(
+        self,
+        activity_type_id: UUID | None,
+        activity_type: ActivityType | None,
+    ) -> tuple[UUID | None, str | None]:
+        if activity_type_id is None:
+            return None, None
+        if activity_type is not None:
+            return activity_type.id, activity_type.name_ru
+        return activity_type_id, None
 
     def _settings_to_response(self, settings: CoachScheduleSettings) -> CoachScheduleSettingsResponse:
         return CoachScheduleSettingsResponse(
@@ -486,13 +539,21 @@ class ScheduleService:
                 slot_time = _parse_time(slot_str)
                 template = template_slots.get((day.day_of_week, slot_time))
                 athlete_ref = None
+                activity_type_id = None
+                activity_name = None
                 if template and template.athlete_id:
                     athlete_ref = self._athlete_to_ref(template.athlete_id, athlete_map, template.athlete)
+                    activity_type_id, activity_name = self._activity_fields_from_slot(
+                        template.activity_type_id,
+                        template.activity_type,
+                    )
                 cells.append(
                     ScheduleSlotCell(
                         day_of_week=day.day_of_week,
                         start_time=slot_str,
                         athlete=athlete_ref,
+                        activity_type_id=activity_type_id,
+                        activity_name=activity_name,
                         is_exception=False,
                         is_from_template=athlete_ref is not None,
                     )
@@ -535,26 +596,42 @@ class ScheduleService:
         exception = exceptions.get((occurrence_date, start_time))
         if exception is not None:
             athlete_ref = None
+            activity_type_id = None
+            activity_name = None
             if exception.athlete_id:
                 athlete_ref = self._athlete_to_ref(exception.athlete_id, athlete_map, exception.athlete)
+                activity_type_id, activity_name = self._activity_fields_from_slot(
+                    exception.activity_type_id,
+                    exception.activity_type,
+                )
             return ScheduleSlotCell(
                 day_of_week=day_of_week,
                 date=occurrence_date,
                 start_time=slot_str,
                 athlete=athlete_ref,
+                activity_type_id=activity_type_id,
+                activity_name=activity_name,
                 is_exception=True,
                 is_from_template=False,
             )
 
         template = template_slots.get((day_of_week, start_time))
         athlete_ref = None
+        activity_type_id = None
+        activity_name = None
         if template and template.athlete_id:
             athlete_ref = self._athlete_to_ref(template.athlete_id, athlete_map, template.athlete)
+            activity_type_id, activity_name = self._activity_fields_from_slot(
+                template.activity_type_id,
+                template.activity_type,
+            )
         return ScheduleSlotCell(
             day_of_week=day_of_week,
             date=occurrence_date,
             start_time=slot_str,
             athlete=athlete_ref,
+            activity_type_id=activity_type_id,
+            activity_name=activity_name,
             is_exception=False,
             is_from_template=athlete_ref is not None,
         )
@@ -586,6 +663,7 @@ class ScheduleService:
         day_of_week: int,
         start_time: time,
         athlete_id: UUID | None,
+        activity_type_id: UUID | None = None,
     ) -> None:
         result = await self.db.execute(
             select(ScheduleTemplateSlot).where(
@@ -605,10 +683,12 @@ class ScheduleService:
                 day_of_week=day_of_week,
                 start_time=start_time,
                 athlete_id=athlete_id,
+                activity_type_id=activity_type_id,
             )
             self.db.add(slot)
         else:
             slot.athlete_id = athlete_id
+            slot.activity_type_id = activity_type_id
         await self.db.flush()
 
     async def _set_week_exception(
@@ -617,6 +697,7 @@ class ScheduleService:
         occurrence_date: date,
         start_time: time,
         athlete_id: UUID | None,
+        activity_type_id: UUID | None = None,
     ) -> None:
         result = await self.db.execute(
             select(ScheduleWeekException).where(
@@ -632,10 +713,12 @@ class ScheduleService:
                 occurrence_date=occurrence_date,
                 start_time=start_time,
                 athlete_id=athlete_id,
+                activity_type_id=activity_type_id,
             )
             self.db.add(exception)
         else:
             exception.athlete_id = athlete_id
+            exception.activity_type_id = activity_type_id
         await self.db.flush()
 
     async def _ensure_no_template_athlete_conflict(

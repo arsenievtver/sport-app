@@ -61,8 +61,14 @@ class ScheduleTemplateSlot(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         ForeignKey("athlete_profiles.id", ondelete="SET NULL"),
         index=True,
     )
+    activity_type_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("activity_types.id", ondelete="SET NULL"),
+        index=True,
+    )
 
     athlete: Mapped["AthleteProfile | None"] = relationship()
+    activity_type: Mapped["ActivityType | None"] = relationship()
 
 
 class ScheduleWeekException(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -91,8 +97,15 @@ class ScheduleWeekException(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         ForeignKey("athlete_profiles.id", ondelete="SET NULL"),
         index=True,
     )
+    activity_type_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("activity_types.id", ondelete="SET NULL"),
+        index=True,
+    )
 
     athlete: Mapped["AthleteProfile | None"] = relationship()
+    activity_type: Mapped["ActivityType | None"] = relationship()
 
 
+from app.models.activity_type import ActivityType  # noqa: E402, F401
 from app.models.user import AthleteProfile  # noqa: E402, F401

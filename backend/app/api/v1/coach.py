@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import CoachUser
 from app.models.user import CoachProfile
+from app.schemas.activity_type import ActivityTypesListResponse
 from app.schemas.auth import UserResponse
 from app.schemas.coach import (
     AddSessionsRequest,
@@ -23,6 +24,7 @@ from app.schemas.schedule import (
     SetScheduleSlotRequest,
     UpdateCoachScheduleSettingsRequest,
 )
+from app.services.activity_type import ActivityTypeService
 from app.services.auth import user_to_response
 from app.services.coach import CoachService
 from app.services.media import save_avatar
@@ -173,3 +175,11 @@ async def move_schedule_week_slot(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ScheduleGridResponse:
     return await ScheduleService(db).move_week_slot(coach_profile, data)
+
+
+@router.get("/activity-types", response_model=ActivityTypesListResponse)
+async def list_activity_types(
+    coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ActivityTypesListResponse:
+    return await ActivityTypeService(db).list_all()

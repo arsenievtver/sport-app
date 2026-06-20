@@ -32,3 +32,7 @@ class ActivityTypeService:
             if parsed in active_ids and parsed not in recent_ids:
                 recent_ids.append(parsed)
         return ActivityTypesListResponse(items=items, recent_ids=recent_ids)
+
+    async def list_all(self) -> ActivityTypesListResponse:
+        items = await self.list_active()
+        return ActivityTypesListResponse(items=items, recent_ids=[])
