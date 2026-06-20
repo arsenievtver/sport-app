@@ -57,15 +57,17 @@ export function AthleteAddWorkoutModal({
             ×
           </button>
         </header>
-        <AthleteAddWorkoutPanel
-          refreshKey={refreshKey}
-          embedded
-          onGoToWeightData={onGoToWeightData}
-          onWorkoutAdded={(sessionsCompleted) => {
-            onWorkoutAdded?.(sessionsCompleted);
-            onClose();
-          }}
-        />
+        <div className="workout-modal__body">
+          <AthleteAddWorkoutPanel
+            refreshKey={refreshKey}
+            embedded
+            onGoToWeightData={onGoToWeightData}
+            onWorkoutAdded={(sessionsCompleted) => {
+              onWorkoutAdded?.(sessionsCompleted);
+              onClose();
+            }}
+          />
+        </div>
       </div>
     </div>
   );

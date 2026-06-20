@@ -34,5 +34,6 @@ export { WorkoutsCompletedBadge } from "./sessions/WorkoutsCompletedBadge";
 export { useAthleteSessionsStats } from "./sessions/useAthleteSessionsStats";
 export { AthleteSettings } from "./settings/AthleteSettings";
 export { CoachSettings } from "./settings/CoachSettings";
+export { CoachHomePanel } from "./home/CoachHomePanel";
 export { CoachSchedulePanel } from "./schedule/CoachSchedulePanel";
 export { CoachScheduleSettingsForm } from "./schedule/CoachScheduleSettingsForm";

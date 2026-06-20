@@ -38,6 +38,16 @@ export function formatWeightKg(value: number | null | undefined): string {
   return Number.isInteger(rounded) ? `${rounded}` : rounded.toFixed(1).replace(".", ",");
 }
 
+export function formatWeightMeasurementDate(isoDate: string): string {
+  const date = new Date(`${isoDate}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return isoDate;
+  return date.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 /** Chart axis label: 14.05 */
 export function formatWeightChartDate(isoDate: string): string {
   const date = new Date(`${isoDate}T00:00:00`);

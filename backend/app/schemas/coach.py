@@ -56,3 +56,9 @@ class CoachAthleteSessionHistoryEntry(BaseModel):
     kind: CoachAthleteSessionEntryKind
     sessions_count: int
     entry_date: date
+
+
+class CoachAthleteWeightMeasurementResponse(BaseModel):
+    athlete_id: UUID
+    entry_date: date
+    weight_kg: float

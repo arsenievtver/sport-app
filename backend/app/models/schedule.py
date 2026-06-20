@@ -107,5 +107,44 @@ class ScheduleWeekException(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     activity_type: Mapped["ActivityType | None"] = relationship()
 
 
+class ScheduleSlotCompletion(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Факт завершения тренировки в слоте расписания (один раз на слот)."""
+
+    __tablename__ = "schedule_slot_completions"
+    __table_args__ = (
+        UniqueConstraint(
+            "coach_id",
+            "athlete_id",
+            "occurrence_date",
+            "start_time",
+            name="uq_schedule_slot_completion",
+        ),
+    )
+
+    coach_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("coach_profiles.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    athlete_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("athlete_profiles.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    occurrence_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    start_time: Mapped[time] = mapped_column(Time, nullable=False)
+    session_entry_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("coach_athlete_session_entries.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+
+    session_entry: Mapped["CoachAthleteSessionEntry"] = relationship()
+
+
 from app.models.activity_type import ActivityType  # noqa: E402, F401
+from app.models.session_ledger import CoachAthleteSessionEntry  # noqa: E402, F401
 from app.models.user import AthleteProfile  # noqa: E402, F401

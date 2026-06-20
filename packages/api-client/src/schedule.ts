@@ -1,6 +1,9 @@
 import type {
   CoachScheduleSettings,
+  CompleteScheduleSlotPayload,
+  CompleteScheduleSlotResponse,
   ScheduleGridResponse,
+  ScheduleSlotCompletion,
 } from "@sport-app/shared";
 
 import { authenticatedFetchOk } from "./auth";
@@ -29,6 +32,21 @@ export async function fetchCoachScheduleWeek(date?: string): Promise<ScheduleGri
   const query = date ? `?date=${encodeURIComponent(date)}` : "";
   const res = await authenticatedFetchOk(`/coach/schedule/week${query}`);
   return res.json() as Promise<ScheduleGridResponse>;
+}
+
+export async function fetchCoachScheduleDayCompletions(date: string): Promise<ScheduleSlotCompletion[]> {
+  const res = await authenticatedFetchOk(`/coach/schedule/day-completions?date=${encodeURIComponent(date)}`);
+  return res.json() as Promise<ScheduleSlotCompletion[]>;
+}
+
+export async function completeCoachScheduleSlot(
+  payload: CompleteScheduleSlotPayload,
+): Promise<CompleteScheduleSlotResponse> {
+  const res = await authenticatedFetchOk("/coach/schedule/complete-slot", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<CompleteScheduleSlotResponse>;
 }
 
 export async function setCoachScheduleSlot(payload: {

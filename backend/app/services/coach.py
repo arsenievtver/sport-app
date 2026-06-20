@@ -10,12 +10,15 @@ from app.models.enums import CoachAthleteLinkStatus, CoachAthleteSessionEntryKin
 from app.models.session_ledger import CoachAthleteSessionEntry
 from app.models.user import AthleteProfile, CoachAthleteLink, CoachProfile
 from app.schemas.auth import CoachProfileResponse
+from app.schemas.athlete_weight import AthleteWeightDynamicsResponse, AthleteWeightMeasurementRequest
 from app.schemas.coach import (
     CoachAthleteSessionHistoryEntry,
     CoachAthleteSessionsResponse,
     CoachAthleteSummary,
+    CoachAthleteWeightMeasurementResponse,
     CreateManagedAthleteRequest,
 )
+from app.services.athlete_weight import AthleteWeightService
 
 
 class CoachService:
@@ -86,6 +89,36 @@ class CoachService:
         await self._record_session_entry(link, CoachAthleteSessionEntryKind.debit, 1)
         await self.db.flush()
         return await self._link_to_sessions_response(link)
+
+    async def get_athlete_weight_dynamics(
+        self,
+        coach_profile: CoachProfile,
+        athlete_id: UUID,
+    ) -> AthleteWeightDynamicsResponse:
+        link = await self._get_link(coach_profile, athlete_id)
+        await self.db.refresh(link, attribute_names=["athlete"])
+        return await AthleteWeightService(self.db).get_dynamics(link.athlete)
+
+    async def add_athlete_weight_measurement(
+        self,
+        coach_profile: CoachProfile,
+        athlete_id: UUID,
+        data: AthleteWeightMeasurementRequest,
+    ) -> CoachAthleteWeightMeasurementResponse:
+        link = await self._get_link(coach_profile, athlete_id)
+        await self.db.refresh(link, attribute_names=["athlete"])
+        dynamics = await AthleteWeightService(self.db).add_measurement(link.athlete, data)
+        if not dynamics.entries:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Не удалось сохранить измерение",
+            )
+        latest = dynamics.entries[-1]
+        return CoachAthleteWeightMeasurementResponse(
+            athlete_id=link.athlete_id,
+            entry_date=latest.entry_date,
+            weight_kg=latest.weight_kg,
+        )
 
     async def list_session_history(
         self,

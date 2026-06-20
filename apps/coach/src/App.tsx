@@ -5,10 +5,12 @@ import {
   AuthScreen,
   BottomNav,
   BottomNavIconAthletes,
+  BottomNavIconHome,
   BottomNavIconInvite,
   BottomNavIconSchedule,
   BottomNavIconSettings,
   CoachAthletesPanel,
+  CoachHomePanel,
   CoachInvitePanel,
   CoachSchedulePanel,
   CoachSettings,
@@ -17,11 +19,12 @@ import {
 } from "@sport-app/ui";
 import { getAthleteAppUrl } from "./athlete-app-url";
 
-type CoachTab = "schedule" | "athletes" | "invite" | "settings";
+type CoachTab = "home" | "schedule" | "athletes" | "invite" | "settings";
 
 export default function App() {
   const { user, setUser, checking, logout } = useAuthSession("coach");
-  const [tab, setTab] = useState<CoachTab>("schedule");
+  const [tab, setTab] = useState<CoachTab>("home");
+  const [athleteProfileId, setAthleteProfileId] = useState<string | null>(null);
 
   let content: ReactNode;
 
@@ -49,6 +52,11 @@ export default function App() {
     const inviteCode = user.coach_profile?.invite_code;
     const navItems = [
       {
+        id: "home",
+        label: "Главная",
+        icon: <BottomNavIconHome />,
+      },
+      {
         id: "schedule",
         label: "Расписание",
         icon: <BottomNavIconSchedule />,
@@ -71,13 +79,15 @@ export default function App() {
     ];
 
     const title =
-      tab === "schedule"
-        ? "Расписание"
-        : tab === "athletes"
-          ? "Атлеты"
-          : tab === "invite"
-            ? "Пригласить атлета"
-            : "Настройки";
+      tab === "home"
+        ? `Привет, ${coachName}!`
+        : tab === "schedule"
+          ? "Расписание"
+          : tab === "athletes"
+            ? "Атлеты"
+            : tab === "invite"
+              ? "Пригласить атлета"
+              : "Настройки";
 
     content = (
       <AppShell
@@ -87,10 +97,20 @@ export default function App() {
         className={tab === "schedule" ? "app-shell--schedule-landscape" : undefined}
         bottomNav={<BottomNav items={navItems} activeId={tab} onChange={(id) => setTab(id as CoachTab)} />}
       >
-        {tab === "schedule" ? (
+        {tab === "home" ? (
+          <CoachHomePanel
+            onOpenAthlete={(athleteId) => {
+              setAthleteProfileId(athleteId);
+              setTab("athletes");
+            }}
+          />
+        ) : tab === "schedule" ? (
           <CoachSchedulePanel />
         ) : tab === "athletes" ? (
-          <CoachAthletesPanel />
+          <CoachAthletesPanel
+            initialProfileId={athleteProfileId}
+            onInitialProfileHandled={() => setAthleteProfileId(null)}
+          />
         ) : tab === "invite" ? (
           inviteCode ? (
             <CoachInvitePanel

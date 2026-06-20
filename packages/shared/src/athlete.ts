@@ -167,6 +167,12 @@ export interface CoachAthleteSessionsResponse {
   sessions_completed: number;
 }
 
+export interface CoachAthleteWeightMeasurementResponse {
+  athlete_id: string;
+  entry_date: string;
+  weight_kg: number;
+}
+
 export function isAthleteOnboardingComplete(profile: AthleteProfile | null | undefined): boolean {
   return Boolean(profile?.onboarding_completed_at);
 }

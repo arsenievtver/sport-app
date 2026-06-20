@@ -7,7 +7,7 @@ from app.models.notification import Notification
 from app.models.program import Program, ProgramWeek
 from app.models.health import HealthConnection
 from app.models.progress import AnalyticsEvent, ProgressSnapshot
-from app.models.schedule import CoachScheduleSettings, ScheduleTemplateSlot, ScheduleWeekException
+from app.models.schedule import CoachScheduleSettings, ScheduleSlotCompletion, ScheduleTemplateSlot, ScheduleWeekException
 from app.models.user import AthleteProfile, CoachAthleteLink, CoachProfile, User
 from app.models.activity_type import ActivityType
 from app.models.athlete_weight import AthleteWeightEntry
@@ -26,6 +26,7 @@ __all__ = [
     "CoachScheduleSettings",
     "ScheduleTemplateSlot",
     "ScheduleWeekException",
+    "ScheduleSlotCompletion",
     "Exercise",
     "Program",
     "ProgramWeek",

@@ -1,4 +1,12 @@
-import type { CoachAthleteSessionHistoryEntry, CoachAthleteSessionsResponse, CoachAthleteSummary, ActivityTypesList, UserResponse } from "@sport-app/shared";
+import type {
+  ActivityTypesList,
+  AthleteWeightDynamics,
+  CoachAthleteSessionHistoryEntry,
+  CoachAthleteSessionsResponse,
+  CoachAthleteSummary,
+  CoachAthleteWeightMeasurementResponse,
+  UserResponse,
+} from "@sport-app/shared";
 
 import { authenticatedFetchOk } from "./auth";
 
@@ -48,6 +56,22 @@ export async function completeCoachAthleteSession(payload: {
     method: "POST",
   });
   return res.json() as Promise<CoachAthleteSessionsResponse>;
+}
+
+export async function addCoachAthleteWeightMeasurement(payload: {
+  athlete_id: string;
+  weight_kg: number;
+}): Promise<CoachAthleteWeightMeasurementResponse> {
+  const res = await authenticatedFetchOk(`/coach/athletes/${payload.athlete_id}/weight/measurements`, {
+    method: "POST",
+    body: JSON.stringify({ weight_kg: payload.weight_kg }),
+  });
+  return res.json() as Promise<CoachAthleteWeightMeasurementResponse>;
+}
+
+export async function fetchCoachAthleteWeightDynamics(athleteId: string): Promise<AthleteWeightDynamics> {
+  const res = await authenticatedFetchOk(`/coach/athletes/${athleteId}/weight/dynamics`);
+  return res.json() as Promise<AthleteWeightDynamics>;
 }
 
 export async function fetchCoachAthleteSessionHistory(

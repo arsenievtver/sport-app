@@ -367,10 +367,6 @@
   white-space: nowrap;
 }
 
-.coach-athlete-card__session-controls > .coach-athlete-card__session-btn:last-child {
-  grid-column: 1 / -1;
-}
-
 .coach-athlete-card--accordion {
   padding: 0;
   overflow: hidden;
@@ -439,6 +435,10 @@
 .coach-btn--primary {
   color: var(--color-primary);
   border-color: var(--color-primary);
+}
+
+.coach-btn--primary.coach-athlete-card__session-btn {
+  border-color: transparent;
 }
 
 .coach-btn--warning {

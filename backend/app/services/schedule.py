@@ -10,20 +10,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.activity_type import ActivityType
-from app.models.enums import CoachAthleteLinkStatus
-from app.models.schedule import CoachScheduleSettings, ScheduleTemplateSlot, ScheduleWeekException
+from app.models.enums import CoachAthleteLinkStatus, CoachAthleteSessionEntryKind
+from app.models.schedule import CoachScheduleSettings, ScheduleSlotCompletion, ScheduleTemplateSlot, ScheduleWeekException
+from app.models.session_ledger import CoachAthleteSessionEntry
 from app.models.user import AthleteProfile, CoachAthleteLink, CoachProfile
 from app.schemas.schedule import (
     AthleteUpcomingSessionResponse,
     CoachScheduleSettingsResponse,
+    CompleteScheduleSlotRequest,
+    CompleteScheduleSlotResponse,
     MoveScheduleSlotRequest,
     ScheduleAthleteRef,
     ScheduleDayColumn,
     ScheduleGridResponse,
     ScheduleSlotCell,
+    ScheduleSlotCompletionResponse,
     SetScheduleSlotRequest,
     UpdateCoachScheduleSettingsRequest,
 )
+from app.services.activity_load import (
+    calculate_effective_met,
+    calculate_load_met_minutes,
+    calculate_workout_calories,
+    clamp_activity_effort,
+)
+from app.services.athlete_weight import AthleteWeightService
 
 DAY_LABELS = ("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
 
@@ -774,3 +785,144 @@ class ScheduleService:
                     status_code=status.HTTP_409_CONFLICT,
                     detail="Атлет уже назначен на этот день в другое время",
                 )
+
+    async def list_day_completions(
+        self,
+        coach_profile: CoachProfile,
+        occurrence_date: date,
+    ) -> list[ScheduleSlotCompletionResponse]:
+        result = await self.db.execute(
+            select(ScheduleSlotCompletion)
+            .where(
+                ScheduleSlotCompletion.coach_id == coach_profile.id,
+                ScheduleSlotCompletion.occurrence_date == occurrence_date,
+            )
+            .options(
+                selectinload(ScheduleSlotCompletion.session_entry).selectinload(
+                    CoachAthleteSessionEntry.activity_type
+                )
+            )
+        )
+        items = result.scalars().all()
+        responses: list[ScheduleSlotCompletionResponse] = []
+        for item in items:
+            entry = item.session_entry
+            activity_name = entry.activity_type.name_ru if entry.activity_type else None
+            responses.append(
+                ScheduleSlotCompletionResponse(
+                    athlete_id=item.athlete_id,
+                    start_time=_format_time(item.start_time),
+                    activity_name=activity_name,
+                    effort=entry.effort,
+                )
+            )
+        return responses
+
+    async def complete_schedule_slot(
+        self,
+        coach_profile: CoachProfile,
+        data: CompleteScheduleSlotRequest,
+    ) -> CompleteScheduleSlotResponse:
+        start_time = _parse_time(data.start_time)
+        existing = await self.db.execute(
+            select(ScheduleSlotCompletion).where(
+                ScheduleSlotCompletion.coach_id == coach_profile.id,
+                ScheduleSlotCompletion.athlete_id == data.athlete_id,
+                ScheduleSlotCompletion.occurrence_date == data.occurrence_date,
+                ScheduleSlotCompletion.start_time == start_time,
+            )
+        )
+        if existing.scalar_one_or_none() is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Тренировка уже завершена",
+            )
+
+        grid = await self.get_week_grid(coach_profile, data.occurrence_date)
+        slot_cell = next(
+            (
+                cell
+                for cell in grid.cells
+                if cell.date == data.occurrence_date
+                and cell.start_time == data.start_time
+                and cell.athlete is not None
+                and cell.athlete.athlete_id == data.athlete_id
+            ),
+            None,
+        )
+        if slot_cell is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Слот расписания не найден",
+            )
+
+        link = await self._get_coach_athlete_link(coach_profile, data.athlete_id)
+        await self._ensure_activity_type(data.activity_type_id)
+        activity_result = await self.db.execute(
+            select(ActivityType).where(ActivityType.id == data.activity_type_id)
+        )
+        activity_type = activity_result.scalar_one()
+        effort = clamp_activity_effort(data.effort)
+        duration_min = grid.settings.slot_duration_min
+        effective_met = calculate_effective_met(activity_type.met_value, effort)
+        load_met_minutes = calculate_load_met_minutes(activity_type.met_value, duration_min, effort)
+
+        await self.db.refresh(link, attribute_names=["athlete"])
+        weight_kg = await AthleteWeightService(self.db).get_current_weight_kg(link.athlete)
+        calories_kcal = (
+            calculate_workout_calories(effective_met, duration_min, weight_kg)
+            if weight_kg is not None
+            else None
+        )
+
+        link.sessions_balance -= 1
+        entry = CoachAthleteSessionEntry(
+            link_id=link.id,
+            kind=CoachAthleteSessionEntryKind.debit,
+            sessions_count=1,
+            entry_date=data.occurrence_date,
+            activity_type_id=activity_type.id,
+            duration_min=duration_min,
+            effort=effort,
+            effective_met=effective_met,
+            load_met_minutes=load_met_minutes,
+            weight_kg_used=weight_kg,
+            calories_kcal=calories_kcal,
+        )
+        self.db.add(entry)
+        await self.db.flush()
+
+        completion = ScheduleSlotCompletion(
+            coach_id=coach_profile.id,
+            athlete_id=data.athlete_id,
+            occurrence_date=data.occurrence_date,
+            start_time=start_time,
+            session_entry_id=entry.id,
+        )
+        self.db.add(completion)
+        await self.db.flush()
+
+        return CompleteScheduleSlotResponse(
+            athlete_id=data.athlete_id,
+            occurrence_date=data.occurrence_date,
+            start_time=data.start_time,
+            sessions_balance=link.sessions_balance,
+            activity_name=activity_type.name_ru,
+            effort=effort,
+        )
+
+    async def _get_coach_athlete_link(
+        self,
+        coach_profile: CoachProfile,
+        athlete_id: UUID,
+    ) -> CoachAthleteLink:
+        result = await self.db.execute(
+            select(CoachAthleteLink).where(
+                CoachAthleteLink.coach_id == coach_profile.id,
+                CoachAthleteLink.athlete_id == athlete_id,
+            )
+        )
+        link = result.scalar_one_or_none()
+        if link is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Атлет не найден")
+        return link

@@ -15,5 +15,6 @@
 @import "./native-temporal/native-temporal.css";
 @import "./invite/invite.css";
 @import "./schedule/schedule.css";
+@import "./home/coach-home.css";
 @import "./pwa/pwa-install.css";
 @import "./pull-to-refresh/pull-to-refresh.css";

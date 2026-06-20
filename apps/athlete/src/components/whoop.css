@@ -542,10 +542,11 @@
   align-items: flex-end;
   justify-content: center;
   padding:
-    var(--space-4)
+    max(var(--space-4), var(--safe-top))
     max(var(--space-4), var(--safe-right))
     calc(var(--bottom-nav-float-offset) + var(--space-2))
     max(var(--space-4), var(--safe-left));
+  overscroll-behavior: none;
 }
 
 .workout-modal__backdrop {
@@ -560,19 +561,45 @@
   position: relative;
   z-index: 1;
   width: min(100%, 520px);
-  max-height: min(78vh, 720px);
-  overflow: auto;
-  padding: var(--space-4);
+  max-height: min(
+    calc(100dvh - var(--bottom-nav-float-offset) - var(--space-4) * 2),
+    720px
+  );
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   border-radius: var(--radius-xl);
-  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+@supports not (height: 100dvh) {
+  .workout-modal__sheet {
+    max-height: min(
+      calc(100vh - var(--bottom-nav-float-offset) - var(--space-4) * 2),
+      720px
+    );
+  }
 }
 
 .workout-modal__header {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-bottom: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.workout-modal__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: var(--space-4);
 }
 
 .workout-modal__title {

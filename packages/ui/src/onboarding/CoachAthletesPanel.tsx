@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   addCoachAthleteSessions,
-  completeCoachAthleteSession,
   createManagedAthlete,
   fetchCoachAthletes,
   resolveMediaUrl,
@@ -120,7 +119,6 @@ interface AthleteSessionControlsProps {
   addCount: string;
   onAddCountChange: (value: string) => void;
   onAddSessions: () => void;
-  onCompleteSession: () => void;
 }
 
 function AthleteSessionControls({
@@ -129,7 +127,6 @@ function AthleteSessionControls({
   addCount,
   onAddCountChange,
   onAddSessions,
-  onCompleteSession,
 }: AthleteSessionControlsProps) {
   const busy = busyAthleteId === athleteId;
 
@@ -152,14 +149,6 @@ function AthleteSessionControls({
         onClick={onAddSessions}
       >
         Добавить
-      </button>
-      <button
-        type="button"
-        className="coach-btn coach-btn--warning coach-athlete-card__session-btn"
-        disabled={busy}
-        onClick={onCompleteSession}
-      >
-        Тренировка прошла (-1)
       </button>
     </div>
   );
@@ -214,12 +203,18 @@ function updateAthleteSessions(
   };
 }
 
-export function CoachAthletesPanel() {
+export function CoachAthletesPanel({
+  initialProfileId = null,
+  onInitialProfileHandled,
+}: {
+  initialProfileId?: string | null;
+  onInitialProfileHandled?: () => void;
+} = {}) {
   const [athletes, setAthletes] = useState<CoachAthleteSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [profileId, setProfileId] = useState<string | null>(null);
+  const [profileId, setProfileId] = useState<string | null>(initialProfileId);
   const [addCounts, setAddCounts] = useState<Record<string, string>>({});
   const [busyAthleteId, setBusyAthleteId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -236,6 +231,12 @@ export function CoachAthletesPanel() {
     void loadAthletes().finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (initialProfileId) {
+      setProfileId(initialProfileId);
+    }
+  }, [initialProfileId]);
+
   const handleAddSessions = async (athleteId: string) => {
     const raw = getAddCount(addCounts, athleteId);
     const count = Number(raw);
@@ -251,21 +252,6 @@ export function CoachAthletesPanel() {
       setAddCounts((prev) => ({ ...prev, [athleteId]: DEFAULT_ADD_COUNT }));
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Не удалось добавить тренировки");
-    } finally {
-      setBusyAthleteId(null);
-    }
-  };
-
-  const handleCompleteSession = async (athleteId: string) => {
-    setBusyAthleteId(athleteId);
-    setActionError(null);
-    try {
-      const updated = await completeCoachAthleteSession({ athlete_id: athleteId });
-      setAthletes((prev) =>
-        prev.map((a) => (a.athlete_id === athleteId ? updateAthleteSessions(a, updated) : a)),
-      );
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Не удалось отметить тренировку");
     } finally {
       setBusyAthleteId(null);
     }
@@ -376,7 +362,13 @@ export function CoachAthletesPanel() {
         {panelHeader}
         {addForm}
         {actionError ? <p className="auth-error">{actionError}</p> : null}
-        <CoachAthleteProfile athlete={profileAthlete} onBack={() => setProfileId(null)} />
+        <CoachAthleteProfile
+          athlete={profileAthlete}
+          onBack={() => {
+            setProfileId(null);
+            onInitialProfileHandled?.();
+          }}
+        />
       </>
     );
   }
@@ -439,7 +431,6 @@ export function CoachAthletesPanel() {
                       setAddCounts((prev) => ({ ...prev, [athlete.athlete_id]: value }))
                     }
                     onAddSessions={() => void handleAddSessions(athlete.athlete_id)}
-                    onCompleteSession={() => void handleCompleteSession(athlete.athlete_id)}
                   />
 
                   <button

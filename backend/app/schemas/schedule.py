@@ -99,3 +99,27 @@ class AthleteUpcomingSessionResponse(BaseModel):
     duration_min: int
     activity_type_id: UUID | None = None
     activity_name: str | None = None
+
+
+class ScheduleSlotCompletionResponse(BaseModel):
+    athlete_id: UUID
+    start_time: str
+    activity_name: str | None = None
+    effort: int | None = None
+
+
+class CompleteScheduleSlotRequest(BaseModel):
+    athlete_id: UUID
+    occurrence_date: Date
+    start_time: str
+    activity_type_id: UUID
+    effort: int = Field(ge=1, le=10)
+
+
+class CompleteScheduleSlotResponse(BaseModel):
+    athlete_id: UUID
+    occurrence_date: Date
+    start_time: str
+    sessions_balance: int
+    activity_name: str
+    effort: int

@@ -123,3 +123,53 @@ export function addDays(value: Date, days: number): Date {
   copy.setDate(copy.getDate() + days);
   return copy;
 }
+
+export function formatCoachDayNavLabel(value: Date, referenceToday = new Date()): string {
+  const iso = toIsoDate(value);
+  const todayIso = toIsoDate(referenceToday);
+  const yesterdayIso = toIsoDate(addDays(referenceToday, -1));
+  const tomorrowIso = toIsoDate(addDays(referenceToday, 1));
+
+  const dateLabel = value.toLocaleDateString("ru-RU", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
+  if (iso === todayIso) return `Сегодня · ${dateLabel}`;
+  if (iso === yesterdayIso) return `Вчера · ${dateLabel}`;
+  if (iso === tomorrowIso) return `Завтра · ${dateLabel}`;
+  return dateLabel;
+}
+
+export interface ScheduleSlotCompletion {
+  athlete_id: string;
+  start_time: string;
+  activity_name?: string | null;
+  effort?: number | null;
+}
+
+export interface CompleteScheduleSlotPayload {
+  athlete_id: string;
+  occurrence_date: string;
+  start_time: string;
+  activity_type_id: string;
+  effort: number;
+}
+
+export interface CompleteScheduleSlotResponse {
+  athlete_id: string;
+  occurrence_date: string;
+  start_time: string;
+  sessions_balance: number;
+  activity_name: string;
+  effort: number;
+}
+
+export function scheduleSessionKey(
+  occurrenceDate: string,
+  startTime: string,
+  athleteId: string,
+): string {
+  return `${occurrenceDate}-${startTime}-${athleteId}`;
+}

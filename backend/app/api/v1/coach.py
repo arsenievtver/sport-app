@@ -10,17 +10,22 @@ from app.core.deps import CoachUser
 from app.models.user import CoachProfile
 from app.schemas.activity_type import ActivityTypesListResponse
 from app.schemas.auth import UserResponse
+from app.schemas.athlete_weight import AthleteWeightDynamicsResponse, AthleteWeightMeasurementRequest
 from app.schemas.coach import (
     AddSessionsRequest,
     CoachAthleteSessionHistoryEntry,
     CoachAthleteSessionsResponse,
     CoachAthleteSummary,
+    CoachAthleteWeightMeasurementResponse,
     CreateManagedAthleteRequest,
 )
 from app.schemas.schedule import (
     CoachScheduleSettingsResponse,
+    CompleteScheduleSlotRequest,
+    CompleteScheduleSlotResponse,
     MoveScheduleSlotRequest,
     ScheduleGridResponse,
+    ScheduleSlotCompletionResponse,
     SetScheduleSlotRequest,
     UpdateCoachScheduleSettingsRequest,
 )
@@ -114,6 +119,31 @@ async def complete_athlete_session(
     return await CoachService(db).complete_session(coach_profile, athlete_id)
 
 
+@router.post(
+    "/athletes/{athlete_id}/weight/measurements",
+    response_model=CoachAthleteWeightMeasurementResponse,
+)
+async def add_athlete_weight_measurement(
+    athlete_id: UUID,
+    data: AthleteWeightMeasurementRequest,
+    coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> CoachAthleteWeightMeasurementResponse:
+    return await CoachService(db).add_athlete_weight_measurement(coach_profile, athlete_id, data)
+
+
+@router.get(
+    "/athletes/{athlete_id}/weight/dynamics",
+    response_model=AthleteWeightDynamicsResponse,
+)
+async def get_athlete_weight_dynamics(
+    athlete_id: UUID,
+    coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AthleteWeightDynamicsResponse:
+    return await CoachService(db).get_athlete_weight_dynamics(coach_profile, athlete_id)
+
+
 @router.get("/schedule/settings", response_model=CoachScheduleSettingsResponse)
 async def get_schedule_settings(
     coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
@@ -147,6 +177,24 @@ async def get_schedule_week(
 ) -> ScheduleGridResponse:
     target = week_date or date.today()
     return await ScheduleService(db).get_week_grid(coach_profile, target)
+
+
+@router.get("/schedule/day-completions", response_model=list[ScheduleSlotCompletionResponse])
+async def list_schedule_day_completions(
+    coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    day_date: Annotated[date, Query(alias="date")],
+) -> list[ScheduleSlotCompletionResponse]:
+    return await ScheduleService(db).list_day_completions(coach_profile, day_date)
+
+
+@router.post("/schedule/complete-slot", response_model=CompleteScheduleSlotResponse)
+async def complete_schedule_slot(
+    data: CompleteScheduleSlotRequest,
+    coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> CompleteScheduleSlotResponse:
+    return await ScheduleService(db).complete_schedule_slot(coach_profile, data)
 
 
 @router.put("/schedule/slot", response_model=ScheduleGridResponse)
