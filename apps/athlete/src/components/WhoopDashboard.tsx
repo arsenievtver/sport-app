@@ -102,7 +102,77 @@ function TrendBars({ items }: { items: Array<{ key: string; label: string; value
   );
 }
 
-export function WhoopDashboard({ data }: { data: WhoopSyncPayload }) {
+function WhoopRefreshIcon({ spinning }: { spinning?: boolean }) {
+  return (
+    <svg
+      className={`whoop-refresh-icon${spinning ? " whoop-refresh-icon--spinning" : ""}`}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
+      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+      <path d="M21 3v6h-6" />
+    </svg>
+  );
+}
+
+export function WhoopDashboardHero({
+  heading,
+  syncedAt,
+  recoveryScore,
+  recoveryTone,
+  onRefresh,
+  busy = false,
+  refreshDisabled = false,
+}: {
+  heading: string;
+  syncedAt?: string | null;
+  recoveryScore?: number;
+  recoveryTone?: "high" | "mid" | "low" | "none";
+  onRefresh?: () => void;
+  busy?: boolean;
+  refreshDisabled?: boolean;
+}) {
+  return (
+    <div className="whoop-dashboard__hero">
+      <div>
+        <div className="whoop-dashboard__eyebrow-row">
+          <p className="whoop-dashboard__eyebrow">Данные с WHOOP</p>
+          {onRefresh ? (
+            <button
+              type="button"
+              className="whoop-refresh-btn"
+              disabled={refreshDisabled || busy}
+              aria-label={busy ? "Синхронизация WHOOP" : "Обновить данные WHOOP"}
+              onClick={onRefresh}
+            >
+              <WhoopRefreshIcon spinning={busy} />
+            </button>
+          ) : null}
+        </div>
+        <h3 className="whoop-dashboard__heading">{heading}</h3>
+        {syncedAt ? <p className="whoop-dashboard__synced">Обновлено: {formatDateTime(syncedAt)}</p> : null}
+      </div>
+      {recoveryScore !== undefined || recoveryTone ? (
+        <RecoveryRing score={recoveryScore} tone={recoveryTone ?? "none"} />
+      ) : null}
+    </div>
+  );
+}
+
+export function WhoopDashboard({
+  data,
+  onRefresh,
+  busy = false,
+  refreshDisabled = false,
+}: {
+  data: WhoopSyncPayload;
+  onRefresh?: () => void;
+  busy?: boolean;
+  refreshDisabled?: boolean;
+}) {
   const snapshot = getDashboardSnapshot(data);
   const {
     profileName,
@@ -120,16 +190,15 @@ export function WhoopDashboard({ data }: { data: WhoopSyncPayload }) {
 
   return (
     <div className="whoop-dashboard">
-      <div className="whoop-dashboard__hero">
-        <div>
-          <p className="whoop-dashboard__eyebrow">Данные с WHOOP</p>
-          <h3 className="whoop-dashboard__heading">
-            {profileName ? `Привет, ${profileName.split(" ")[0]}` : "Ваши показатели"}
-          </h3>
-          <p className="whoop-dashboard__synced">Обновлено: {formatDateTime(data.synced_at)}</p>
-        </div>
-        <RecoveryRing score={recoveryScore} tone={recoveryTone} />
-      </div>
+      <WhoopDashboardHero
+        heading={profileName ? `Привет, ${profileName.split(" ")[0]}` : "Ваши показатели"}
+        syncedAt={data.synced_at}
+        recoveryScore={recoveryScore}
+        recoveryTone={recoveryTone}
+        onRefresh={onRefresh}
+        busy={busy}
+        refreshDisabled={refreshDisabled}
+      />
 
       <div className="whoop-dashboard__metrics">
         <MetricTile

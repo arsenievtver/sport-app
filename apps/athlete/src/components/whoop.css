@@ -1,12 +1,13 @@
-.whoop-tab-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
+.whoop-tab-content {
   margin-top: var(--space-4);
 }
 
+.whoop-tab-loading {
+  margin: 0;
+}
+
 .whoop-tab-feedback {
-  margin: var(--space-2) 0 0;
+  margin: 0 0 var(--space-2);
 }
 
 .whoop-btn--compact {
@@ -150,12 +151,55 @@
   border: 1px solid var(--color-border);
 }
 
+.whoop-dashboard__eyebrow-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
 .whoop-dashboard__eyebrow {
-  margin: 0 0 var(--space-1);
+  margin: 0;
   color: var(--color-accent);
   font-size: var(--text-xs);
   font-weight: var(--font-normal);
   text-transform: uppercase;
+}
+
+.whoop-refresh-btn {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  margin: calc(var(--touch-target) / -2 + 0.55rem);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
+.whoop-refresh-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.whoop-refresh-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.whoop-refresh-icon--spinning {
+  animation: whoop-refresh-spin 0.85s linear infinite;
+}
+
+@keyframes whoop-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .whoop-dashboard__heading {

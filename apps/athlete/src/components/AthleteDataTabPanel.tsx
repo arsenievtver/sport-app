@@ -1,6 +1,6 @@
 import { useWhoop } from "../hooks/useWhoop";
 import { AthleteWeightDynamicsPanel } from "./AthleteWeightDynamicsPanel";
-import { WhoopDashboard } from "./WhoopDashboard";
+import { WhoopDashboard, WhoopDashboardHero } from "./WhoopDashboard";
 
 export function AthleteDataTabPanel({
   openWeightFormSignal = 0,
@@ -12,6 +12,7 @@ export function AthleteDataTabPanel({
   const { status, loading, busy, error, notice, runSync } = useWhoop();
   const connected = Boolean(status?.connected);
   const hasDashboard = connected && Boolean(status?.last_sync);
+  const refresh = () => void runSync();
 
   return (
     <>
@@ -20,29 +21,32 @@ export function AthleteDataTabPanel({
         onMeasurementAdded={onWeightMeasurementAdded}
       />
       {connected ? (
-        <>
-          <div className="whoop-tab-toolbar">
-            <button
-              type="button"
-              className="whoop-btn whoop-btn--primary whoop-btn--compact"
-              disabled={busy || loading}
-              onClick={() => void runSync()}
-            >
-              {busy ? "Синхронизация…" : "Обновить данные WHOOP"}
-            </button>
-          </div>
+        <div className="whoop-tab-content">
           {notice ? <p className="whoop-panel__notice whoop-tab-feedback">{notice}</p> : null}
           {error ? <p className="whoop-panel__error whoop-tab-feedback">{error}</p> : null}
-          {loading ? <p className="text-muted">Загрузка WHOOP…</p> : null}
+          {loading ? <p className="text-muted whoop-tab-loading">Загрузка WHOOP…</p> : null}
           {!loading && hasDashboard && status?.last_sync ? (
-            <WhoopDashboard data={status.last_sync} />
+            <WhoopDashboard
+              data={status.last_sync}
+              onRefresh={refresh}
+              busy={busy}
+              refreshDisabled={loading}
+            />
           ) : null}
           {!loading && !hasDashboard ? (
-            <div className="whoop-panel__placeholder">
-              <p>Нажмите «Обновить данные WHOOP», чтобы загрузить показатели.</p>
+            <div className="whoop-dashboard">
+              <WhoopDashboardHero
+                heading="Показатели ещё не загружены"
+                onRefresh={refresh}
+                busy={busy}
+                refreshDisabled={loading}
+              />
+              <div className="whoop-panel__placeholder">
+                <p>Нажмите иконку обновления, чтобы загрузить данные с WHOOP.</p>
+              </div>
             </div>
           ) : null}
-        </>
+        </div>
       ) : null}
     </>
   );
