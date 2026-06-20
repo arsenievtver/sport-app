@@ -14,23 +14,23 @@
   pointer-events: none;
 }
 
-.app-shell--collapsing-header .app-shell__header {
-  transform: scaleY(calc(1 - var(--shell-header-collapse-ratio, 0)));
-  transform-origin: top center;
-  will-change: transform;
+.app-shell--scroll-header-autohide .app-shell__header {
+  transition:
+    transform var(--duration-normal) var(--ease-out),
+    opacity var(--duration-normal) var(--ease-out);
 }
 
-.app-shell--collapsing-header .app-shell__header-bar {
-  opacity: clamp(0, calc((1 - var(--shell-header-collapse-ratio, 0)) / 0.3), 1);
-  will-change: opacity, transform;
+.app-shell--scroll-header-autohide.app-shell--header-hidden .app-shell__header {
+  transform: translate3d(
+    0,
+    calc(-100% - max(var(--shell-bar-margin), var(--safe-top))),
+    0
+  );
+  opacity: 0;
 }
 
-.app-shell--header-collapsed .app-shell__header-bar {
+.app-shell--scroll-header-autohide.app-shell--header-hidden .app-shell__header-bar {
   pointer-events: none;
-}
-
-.app-shell--collapsing-header .app-shell__main {
-  padding-top: calc(var(--space-5) + var(--shell-header-float-offset) - var(--shell-header-collapse, 0px));
 }
 
 .app-shell__header-bar {
