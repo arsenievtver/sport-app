@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useCollapsingAppShellHeader } from "./hooks/useCollapsingAppShellHeader";
 
 interface AppShellProps {
   title: string;
@@ -7,14 +8,26 @@ interface AppShellProps {
   children?: ReactNode;
   bottomNav?: ReactNode;
   className?: string;
+  collapsingHeader?: boolean;
 }
 
-export function AppShell({ title, subtitle, headerEnd, children, bottomNav, className }: AppShellProps) {
+export function AppShell({
+  title,
+  subtitle,
+  headerEnd,
+  children,
+  bottomNav,
+  className,
+  collapsingHeader = true,
+}: AppShellProps) {
+  const { shellRef, headerRef } = useCollapsingAppShellHeader(collapsingHeader);
+
   return (
     <div
+      ref={shellRef}
       className={`app-shell${bottomNav ? " app-shell--with-bottom-nav" : ""}${subtitle ? " app-shell--with-subtitle" : ""}${className ? ` ${className}` : ""}`}
     >
-      <header className="app-shell__header">
+      <header ref={headerRef} className="app-shell__header">
         <div className="app-shell__header-bar glass glass--floating-bar">
           <div className="app-shell__header-inner">
             <div className="app-shell__header-text">

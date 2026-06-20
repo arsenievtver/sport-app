@@ -14,6 +14,25 @@
   pointer-events: none;
 }
 
+.app-shell--collapsing-header .app-shell__header {
+  transform: scaleY(calc(1 - var(--shell-header-collapse-ratio, 0)));
+  transform-origin: top center;
+  will-change: transform;
+}
+
+.app-shell--collapsing-header .app-shell__header-bar {
+  opacity: clamp(0, calc((1 - var(--shell-header-collapse-ratio, 0)) / 0.3), 1);
+  will-change: opacity, transform;
+}
+
+.app-shell--header-collapsed .app-shell__header-bar {
+  pointer-events: none;
+}
+
+.app-shell--collapsing-header .app-shell__main {
+  padding-top: calc(var(--space-5) + var(--shell-header-float-offset) - var(--shell-header-collapse, 0px));
+}
+
 .app-shell__header-bar {
   pointer-events: auto;
   width: 100%;

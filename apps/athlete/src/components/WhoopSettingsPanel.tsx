@@ -1,7 +1,7 @@
 import { useWhoop } from "../hooks/useWhoop";
 
 export function WhoopSettingsPanel() {
-  const { status, loading, busy, error, notice, runSync, handleConnect, handleDisconnect } = useWhoop();
+  const { status, loading, busy, error, notice, handleConnect, handleDisconnect } = useWhoop();
   const connected = Boolean(status?.connected);
 
   return (
@@ -37,24 +37,14 @@ export function WhoopSettingsPanel() {
             Подключить WHOOP
           </button>
         ) : (
-          <>
-            <button
-              type="button"
-              className="whoop-btn whoop-btn--primary"
-              disabled={busy}
-              onClick={() => void runSync()}
-            >
-              {busy ? "Синхронизация…" : "Обновить данные"}
-            </button>
-            <button
-              type="button"
-              className="whoop-btn whoop-btn--ghost"
-              disabled={busy}
-              onClick={() => void handleDisconnect()}
-            >
-              Отключить
-            </button>
-          </>
+          <button
+            type="button"
+            className="whoop-btn whoop-btn--ghost"
+            disabled={busy}
+            onClick={() => void handleDisconnect()}
+          >
+            Отключить
+          </button>
         )}
       </div>
     </div>

@@ -248,7 +248,7 @@ export function AthleteWeightDynamicsPanel({
   };
 
   return (
-    <section className="weight-dynamics glass glass--panel">
+    <section className="weight-dynamics">
       <div className="weight-dynamics__header">
         <h2 className="weight-dynamics__title">Динамика веса</h2>
         {data?.current_weight_kg != null ? (

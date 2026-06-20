@@ -9,7 +9,7 @@ export function AthleteDataTabPanel({
   openWeightFormSignal?: number;
   onWeightMeasurementAdded?: () => void;
 } = {}) {
-  const { status, loading } = useWhoop();
+  const { status, loading, busy, error, notice, runSync } = useWhoop();
   const connected = Boolean(status?.connected);
   const hasDashboard = connected && Boolean(status?.last_sync);
 
@@ -20,17 +20,29 @@ export function AthleteDataTabPanel({
         onMeasurementAdded={onWeightMeasurementAdded}
       />
       {connected ? (
-        <section className="whoop-panel whoop-panel--tab">
+        <>
+          <div className="whoop-tab-toolbar">
+            <button
+              type="button"
+              className="whoop-btn whoop-btn--primary whoop-btn--compact"
+              disabled={busy || loading}
+              onClick={() => void runSync()}
+            >
+              {busy ? "Синхронизация…" : "Обновить данные WHOOP"}
+            </button>
+          </div>
+          {notice ? <p className="whoop-panel__notice whoop-tab-feedback">{notice}</p> : null}
+          {error ? <p className="whoop-panel__error whoop-tab-feedback">{error}</p> : null}
           {loading ? <p className="text-muted">Загрузка WHOOP…</p> : null}
           {!loading && hasDashboard && status?.last_sync ? (
             <WhoopDashboard data={status.last_sync} />
           ) : null}
           {!loading && !hasDashboard ? (
             <div className="whoop-panel__placeholder">
-              <p>Нажмите «Обновить данные» в настройках WHOOP, чтобы загрузить показатели.</p>
+              <p>Нажмите «Обновить данные WHOOP», чтобы загрузить показатели.</p>
             </div>
           ) : null}
-        </section>
+        </>
       ) : null}
     </>
   );
