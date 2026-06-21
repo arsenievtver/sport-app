@@ -6,6 +6,7 @@ interface CircularProgressRingProps {
   strokeWidth?: number;
   label: string;
   sublabel?: string;
+  animateFill?: boolean;
 }
 
 export function CircularProgressRing({
@@ -14,6 +15,7 @@ export function CircularProgressRing({
   strokeWidth = 10,
   label,
   sublabel,
+  animateFill = false,
 }: CircularProgressRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -38,7 +40,7 @@ export function CircularProgressRing({
           fill="none"
         />
         <circle
-          className="progress-ring__fill"
+          className={`progress-ring__fill${animateFill ? " progress-ring__fill--live" : ""}`}
           cx={center}
           cy={center}
           r={radius}

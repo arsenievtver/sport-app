@@ -70,6 +70,7 @@ export default function App() {
   const { joining, notice, coachesRefreshKey, error: inviteError } = usePendingCoachInvite(onboardingComplete);
   const {
     sessionsCompleted,
+    loading: sessionsStatsLoading,
     refresh: refreshSessionsStats,
     setSessionsCompleted,
   } = useAthleteSessionsStats(onboardingComplete);
@@ -140,7 +141,9 @@ export default function App() {
         <AppShell
           title={title}
           contentKey={tab}
-          headerEnd={<WorkoutsCompletedBadge count={sessionsCompleted} />}
+          headerEnd={
+            <WorkoutsCompletedBadge count={sessionsCompleted} animate={!sessionsStatsLoading} />
+          }
           bottomNav={
             <BottomNav
               items={navItems}

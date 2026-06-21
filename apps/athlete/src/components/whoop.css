@@ -933,6 +933,27 @@
   font-weight: var(--font-semibold);
 }
 
+.athlete-home-section__title--split {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.athlete-home-section__title--split > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.athlete-home-section__when {
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-normal);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
 .athlete-home-coaches {
   display: grid;
   gap: var(--space-3);
@@ -997,32 +1018,20 @@
 
 .athlete-home-sessions {
   display: grid;
-  gap: var(--space-3);
-  padding: var(--space-4);
+  gap: var(--space-2);
+  padding: var(--space-3);
 }
 
 .athlete-home-sessions__item {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-1);
   background: transparent;
-}
-
-.athlete-home-sessions__when {
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-  line-height: var(--leading-tight);
 }
 
 .athlete-home-sessions__coach {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  min-width: 0;
-}
-
-.athlete-home-sessions__coach-meta {
-  display: grid;
-  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -1045,6 +1054,11 @@
 }
 
 .athlete-home-sessions__coach-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }

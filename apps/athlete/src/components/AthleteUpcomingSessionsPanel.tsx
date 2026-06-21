@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { fetchAthleteUpcomingSessions, resolveMediaUrl } from "@sport-app/api-client";
 import { formatAthleteUpcomingSession, type AthleteUpcomingSession } from "@sport-app/shared";
 import { SessionsBalanceBadge, useLiveDataRefresh, usePullToRefresh } from "@sport-app/ui";
@@ -43,7 +43,12 @@ export function AthleteUpcomingSessionsPanel({ refreshKey }: { refreshKey?: stri
 
   return (
     <div className="athlete-home-section">
-      <h2 className="athlete-home-section__title">Следующая тренировка</h2>
+      <h2
+        className={`athlete-home-section__title${whenLabel ? " athlete-home-section__title--split" : ""}`}
+      >
+        <span>Следующая тренировка</span>
+        {whenLabel ? <span className="athlete-home-section__when">{whenLabel}</span> : null}
+      </h2>
 
       {loading ? (
         <section className="athlete-home-sessions glass glass--panel">
@@ -54,7 +59,10 @@ export function AthleteUpcomingSessionsPanel({ refreshKey }: { refreshKey?: stri
           <p className="auth-error">{error}</p>
         </section>
       ) : nextSession == null ? (
-        <section className="athlete-home-sessions glass glass--panel">
+        <section
+          className="athlete-home-sessions glass glass--panel athlete-home-enter"
+          style={{ "--enter-delay": "160ms" } as CSSProperties}
+        >
           <div className="athlete-empty-state">
             <span className="athlete-empty-state__icon" aria-hidden="true">
               📅
@@ -65,9 +73,11 @@ export function AthleteUpcomingSessionsPanel({ refreshKey }: { refreshKey?: stri
           </div>
         </section>
       ) : (
-        <section className="athlete-home-sessions glass glass--panel">
+        <section
+          className="athlete-home-sessions glass glass--panel athlete-home-enter"
+          style={{ "--enter-delay": "160ms" } as CSSProperties}
+        >
           <div className="athlete-home-sessions__item">
-            <div className="athlete-home-sessions__when">{whenLabel}</div>
             {nextSession.activity_name ? (
               <div className="athlete-home-sessions__activity text-secondary">
                 {nextSession.activity_name}
@@ -84,12 +94,10 @@ export function AthleteUpcomingSessionsPanel({ refreshKey }: { refreshKey?: stri
                   {coachInitial}
                 </div>
               )}
-              <div className="athlete-home-sessions__coach-meta">
-                <span className="athlete-home-sessions__coach-name">
-                  Тренер: {nextSession.coach_display_name}
-                </span>
-                <SessionsBalanceBadge balance={nextSession.sessions_balance} />
-              </div>
+              <span className="athlete-home-sessions__coach-name">
+                Тренер: {nextSession.coach_display_name}
+              </span>
+              <SessionsBalanceBadge balance={nextSession.sessions_balance} />
             </div>
           </div>
         </section>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { fetchAthleteLastSession } from "@sport-app/api-client";
 import {
   formatAthleteLastSessionDate,
@@ -68,7 +68,10 @@ export function AthleteLastSessionPanel({ refreshKey }: AthleteLastSessionPanelP
           <p className="auth-error">{error}</p>
         </section>
       ) : session == null ? (
-        <section className="athlete-home-last-session glass glass--panel">
+        <section
+          className="athlete-home-last-session glass glass--panel athlete-home-enter"
+          style={{ "--enter-delay": "240ms" } as CSSProperties}
+        >
           <div className="athlete-empty-state">
             <span className="athlete-empty-state__icon" aria-hidden="true">
               🏋️
@@ -79,7 +82,10 @@ export function AthleteLastSessionPanel({ refreshKey }: AthleteLastSessionPanelP
           </div>
         </section>
       ) : (
-        <section className="athlete-home-last-session glass glass--panel">
+        <section
+          className="athlete-home-last-session glass glass--panel athlete-home-enter"
+          style={{ "--enter-delay": "240ms" } as CSSProperties}
+        >
           <div className="athlete-home-last-session__header">
             <div className="athlete-home-last-session__activity">
               {session.activity_name ?? "Тренировка"}

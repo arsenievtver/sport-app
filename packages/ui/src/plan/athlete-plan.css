@@ -14,6 +14,10 @@
   transition: stroke-dashoffset var(--duration-normal) var(--ease-out);
 }
 
+.progress-ring__fill--live {
+  transition: none;
+}
+
 .progress-ring__center {
   position: absolute;
   inset: 0;
@@ -28,6 +32,7 @@
 .progress-ring__value {
   font-size: var(--text-2xl);
   line-height: var(--leading-tight);
+  font-variant-numeric: tabular-nums;
 }
 
 .progress-ring__sublabel {
@@ -92,6 +97,7 @@
 
 .athlete-week-progress__metric-value {
   font-size: var(--text-base);
+  font-variant-numeric: tabular-nums;
 }
 
 .athlete-quick-actions {
@@ -417,5 +423,28 @@
 
   .athlete-quick-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+@keyframes athlete-home-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.athlete-home-enter {
+  animation: athlete-home-fade-up 0.55s var(--ease-out) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .athlete-home-enter {
+    animation: none;
   }
 }

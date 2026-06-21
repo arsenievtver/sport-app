@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import type { CSSProperties, ReactElement } from "react";
 import { IconDumbbell } from "../icons/AthleteMetricIcons";
 import "./athlete-plan.css";
 
@@ -38,7 +38,10 @@ const ACTIONS: Array<{
 
 export function AthleteQuickActions({ onAction }: AthleteQuickActionsProps) {
   return (
-    <div className="athlete-home-section">
+    <div
+      className="athlete-home-section athlete-home-enter"
+      style={{ "--enter-delay": "80ms" } as CSSProperties}
+    >
       <h2 className="athlete-home-section__title">Быстрые действия</h2>
       <div className="athlete-quick-actions">
         {ACTIONS.map(({ id, label, hint, Icon }) => (

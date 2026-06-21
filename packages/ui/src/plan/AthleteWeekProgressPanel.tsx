@@ -1,6 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { fetchAthleteWeekProgress } from "@sport-app/api-client";
-import { formatWeekProgressMetric, type AthleteWeekProgress } from "@sport-app/shared";
+import {
+  formatWeekProgressMetric,
+  type AthleteWeekProgress,
+  type AthleteWeekProgressMetric,
+} from "@sport-app/shared";
+import { useCountUp } from "../hooks/useCountUp";
 import { useLiveDataRefresh } from "../hooks/useLiveDataRefresh";
 import { usePullToRefresh } from "../pull-to-refresh/PullToRefresh";
 import { CircularProgressRing } from "./CircularProgressRing";
@@ -24,6 +29,19 @@ const METRIC_ICONS = {
 
 interface AthleteWeekProgressPanelProps {
   refreshKey?: string;
+}
+
+function WeekProgressMetricValue({
+  metric,
+  enabled,
+  delay = 0,
+}: {
+  metric: AthleteWeekProgressMetric;
+  enabled: boolean;
+  delay?: number;
+}) {
+  const actual = useCountUp(metric.actual, { enabled, delay, duration: 900 });
+  return <>{formatWeekProgressMetric({ ...metric, actual })}</>;
 }
 
 export function AthleteWeekProgressPanel({ refreshKey }: AthleteWeekProgressPanelProps) {
@@ -67,6 +85,12 @@ export function AthleteWeekProgressPanel({ refreshKey }: AthleteWeekProgressPane
       ] as const)
     : [];
 
+  const showProgress = !loading && progress != null;
+  const completionPercent = useCountUp(progress?.completion_percent ?? 0, {
+    enabled: showProgress,
+    duration: 1100,
+  });
+
   return (
     <div className="athlete-home-section">
       <h2 className="athlete-home-section__title">Прогресс этой недели</h2>
@@ -80,17 +104,21 @@ export function AthleteWeekProgressPanel({ refreshKey }: AthleteWeekProgressPane
           <p className="auth-error">{error}</p>
         </section>
       ) : progress ? (
-        <section className="athlete-week-progress">
+        <section
+          className="athlete-week-progress athlete-home-enter"
+          style={{ "--enter-delay": "0ms" } as CSSProperties}
+        >
           <div className="athlete-week-progress__grid">
             <div className="athlete-week-progress__chart">
               <CircularProgressRing
-                percent={progress.completion_percent}
-                label={`${progress.completion_percent}%`}
+                percent={completionPercent}
+                animateFill={showProgress}
+                label={`${completionPercent}%`}
                 sublabel="выполнено"
               />
             </div>
             <ul className="athlete-week-progress__metrics">
-              {metrics.map(({ key, metric }) => {
+              {metrics.map(({ key, metric }, index) => {
                 const Icon = METRIC_ICONS[key];
                 return (
                   <li key={key} className="athlete-week-progress__metric">
@@ -100,7 +128,11 @@ export function AthleteWeekProgressPanel({ refreshKey }: AthleteWeekProgressPane
                     <div className="athlete-week-progress__metric-body">
                       <span className="athlete-week-progress__metric-label">{metric.label}</span>
                       <span className="athlete-week-progress__metric-value">
-                        {formatWeekProgressMetric(metric)}
+                        <WeekProgressMetricValue
+                          metric={metric}
+                          enabled={showProgress}
+                          delay={120 + index * 90}
+                        />
                       </span>
                     </div>
                   </li>
