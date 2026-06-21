@@ -447,7 +447,7 @@
   line-height: var(--leading-relaxed);
 }
 
-@media (max-width: 360px) {
+@media (max-width: 358px) {
   .athlete-week-progress__grid {
     grid-template-columns: 1fr;
   }

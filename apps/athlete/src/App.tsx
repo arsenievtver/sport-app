@@ -235,14 +235,7 @@ export default function App() {
   return (
     <>
       {content}
-      <PwaInstallBanner
-        appName="Атлет"
-        blockedReason={
-          !checking && !user && pendingInviteCode
-            ? "Приглашение тренера сохранено в ссылке. После входа можно установить приложение — тренер уже будет привязан."
-            : undefined
-        }
-      />
+      {user ? <PwaInstallBanner appName="Атлет" /> : null}
       {!checking && !user ? (
         <button
           type="button"
