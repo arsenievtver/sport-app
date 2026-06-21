@@ -28,11 +28,9 @@ function IconNutrition() {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <ellipse cx="12" cy="14.5" rx="6.5" ry="3.5" />
-      <path d="M6.5 3v5.5a1.25 1.25 0 0 0 2.5 0V3" />
-      <path d="M7.75 3v2.25" />
-      <path d="M17.5 3v7.5a1.25 1.25 0 0 1-2.5 0V3" />
-      <path d="M16.25 3v2.25" />
+      <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+      <path d="M7 2v20" />
+      <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
     </svg>
   );
 }
