@@ -51,7 +51,7 @@ export function AthleteAddWorkoutModal({
       <div className="workout-modal__sheet glass glass--panel">
         <header className="workout-modal__header">
           <h2 id="workout-modal-title" className="workout-modal__title">
-            Добавить тренировку
+            Добавить активность
           </h2>
           <button type="button" className="workout-modal__close" aria-label="Закрыть" onClick={onClose}>
             ×

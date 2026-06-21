@@ -4,16 +4,21 @@ import type {
   AthleteCompleteSessionPayload,
   AthleteCompleteSessionResponse,
   AthleteLastSession,
+  AthleteSessionHistoryItem,
   AthleteWeightDynamics,
   AthleteWeightMeasurementPayload,
   AthleteOnboardingPayload,
+  AthletePlan,
+  AthletePlanUpdatePayload,
   AthleteProfile,
   AthleteProfileUpdatePayload,
   AthleteSessionsStats,
   AthleteUpcomingSession,
+  AthleteWeekProgress,
   JoinCoachPayload,
   UserResponse,
 } from "@sport-app/shared";
+import { SESSION_HISTORY_DAYS } from "@sport-app/shared";
 
 import { authenticatedFetchOk } from "./auth";
 import { getApiBaseUrl } from "./config";
@@ -83,6 +88,13 @@ export async function fetchAthleteLastSession(): Promise<AthleteLastSession | nu
   return data ?? null;
 }
 
+export async function fetchAthleteSessionHistory(
+  days = SESSION_HISTORY_DAYS,
+): Promise<AthleteSessionHistoryItem[]> {
+  const res = await authenticatedFetchOk(`/athlete/sessions/history?days=${days}`);
+  return res.json() as Promise<AthleteSessionHistoryItem[]>;
+}
+
 export async function fetchActivityTypes(): Promise<ActivityTypesList> {
   const res = await authenticatedFetchOk("/athlete/activity-types");
   return res.json() as Promise<ActivityTypesList>;
@@ -111,6 +123,24 @@ export async function completeAthleteSession(
     body: JSON.stringify(payload),
   });
   return res.json() as Promise<AthleteCompleteSessionResponse>;
+}
+
+export async function fetchAthletePlan(): Promise<AthletePlan> {
+  const res = await authenticatedFetchOk("/athlete/plan");
+  return res.json() as Promise<AthletePlan>;
+}
+
+export async function updateAthletePlan(payload: AthletePlanUpdatePayload): Promise<AthletePlan> {
+  const res = await authenticatedFetchOk("/athlete/plan", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<AthletePlan>;
+}
+
+export async function fetchAthleteWeekProgress(): Promise<AthleteWeekProgress> {
+  const res = await authenticatedFetchOk("/athlete/plan/week-progress");
+  return res.json() as Promise<AthleteWeekProgress>;
 }
 
 export function resolveMediaUrl(path: string | null | undefined): string | null {

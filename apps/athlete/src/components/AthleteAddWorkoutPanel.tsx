@@ -245,7 +245,7 @@ export function AthleteAddWorkoutPanel({
 
       <div className="athlete-add-workout__field">
         <label className="athlete-add-workout__label text-secondary" htmlFor="activity-type">
-          Вид тренировки
+          Вид активности
         </label>
         <select
           id="activity-type"
@@ -366,7 +366,7 @@ export function AthleteAddWorkoutPanel({
         disabled={busy || (coachPickerRequired && !hasCoachSelection) || !activityTypeId}
         onClick={() => void handleAddWorkout()}
       >
-        {busy ? "Сохраняем…" : "Добавить тренировку"}
+        {busy ? "Сохраняем…" : "Добавить активность"}
       </button>
 
       {notice ? <p className="athlete-add-workout__notice text-secondary">{notice}</p> : null}

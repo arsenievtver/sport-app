@@ -353,6 +353,7 @@ class ScheduleService:
                         coach_id=coach.id,
                         coach_display_name=coach.display_name,
                         coach_avatar_url=coach.avatar_url,
+                        sessions_balance=link.sessions_balance,
                         occurrence_date=current,
                         start_time=slot_str,
                         duration_min=settings.slot_duration_min,

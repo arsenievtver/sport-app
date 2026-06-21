@@ -9,3 +9,4 @@ export * from "./schedule";
 export * from "./activity";
 export * from "./activity-load";
 export * from "./weight";
+export * from "./plan";

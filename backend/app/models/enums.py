@@ -24,6 +24,13 @@ class CoachAthleteSessionEntryKind(str, enum.Enum):
     debit = "debit"
 
 
+class PlanActivityTier(str, enum.Enum):
+    light = "light"
+    moderate = "moderate"
+    active = "active"
+    very_active = "very_active"
+
+
 class ActivityCategory(str, enum.Enum):
     cardio = "cardio"
     strength = "strength"

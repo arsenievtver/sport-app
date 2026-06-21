@@ -93,6 +93,9 @@ export interface AthleteCompleteSessionPayload {
 export const ATHLETE_WORKOUT_WITHOUT_COACH = "__without_coach__" as const;
 export const ATHLETE_WORKOUT_WITHOUT_COACH_LABEL = "Без тренера";
 
+/** Rolling window for workout history list in the athlete app. */
+export const SESSION_HISTORY_DAYS = 30;
+
 export interface AthleteLastSession {
   entry_date: string;
   activity_name?: string | null;
@@ -103,6 +106,10 @@ export interface AthleteLastSession {
   weight_kg_used?: number | null;
   calories_kcal?: number | null;
   coach_display_name?: string | null;
+}
+
+export interface AthleteSessionHistoryItem extends AthleteLastSession {
+  id: string;
 }
 
 export function formatAthleteLastSessionDate(entryDate: string): string {

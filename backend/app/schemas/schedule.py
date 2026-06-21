@@ -94,6 +94,7 @@ class AthleteUpcomingSessionResponse(BaseModel):
     coach_id: UUID
     coach_display_name: str
     coach_avatar_url: str | None = None
+    sessions_balance: int = 0
     occurrence_date: Date
     start_time: str
     duration_min: int

@@ -7,7 +7,14 @@ from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
-from app.models.enums import CoachAthleteLinkStatus, Gender, UserRole
+from app.models.enums import CoachAthleteLinkStatus, Gender, PlanActivityTier, UserRole
+
+plan_activity_tier_enum = SQLEnum(
+    PlanActivityTier,
+    name="planactivitytier",
+    create_constraint=False,
+    native_enum=False,
+)
 
 user_role_enum = SQLEnum(UserRole, name="userrole", create_constraint=False)
 gender_enum = SQLEnum(Gender, name="gender", create_constraint=False, native_enum=False)
@@ -94,6 +101,14 @@ class AthleteProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     personal_goal_target: Mapped[float | None] = mapped_column(Float)
     onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     recent_activity_type_ids: Mapped[list] = mapped_column(JSONB, default=list, nullable=False)
+    plan_workouts_per_week: Mapped[int] = mapped_column(Integer, default=2, nullable=False)
+    daily_baseline_calories_kcal: Mapped[float | None] = mapped_column(Float)
+    daily_baseline_activity_min: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
+    plan_activity_tier: Mapped[PlanActivityTier] = mapped_column(
+        plan_activity_tier_enum,
+        default=PlanActivityTier.moderate,
+        nullable=False,
+    )
 
     user: Mapped["User"] = relationship(back_populates="athlete_profile")
     coach_links: Mapped[list["CoachAthleteLink"]] = relationship(

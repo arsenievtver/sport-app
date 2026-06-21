@@ -15,6 +15,7 @@ from app.schemas.athlete import (
     AthleteOnboardingRequest,
     AthleteProfileResponse,
     AthleteProfileUpdateRequest,
+    AthleteSessionHistoryItemResponse,
     AthleteSessionsStatsResponse,
     JoinCoachRequest,
 )
@@ -22,11 +23,17 @@ from app.schemas.athlete_weight import (
     AthleteWeightDynamicsResponse,
     AthleteWeightMeasurementRequest,
 )
+from app.schemas.athlete_plan import (
+    AthletePlanResponse,
+    AthletePlanUpdateRequest,
+    AthleteWeekProgressResponse,
+)
 from app.schemas.auth import UserResponse
 from app.schemas.schedule import AthleteUpcomingSessionResponse
 from app.services.activity_type import ActivityTypeService
 from app.services.athlete import AthleteService
 from app.services.athlete_weight import AthleteWeightService
+from app.services.athlete_plan import AthletePlanService
 from app.services.auth import user_to_response
 from app.services.media import save_avatar
 from app.services.schedule import ScheduleService
@@ -150,6 +157,20 @@ async def get_last_completed_session(
     return await service.get_last_completed_session(user.athlete_profile)
 
 
+@router.get("/sessions/history", response_model=list[AthleteSessionHistoryItemResponse])
+async def list_session_history(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 100,
+    days: Annotated[int, Query(ge=1, le=90)] = 30,
+) -> list[AthleteSessionHistoryItemResponse]:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    service = AthleteService(db)
+    return await service.list_session_history(user.athlete_profile, days=days, limit=limit)
+
+
 @router.get("/activity-types", response_model=ActivityTypesListResponse)
 async def list_activity_types(
     user: AthleteUser,
@@ -207,3 +228,37 @@ async def list_upcoming_sessions(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
 
     return await ScheduleService(db).list_upcoming_for_athlete(user.athlete_profile, limit=limit)
+
+
+@router.get("/plan", response_model=AthletePlanResponse)
+async def get_plan(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AthletePlanResponse:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    return await AthletePlanService(db).get_plan(user.athlete_profile)
+
+
+@router.patch("/plan", response_model=AthletePlanResponse)
+async def update_plan(
+    data: AthletePlanUpdateRequest,
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AthletePlanResponse:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    return await AthletePlanService(db).update_plan(user.athlete_profile, data)
+
+
+@router.get("/plan/week-progress", response_model=AthleteWeekProgressResponse)
+async def get_week_progress(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AthleteWeekProgressResponse:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    return await AthletePlanService(db).get_week_progress(user.athlete_profile)

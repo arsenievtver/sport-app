@@ -1,0 +1,61 @@
+import type { ReactElement } from "react";
+import { IconDumbbell } from "../icons/AthleteMetricIcons";
+import "./athlete-plan.css";
+
+export type AthleteQuickActionId = "my-plan" | "progress" | "workouts";
+
+interface AthleteQuickActionsProps {
+  onAction: (action: AthleteQuickActionId) => void;
+}
+
+function IconMyPlan() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconProgress() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+      <path d="M4 18v-6M10 18V8M16 18v-3M22 18V4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+const ACTIONS: Array<{
+  id: AthleteQuickActionId;
+  label: string;
+  hint: string;
+  Icon: () => ReactElement;
+}> = [
+  { id: "my-plan", label: "Мой план", hint: "Настроить", Icon: IconMyPlan },
+  { id: "progress", label: "Прогресс", hint: "Смотреть", Icon: IconProgress },
+  { id: "workouts", label: "Тренировки", hint: "Открыть", Icon: IconDumbbell },
+];
+
+export function AthleteQuickActions({ onAction }: AthleteQuickActionsProps) {
+  return (
+    <div className="athlete-home-section">
+      <h2 className="athlete-home-section__title">Быстрые действия</h2>
+      <div className="athlete-quick-actions">
+        {ACTIONS.map(({ id, label, hint, Icon }) => (
+          <button
+            key={id}
+            type="button"
+            className="athlete-quick-actions__tile glass glass--panel"
+            onClick={() => onAction(id)}
+          >
+            <span className="athlete-quick-actions__icon" aria-hidden="true">
+              <Icon />
+            </span>
+            <span className="athlete-quick-actions__label">{label}</span>
+            <span className="athlete-quick-actions__hint text-muted">{hint}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}

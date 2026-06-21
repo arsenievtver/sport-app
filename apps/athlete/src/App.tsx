@@ -7,8 +7,13 @@ import {
 } from "@sport-app/shared";
 import {
   AppShell,
+  AthleteMyPlanPanel,
   AthleteOnboarding,
+  AthleteQuickActions,
   AthleteSettings,
+  AthleteStubPanel,
+  AthleteWeekProgressPanel,
+  AthleteWorkoutsPanel,
   AuthScreen,
   BottomNav,
   BottomNavIconAdd,
@@ -22,18 +27,19 @@ import {
   PullToRefresh,
   useAthleteSessionsStats,
   WorkoutsCompletedBadge,
+  type AthleteQuickActionId,
 } from "@sport-app/ui";
 import { WhoopOAuthListener } from "./components/WhoopOAuthListener";
 import { AthleteDataTabPanel } from "./components/AthleteDataTabPanel";
 import { BottomNavIconData } from "./components/BottomNavIconData";
 import { WhoopSettingsPanel } from "./components/WhoopSettingsPanel";
-import { AthleteCoachesHomePanel } from "./components/AthleteCoachesHomePanel";
 import { AthleteUpcomingSessionsPanel } from "./components/AthleteUpcomingSessionsPanel";
 import { AthleteLastSessionPanel } from "./components/AthleteLastSessionPanel";
 import { AthleteAddWorkoutModal } from "./components/AthleteAddWorkoutModal";
 import "./components/whoop.css";
 
 type AthleteTab = "home" | "data" | "settings";
+type HomeOverlay = AthleteQuickActionId | null;
 
 const TAB_TITLES: Record<AthleteTab, string | ((name: string) => string)> = {
   home: (name) => `Привет, ${name}!`,
@@ -49,6 +55,8 @@ export default function App() {
     return whoop ? "data" : "home";
   });
   const [addWorkoutOpen, setAddWorkoutOpen] = useState(false);
+  const [homeOverlay, setHomeOverlay] = useState<HomeOverlay>(null);
+  const [weekProgressRefreshKey, setWeekProgressRefreshKey] = useState(0);
   const [openWeightFormSignal, setOpenWeightFormSignal] = useState(0);
   const [returnToWorkoutAfterWeight, setReturnToWorkoutAfterWeight] = useState(false);
   const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() => readPendingInviteCode());
@@ -140,8 +148,8 @@ export default function App() {
               showLabels
               onChange={(id) => setTab(id as AthleteTab)}
               action={{
-                id: "add-workout",
-                label: "Добавить тренировку",
+                id: "add-activity",
+                label: "Добавить активность",
                 icon: <BottomNavIconAdd />,
                 active: addWorkoutOpen,
                 onClick: () => setAddWorkoutOpen(true),
@@ -150,14 +158,40 @@ export default function App() {
           }
         >
           {tab === "home" ? (
-            <PullToRefresh onRefresh={refreshSessionsStats}>
-              {joining ? <p className="invite-banner invite-banner--info">Подключаем тренера…</p> : null}
-              {notice ? <p className="invite-banner invite-banner--success">{notice}</p> : null}
-              {inviteError ? <p className="invite-banner invite-banner--error">{inviteError}</p> : null}
-              <AthleteCoachesHomePanel refreshKey={coachesRefreshKey > 0 ? String(coachesRefreshKey) : undefined} />
-              <AthleteUpcomingSessionsPanel refreshKey={coachesRefreshKey > 0 ? String(coachesRefreshKey) : undefined} />
-              <AthleteLastSessionPanel refreshKey={sessionsCompleted} />
-            </PullToRefresh>
+            homeOverlay === "my-plan" ? (
+              <AthleteMyPlanPanel
+                onBack={() => setHomeOverlay(null)}
+                onSaved={() => setWeekProgressRefreshKey((value) => value + 1)}
+              />
+            ) : homeOverlay === "progress" ? (
+              <AthleteStubPanel
+                title="Прогресс"
+                message="Скоро здесь будет подробная история прогресса и графики."
+                onBack={() => setHomeOverlay(null)}
+              />
+            ) : homeOverlay === "workouts" ? (
+              <AthleteWorkoutsPanel
+                refreshKey={sessionsCompleted}
+                onBack={() => setHomeOverlay(null)}
+              />
+            ) : (
+              <PullToRefresh
+                onRefresh={async () => {
+                  await refreshSessionsStats();
+                  setWeekProgressRefreshKey((value) => value + 1);
+                }}
+              >
+                {joining ? <p className="invite-banner invite-banner--info">Подключаем тренера…</p> : null}
+                {notice ? <p className="invite-banner invite-banner--success">{notice}</p> : null}
+                {inviteError ? <p className="invite-banner invite-banner--error">{inviteError}</p> : null}
+                <AthleteWeekProgressPanel
+                  refreshKey={`${coachesRefreshKey}-${weekProgressRefreshKey}-${sessionsCompleted}`}
+                />
+                <AthleteQuickActions onAction={setHomeOverlay} />
+                <AthleteUpcomingSessionsPanel refreshKey={coachesRefreshKey > 0 ? String(coachesRefreshKey) : undefined} />
+                <AthleteLastSessionPanel refreshKey={sessionsCompleted} />
+              </PullToRefresh>
+            )
           ) : null}
           {tab === "data" ? (
             <AthleteDataTabPanel
@@ -190,7 +224,10 @@ export default function App() {
             setOpenWeightFormSignal((value) => value + 1);
             setTab("data");
           }}
-          onWorkoutAdded={setSessionsCompleted}
+          onWorkoutAdded={(count) => {
+            setSessionsCompleted(count);
+            setWeekProgressRefreshKey((value) => value + 1);
+          }}
         />
       </>
     );

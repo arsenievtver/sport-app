@@ -85,6 +85,7 @@ export interface AthleteUpcomingSession {
   coach_id: string;
   coach_display_name: string;
   coach_avatar_url: string | null;
+  sessions_balance: number;
   occurrence_date: string;
   start_time: string;
   duration_min: number;

@@ -20,6 +20,7 @@ import {
 
 import { AvatarCropModal } from "./AvatarCropModal";
 import { NativeTemporalInput } from "../native-temporal/NativeTemporalInput";
+import { SessionsBalanceBadge } from "../sessions/SessionsBalanceBadge";
 
 interface AthleteSettingsProps {
   user: UserResponse;
@@ -350,6 +351,7 @@ export function AthleteSettings({
                     )}
                     <div className="settings-coach-list__name">{coach.display_name}</div>
                   </div>
+                  <SessionsBalanceBadge balance={coach.sessions_balance} />
                 </li>
               );
             })}

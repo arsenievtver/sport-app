@@ -15,7 +15,11 @@ import {
   ACTIVITY_EFFORT_MAX,
   ACTIVITY_EFFORT_MIN,
   addDays,
+  calculateEffectiveMet,
+  calculateLoadMetMinutes,
+  calculateWorkoutCalories,
   clampActivityEffort,
+  formatCaloriesKcal,
   formatCoachDayNavLabel,
   formatWeightKg,
   formatWeightMeasurementDate,
@@ -133,6 +137,8 @@ export function CoachHomePanel({ onOpenAthlete }: CoachHomePanelProps) {
   const [completeActivityTypeId, setCompleteActivityTypeId] = useState("");
   const [completeEffort, setCompleteEffort] = useState(ACTIVITY_EFFORT_DEFAULT);
   const [completeBusy, setCompleteBusy] = useState(false);
+  const [completeAthleteWeightKg, setCompleteAthleteWeightKg] = useState<number | null>(null);
+  const [completeWeightLoading, setCompleteWeightLoading] = useState(false);
   const [weightDynamics, setWeightDynamics] = useState<AthleteWeightDynamics | null>(null);
   const [weightDynamicsLoading, setWeightDynamicsLoading] = useState(false);
   const [weightInput, setWeightInput] = useState("");
@@ -191,7 +197,36 @@ export function CoachHomePanel({ onOpenAthlete }: CoachHomePanelProps) {
     const defaultActivityTypeId = activityTypes[0]?.id ?? "";
     setCompleteActivityTypeId(completeModal.session.activityTypeId ?? defaultActivityTypeId);
     setCompleteEffort(ACTIVITY_EFFORT_DEFAULT);
+    setCompleteAthleteWeightKg(null);
   }, [completeModal, activityTypes]);
+
+  useEffect(() => {
+    if (!completeModal) return;
+
+    let cancelled = false;
+    setCompleteWeightLoading(true);
+
+    void fetchCoachAthleteWeightDynamics(completeModal.session.athleteId)
+      .then((data) => {
+        if (!cancelled) {
+          setCompleteAthleteWeightKg(data.current_weight_kg ?? null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCompleteAthleteWeightKg(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setCompleteWeightLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [completeModal]);
 
   useLiveDataRefresh(refreshData);
 
@@ -220,9 +255,34 @@ export function CoachHomePanel({ onOpenAthlete }: CoachHomePanelProps) {
     });
   };
 
+  const slotDurationMin = grid?.settings.slot_duration_min ?? 60;
+
+  const selectedCompleteActivity = useMemo(
+    () => activityTypes.find((item) => item.id === completeActivityTypeId) ?? null,
+    [activityTypes, completeActivityTypeId],
+  );
+
+  const completePreviewLoad = useMemo(() => {
+    if (!selectedCompleteActivity) return null;
+    return calculateLoadMetMinutes(selectedCompleteActivity.met_value, slotDurationMin, completeEffort);
+  }, [selectedCompleteActivity, slotDurationMin, completeEffort]);
+
+  const completePreviewCalories = useMemo(() => {
+    if (!selectedCompleteActivity || completeAthleteWeightKg == null) return null;
+    const effectiveMet = calculateEffectiveMet(selectedCompleteActivity.met_value, completeEffort);
+    return calculateWorkoutCalories(effectiveMet, slotDurationMin, completeAthleteWeightKg);
+  }, [selectedCompleteActivity, completeAthleteWeightKg, slotDurationMin, completeEffort]);
+
   const openCompleteModal = (session: DaySession) => {
     setCompleteModal({ session });
     setActionError(null);
+  };
+
+  const openWeightModalFromComplete = () => {
+    if (!completeModal || completeBusy) return;
+    const session = completeModal.session;
+    setCompleteModal(null);
+    openWeightModal(session);
   };
 
   const closeCompleteModal = () => {
@@ -540,6 +600,34 @@ export function CoachHomePanel({ onOpenAthlete }: CoachHomePanelProps) {
                   <span>Максимум</span>
                 </div>
               </div>
+
+              {completeWeightLoading ? (
+                <p className="coach-home-complete-sheet__preview text-muted">Загрузка данных о весе…</p>
+              ) : completePreviewLoad != null ? (
+                <p className="coach-home-complete-sheet__preview text-secondary">
+                  Оценка нагрузки ({slotDurationMin} мин): <strong>{completePreviewLoad} MET·мин</strong>
+                  {completePreviewCalories != null ? (
+                    <>
+                      {" "}
+                      · ~<strong>{formatCaloriesKcal(completePreviewCalories)} ккал</strong>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+
+              {!completeWeightLoading && completeAthleteWeightKg == null ? (
+                <p className="coach-home-complete-sheet__weight-hint text-secondary">
+                  Для оценки калорий добавьте измерение веса атлета.{" "}
+                  <button
+                    type="button"
+                    className="coach-home-complete-sheet__weight-link"
+                    disabled={completeBusy}
+                    onClick={openWeightModalFromComplete}
+                  >
+                    Добавить измерение
+                  </button>
+                </p>
+              ) : null}
 
               <p className="coach-home-complete-sheet__deduct text-secondary">
                 С баланса атлета будет списана <strong>1 тренировка</strong>. Повторное списание за этот слот

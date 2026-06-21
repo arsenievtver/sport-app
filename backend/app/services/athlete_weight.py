@@ -67,6 +67,9 @@ class AthleteWeightService:
         else:
             entry.weight_kg = round(data.weight_kg, 1)
         await self.db.flush()
+        from app.services.athlete_plan import AthletePlanService
+
+        await AthletePlanService(self.db).ensure_baseline(profile)
         return await self.get_dynamics(profile)
 
     async def get_current_weight_kg(self, profile: AthleteProfile) -> float | None:

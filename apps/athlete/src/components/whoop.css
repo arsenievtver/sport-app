@@ -1020,6 +1020,12 @@
   min-width: 0;
 }
 
+.athlete-home-sessions__coach-meta {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
 .athlete-home-sessions__avatar {
   width: 28px;
   height: 28px;

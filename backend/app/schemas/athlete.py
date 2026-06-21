@@ -130,6 +130,10 @@ class AthleteLastSessionResponse(BaseModel):
     coach_display_name: str | None = None
 
 
+class AthleteSessionHistoryItemResponse(AthleteLastSessionResponse):
+    id: UUID
+
+
 class AthleteProfileResponse(BaseModel):
     display_name: str
     gender: Gender | None = None

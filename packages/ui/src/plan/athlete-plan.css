@@ -1,0 +1,421 @@
+.progress-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.progress-ring__track {
+  stroke: color-mix(in srgb, var(--color-text-muted) 25%, transparent);
+}
+
+.progress-ring__fill {
+  stroke: var(--color-primary);
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--duration-normal) var(--ease-out);
+}
+
+.progress-ring__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  text-align: center;
+}
+
+.progress-ring__value {
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+}
+
+.progress-ring__sublabel {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.athlete-week-progress {
+  padding: var(--space-4) 0;
+}
+
+.athlete-week-progress__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.athlete-week-progress__chart {
+  display: flex;
+  justify-content: center;
+}
+
+.athlete-week-progress__metrics {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.athlete-week-progress__metric {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.athlete-week-progress__metric-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--color-primary);
+}
+
+.athlete-week-progress__metric-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.athlete-week-progress__metric-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.athlete-week-progress__metric-label {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.athlete-week-progress__metric-value {
+  font-size: var(--text-base);
+}
+
+.athlete-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.athlete-quick-actions__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-2);
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  color: inherit;
+  font: inherit;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.athlete-quick-actions__tile:active {
+  transform: scale(0.97);
+}
+
+.athlete-quick-actions__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--color-primary);
+}
+
+.athlete-quick-actions__icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.athlete-quick-actions__label {
+  font-size: var(--text-sm);
+}
+
+.athlete-quick-actions__hint {
+  font-size: var(--text-xs);
+}
+
+.athlete-overlay-screen {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.athlete-overlay-screen__header {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.athlete-overlay-screen__back {
+  justify-self: start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.athlete-overlay-screen__title {
+  margin: 0;
+  font-size: var(--text-xl);
+}
+
+.athlete-workouts__subtitle {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.athlete-my-plan {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.athlete-my-plan__section {
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.athlete-my-plan__section-title {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.athlete-my-plan__lead {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+}
+
+.athlete-my-plan__hint {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.athlete-my-plan__field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.athlete-my-plan__label {
+  font-size: var(--text-sm);
+}
+
+.athlete-my-plan__input {
+  width: 100%;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  font: inherit;
+}
+
+.athlete-my-plan__footer {
+  display: grid;
+  gap: var(--space-2);
+  position: sticky;
+  bottom: 0;
+  padding: var(--space-4) 0 var(--space-2);
+  background: linear-gradient(
+    to top,
+    var(--color-bg) 70%,
+    color-mix(in srgb, var(--color-bg) 0%, transparent)
+  );
+}
+
+.athlete-my-plan__footer-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+.athlete-my-plan__save {
+  width: 100%;
+}
+
+.athlete-my-plan__save--idle:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.athlete-my-plan__save--success:disabled {
+  opacity: 1;
+  cursor: default;
+  color: var(--color-bg);
+  background: var(--color-success, #34d399);
+}
+
+.athlete-plan-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.athlete-plan-chips__item {
+  min-width: 52px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--glass-bg) 70%, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-base);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+}
+
+.athlete-plan-chips__item--selected {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+  background: var(--color-primary-muted);
+  color: var(--color-primary);
+}
+
+.athlete-plan-chips__item:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.athlete-plan-tier-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.athlete-plan-tier {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--glass-bg) 70%, transparent);
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+}
+
+.athlete-plan-tier--selected {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+  background: var(--color-primary-muted);
+}
+
+.athlete-plan-tier__label {
+  font-size: var(--text-base);
+}
+
+.athlete-plan-tier__meta {
+  font-size: var(--text-xs);
+}
+
+.athlete-my-plan__targets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.athlete-my-plan__targets li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.athlete-my-plan__science .athlete-my-plan__lead p {
+  margin: 0 0 var(--space-3);
+}
+
+.athlete-my-plan__science .athlete-my-plan__lead p:last-child {
+  margin-bottom: 0;
+}
+
+.athlete-my-plan__science a {
+  color: var(--color-primary);
+}
+
+.athlete-stub {
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.athlete-workouts__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.athlete-workouts__empty {
+  padding: var(--space-5);
+}
+
+.athlete-workouts__item {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.athlete-workouts__item-header {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.athlete-workouts__item-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+}
+
+.athlete-workouts__item-date {
+  font-size: var(--text-sm);
+}
+
+.athlete-workouts__item-summary {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.athlete-workouts__item-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.athlete-workouts__stat {
+  display: grid;
+  gap: 2px;
+}
+
+.athlete-workouts__stat dt {
+  font-size: var(--text-xs);
+}
+
+.athlete-workouts__stat dd {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.athlete-stub__message {
+  margin: 0;
+  line-height: var(--leading-relaxed);
+}
+
+@media (max-width: 360px) {
+  .athlete-week-progress__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .athlete-quick-actions {
+    grid-template-columns: 1fr;
+  }
+}

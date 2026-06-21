@@ -1,5 +1,6 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select
@@ -26,9 +27,23 @@ from app.schemas.athlete import (
     AthleteOnboardingRequest,
     AthleteProfileResponse,
     AthleteProfileUpdateRequest,
+    AthleteSessionHistoryItemResponse,
     AthleteSessionsStatsResponse,
     JoinCoachRequest,
 )
+
+
+SESSION_HISTORY_DAYS = 30
+SESSION_HISTORY_MAX_LIMIT = 100
+
+
+def _athlete_today(profile: AthleteProfile) -> date:
+    tz_name = profile.timezone or "UTC"
+    try:
+        tz = ZoneInfo(tz_name)
+    except ZoneInfoNotFoundError:
+        tz = ZoneInfo("UTC")
+    return datetime.now(tz).date()
 
 
 class AthleteService:
@@ -123,6 +138,42 @@ class AthleteService:
         if entry is None:
             return None
 
+        return self._entry_to_session_response(entry)
+
+    async def list_session_history(
+        self,
+        profile: AthleteProfile,
+        *,
+        days: int = SESSION_HISTORY_DAYS,
+        limit: int = SESSION_HISTORY_MAX_LIMIT,
+    ) -> list[AthleteSessionHistoryItemResponse]:
+        since_date = _athlete_today(profile) - timedelta(days=days)
+        result = await self.db.execute(
+            select(CoachAthleteSessionEntry)
+            .outerjoin(CoachAthleteLink, CoachAthleteSessionEntry.link_id == CoachAthleteLink.id)
+            .where(
+                CoachAthleteSessionEntry.kind == CoachAthleteSessionEntryKind.debit,
+                CoachAthleteSessionEntry.entry_date >= since_date,
+                or_(
+                    CoachAthleteLink.athlete_id == profile.id,
+                    CoachAthleteSessionEntry.athlete_id == profile.id,
+                ),
+            )
+            .options(
+                selectinload(CoachAthleteSessionEntry.activity_type),
+                selectinload(CoachAthleteSessionEntry.link).selectinload(CoachAthleteLink.coach),
+            )
+            .order_by(
+                CoachAthleteSessionEntry.entry_date.desc(),
+                CoachAthleteSessionEntry.created_at.desc(),
+            )
+            .limit(limit)
+        )
+        entries = result.scalars().all()
+        return [self._entry_to_history_item(entry) for entry in entries]
+
+    @staticmethod
+    def _entry_to_session_response(entry: CoachAthleteSessionEntry) -> AthleteLastSessionResponse:
         activity_name = entry.activity_type.name_ru if entry.activity_type is not None else None
         coach_display_name = entry.link.coach.display_name if entry.link is not None else None
         return AthleteLastSessionResponse(
@@ -136,6 +187,11 @@ class AthleteService:
             calories_kcal=entry.calories_kcal,
             coach_display_name=coach_display_name,
         )
+
+    @staticmethod
+    def _entry_to_history_item(entry: CoachAthleteSessionEntry) -> AthleteSessionHistoryItemResponse:
+        base = AthleteService._entry_to_session_response(entry)
+        return AthleteSessionHistoryItemResponse(id=entry.id, **base.model_dump())
 
     async def complete_session(
         self,

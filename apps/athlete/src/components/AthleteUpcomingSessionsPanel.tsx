@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchAthleteUpcomingSessions, resolveMediaUrl } from "@sport-app/api-client";
 import { formatAthleteUpcomingSession, type AthleteUpcomingSession } from "@sport-app/shared";
-import { useLiveDataRefresh, usePullToRefresh } from "@sport-app/ui";
+import { SessionsBalanceBadge, useLiveDataRefresh, usePullToRefresh } from "@sport-app/ui";
 
 export function AthleteUpcomingSessionsPanel({ refreshKey }: { refreshKey?: string } = {}) {
   const [sessions, setSessions] = useState<AthleteUpcomingSession[]>([]);
@@ -84,9 +84,12 @@ export function AthleteUpcomingSessionsPanel({ refreshKey }: { refreshKey?: stri
                   {coachInitial}
                 </div>
               )}
-              <span className="athlete-home-sessions__coach-name">
-                Тренер: {nextSession.coach_display_name}
-              </span>
+              <div className="athlete-home-sessions__coach-meta">
+                <span className="athlete-home-sessions__coach-name">
+                  Тренер: {nextSession.coach_display_name}
+                </span>
+                <SessionsBalanceBadge balance={nextSession.sessions_balance} />
+              </div>
             </div>
           </div>
         </section>
