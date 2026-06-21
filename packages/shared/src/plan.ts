@@ -141,7 +141,7 @@ export function formatWeekProgressMetric(metric: AthleteWeekProgressMetric): str
   if (metric.unit === "ккал") {
     const actual = Math.round(metric.actual).toLocaleString("ru-RU");
     const target = Math.round(metric.target).toLocaleString("ru-RU");
-    return `${actual} / ${target} ${metric.unit}`;
+    return `${actual} / ${target}`;
   }
   if (metric.unit === "мин/день") {
     const formatMin = (value: number): string => {
@@ -153,7 +153,7 @@ export function formatWeekProgressMetric(metric: AthleteWeekProgressMetric): str
       }
       return `${rounded}`;
     };
-    return `${formatMin(metric.actual)} / ${formatMin(metric.target)} ${metric.unit}`;
+    return `${formatMin(metric.actual)} / ${formatMin(metric.target)}`;
   }
   return `${Math.round(metric.actual)} / ${Math.round(metric.target)} ${metric.unit}`.trim();
 }

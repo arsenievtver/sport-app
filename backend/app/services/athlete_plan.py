@@ -157,14 +157,14 @@ class AthletePlanService:
                 percent=workouts_pct,
             ),
             calories=AthleteWeekProgressMetric(
-                label="Калории в день",
+                label="Ккал в день",
                 actual=round(daily_actual_kcal),
                 target=round(daily_target_kcal),
                 unit="ккал",
                 percent=calories_pct,
             ),
             activity=AthleteWeekProgressMetric(
-                label="Время активности",
+                label="Активность",
                 actual=round(daily_actual_activity_min),
                 target=round(daily_target_activity_min),
                 unit="мин/день",

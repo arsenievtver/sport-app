@@ -41,7 +41,18 @@ function WeekProgressMetricValue({
   delay?: number;
 }) {
   const actual = useCountUp(metric.actual, { enabled, delay, duration: 900 });
-  return <>{formatWeekProgressMetric({ ...metric, actual })}</>;
+  const value = formatWeekProgressMetric({ ...metric, actual });
+
+  if (metric.unit === "мин/день") {
+    return (
+      <>
+        {value}{" "}
+        <span className="athlete-week-progress__metric-unit">мин/день</span>
+      </>
+    );
+  }
+
+  return <>{value}</>;
 }
 
 export function AthleteWeekProgressPanel({ refreshKey }: AthleteWeekProgressPanelProps) {

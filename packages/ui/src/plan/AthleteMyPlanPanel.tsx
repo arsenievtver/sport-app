@@ -194,7 +194,7 @@ export function AthleteMyPlanPanel({ onBack, onSaved }: AthleteMyPlanPanelProps)
                 </strong>
               </li>
               <li>
-                <span className="text-secondary">Время активности</span>
+                <span className="text-secondary">Активность</span>
                 <strong>{formatDailyActivityMin(targetDailyActivity)}</strong>
               </li>
               <li>
@@ -224,7 +224,7 @@ export function AthleteMyPlanPanel({ onBack, onSaved }: AthleteMyPlanPanelProps)
                 прогулок добавляются сверх базы.
               </p>
               <p>
-                <strong>Время активности.</strong> Цель в минутах в день выводится из недельной нормы
+                <strong>Активность.</strong> Цель в минутах в день выводится из недельной нормы
                 ВОЗ для выбранного уровня: {tierSpec.weeklyActivityMin} мин/нед ≈{" "}
                 {formatDailyActivityMin(Math.round(tierSpec.weeklyActivityMin / 7))}. В прогресс
                 идёт время из записанных активностей.
