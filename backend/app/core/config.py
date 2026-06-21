@@ -1,3 +1,4 @@
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,10 +38,14 @@ class Settings(BaseSettings):
     whoop_redirect_uri: str = "http://localhost:8000/api/v1/integrations/whoop/callback"
     athlete_app_url: str = "http://localhost:5173"
 
-    logmeal_api_key: str | None = None
+    # LogMeal: APICompanyToken — signup / управление пользователями (⚫ admin).
+    logmeal_api_company_token: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("LOGMEAL_API_COMPANY_TOKEN", "LOGMEAL_API_KEY"),
+    )
+    # LogMeal: APIUserToken — распознавание фото и калории (🔴 APIUser, напр. APIUser_Alex_19).
+    logmeal_api_user_token: str | None = None
     logmeal_language: str = "eng"
-    # Trial / single APIUser token: use one LogMeal user for all athletes.
-    logmeal_use_shared_user: bool = True
 
 
 settings = Settings()

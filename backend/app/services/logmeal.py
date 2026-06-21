@@ -22,13 +22,24 @@ class LogMealService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    def _require_company_key(self) -> str:
-        if not settings.logmeal_api_key:
+    def _require_logmeal_config(self) -> None:
+        if not settings.logmeal_api_company_token and not settings.logmeal_api_user_token:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="LogMeal не настроен: добавьте LOGMEAL_API_KEY в backend/.env",
+                detail=(
+                    "LogMeal не настроен: добавьте LOGMEAL_API_COMPANY_TOKEN и LOGMEAL_API_USER_TOKEN "
+                    "(или хотя бы LOGMEAL_API_USER_TOKEN) в .env"
+                ),
             )
-        return settings.logmeal_api_key
+
+    def _require_company_token(self) -> str:
+        self._require_logmeal_config()
+        if not settings.logmeal_api_company_token:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Нужен LOGMEAL_API_COMPANY_TOKEN для создания APIUser в LogMeal",
+            )
+        return settings.logmeal_api_company_token
 
     async def _get_connection(self, profile: AthleteProfile) -> HealthConnection | None:
         result = await self.db.execute(
@@ -40,14 +51,18 @@ class LogMealService:
         return result.scalar_one_or_none()
 
     async def _ensure_api_user(self, profile: AthleteProfile) -> str:
-        if settings.logmeal_use_shared_user:
-            return self._require_company_key()
+        """Recognition endpoints require an APIUser token, not the company/admin key."""
+        if settings.logmeal_api_user_token:
+            return settings.logmeal_api_user_token
 
         connection = await self._get_connection(profile)
         if connection is not None:
             return decrypt_secret(connection.access_token_encrypted)
 
-        company_key = self._require_company_key()
+        return await self._signup_api_user(profile)
+
+    async def _signup_api_user(self, profile: AthleteProfile) -> str:
+        company_key = self._require_company_token()
         username = f"sport-{profile.id}"
         payload = {"username": username, "language": settings.logmeal_language}
 
