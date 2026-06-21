@@ -8,6 +8,9 @@ from pydantic import BaseModel, Field
 class MealDishPreview(BaseModel):
     name: str
     confidence: float | None = None
+    plate_share_pct: float | None = None
+    weight_g: float | None = None
+    calories_kcal: float | None = None
 
 
 class MealAnalysisResponse(BaseModel):
@@ -15,11 +18,20 @@ class MealAnalysisResponse(BaseModel):
     title: str
     calories_kcal: float
     weight_g: float | None = None
+    weight_is_estimated: bool = False
     protein_g: float | None = None
     carbs_g: float | None = None
     fat_g: float | None = None
+    logmeal_raw_calories_kcal: float | None = None
+    baseline_weight_g: float | None = None
+    baseline_calories_kcal: float | None = None
+    baseline_protein_g: float | None = None
+    baseline_carbs_g: float | None = None
+    baseline_fat_g: float | None = None
+    calories_derived_from_weight: bool = False
     dishes: list[MealDishPreview] = Field(default_factory=list)
     summary: str
+    portion_note: str | None = None
     raw: dict[str, Any] = Field(default_factory=dict)
 
 

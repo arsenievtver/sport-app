@@ -175,6 +175,7 @@ export function AthleteMealsPanel() {
             type="text"
             inputMode="decimal"
             className="meal-panel__input"
+            placeholder="опционально"
             value={form.weightInput}
             disabled={busy || analyzing}
             onChange={(event) => setForm((current) => ({ ...current, weightInput: event.target.value }))}
@@ -281,16 +282,30 @@ export function AthleteMealsPanel() {
                 <div className="meal-panel__analysis">
                   <p className="meal-panel__analysis-title">Результат ИИ</p>
                   <p className="meal-panel__analysis-summary">{analysis.summary}</p>
+                  {analysis.portion_note ? (
+                    <p className="meal-panel__analysis-note text-secondary">{analysis.portion_note}</p>
+                  ) : null}
                   {analysis.dishes.length > 0 ? (
                     <ul className="meal-panel__dishes">
-                      {analysis.dishes.map((dish) => (
-                        <li key={dish.name}>
-                          {dish.name}
-                          {dish.confidence != null ? ` (${Math.round(dish.confidence * 100)}%)` : ""}
-                        </li>
-                      ))}
+                      {analysis.dishes.map((dish, index) => {
+                        const parts = [dish.name];
+                        if (dish.calories_kcal != null) {
+                          parts.push(`${Math.round(dish.calories_kcal)} ккал`);
+                        }
+                        if (dish.weight_g != null) {
+                          parts.push(`${dish.weight_g} г`);
+                        }
+                        if (dish.confidence != null) {
+                          parts.push(`prob ${Math.round(dish.confidence * 100)}%`);
+                        }
+                        return <li key={`${dish.name}-${index}`}>{parts.join(" · ")}</li>;
+                      })}
                     </ul>
                   ) : null}
+                  <details className="meal-panel__debug">
+                    <summary>LogMeal JSON (отладка)</summary>
+                    <pre className="meal-panel__debug-json">{JSON.stringify(analysis.raw, null, 2)}</pre>
+                  </details>
                 </div>
               ) : null}
               {renderFormFields()}

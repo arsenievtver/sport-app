@@ -887,11 +887,42 @@
   line-height: var(--leading-relaxed);
 }
 
+.meal-panel__analysis-note {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: var(--leading-relaxed);
+}
+
 .meal-panel__dishes {
   margin: 0;
   padding-left: var(--space-4);
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
+}
+
+.meal-panel__debug {
+  margin-top: var(--space-2);
+}
+
+.meal-panel__debug summary {
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.meal-panel__debug-json {
+  margin: var(--space-2) 0 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .meal-panel__fields {
@@ -916,6 +947,11 @@
   background: color-mix(in srgb, var(--color-surface) 80%, transparent);
   color: var(--color-text);
   font-size: var(--text-base);
+}
+
+.meal-panel__input--readonly {
+  opacity: 0.92;
+  cursor: default;
 }
 
 .meal-panel__grid {

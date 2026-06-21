@@ -3,6 +3,17 @@ export type MealSource = "manual" | "ai";
 export interface MealDishPreview {
   name: string;
   confidence?: number | null;
+  plate_share_pct?: number | null;
+  weight_g?: number | null;
+  calories_kcal?: number | null;
+}
+
+export interface MealNutritionBaseline {
+  weight_g: number;
+  calories_kcal: number;
+  protein_g?: number | null;
+  carbs_g?: number | null;
+  fat_g?: number | null;
 }
 
 export interface MealAnalysisResult {
@@ -10,11 +21,20 @@ export interface MealAnalysisResult {
   title: string;
   calories_kcal: number;
   weight_g?: number | null;
+  weight_is_estimated?: boolean;
   protein_g?: number | null;
   carbs_g?: number | null;
   fat_g?: number | null;
+  logmeal_raw_calories_kcal?: number | null;
+  baseline_weight_g?: number | null;
+  baseline_calories_kcal?: number | null;
+  baseline_protein_g?: number | null;
+  baseline_carbs_g?: number | null;
+  baseline_fat_g?: number | null;
+  calories_derived_from_weight?: boolean;
   dishes: MealDishPreview[];
   summary: string;
+  portion_note?: string | null;
   raw: Record<string, unknown>;
 }
 
@@ -77,6 +97,45 @@ export function parseMealNumberInput(raw: string): number | null {
 
 export function isValidMealCalories(value: number): boolean {
   return value >= 0 && value <= 10000;
+}
+
+function roundMealMacro(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+export function mealAnalysisBaseline(analysis: MealAnalysisResult): MealNutritionBaseline | null {
+  if (analysis.baseline_weight_g == null || analysis.baseline_weight_g <= 0) {
+    return null;
+  }
+  return {
+    weight_g: analysis.baseline_weight_g,
+    calories_kcal: analysis.baseline_calories_kcal ?? analysis.calories_kcal,
+    protein_g: analysis.baseline_protein_g ?? analysis.protein_g,
+    carbs_g: analysis.baseline_carbs_g ?? analysis.carbs_g,
+    fat_g: analysis.baseline_fat_g ?? analysis.fat_g,
+  };
+}
+
+export function scaleMealNutritionByWeight(
+  baseline: MealNutritionBaseline,
+  weightG: number,
+): MealNutritionBaseline {
+  if (weightG <= 0 || baseline.weight_g <= 0) {
+    return baseline;
+  }
+  const ratio = weightG / baseline.weight_g;
+  return {
+    weight_g: weightG,
+    calories_kcal: Math.max(0, Math.round(baseline.calories_kcal * ratio)),
+    protein_g: baseline.protein_g != null ? roundMealMacro(baseline.protein_g * ratio) : null,
+    carbs_g: baseline.carbs_g != null ? roundMealMacro(baseline.carbs_g * ratio) : null,
+    fat_g: baseline.fat_g != null ? roundMealMacro(baseline.fat_g * ratio) : null,
+  };
+}
+
+export function formatMealMacroInput(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "";
+  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(".", ",");
 }
 
 export async function compressMealPhoto(file: File, maxSide = 1280, quality = 0.82): Promise<Blob> {

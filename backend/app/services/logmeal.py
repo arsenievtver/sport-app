@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import logging
 from typing import Any
 
 import httpx
@@ -16,6 +18,7 @@ from app.schemas.athlete_meals import MealAnalysisResponse, MealDishPreview
 LOGMEAL_PROVIDER = "logmeal"
 LOGMEAL_BASE_URL = "https://api.logmeal.com"
 MEAL_PHOTO_MAX_SIDE_PX = 1280
+logger = logging.getLogger(__name__)
 
 
 class LogMealService:
@@ -119,6 +122,9 @@ class LogMealService:
 
             nutrition = await self._post_nutrition(client, user_token, image_id, language)
 
+        if settings.debug or settings.logmeal_log_responses:
+            _log_logmeal_response(segmentation, nutrition)
+
         return _build_analysis_response(segmentation, nutrition)
 
     async def _post_segmentation(
@@ -208,13 +214,15 @@ def _logmeal_error_message(response: httpx.Response, fallback: str) -> str:
 
 def _build_analysis_response(segmentation: dict[str, Any], nutrition: dict[str, Any]) -> MealAnalysisResponse:
     image_id = segmentation.get("imageId")
-    dishes = _extract_dishes(segmentation)
+    dishes, totals = _merge_dish_details(segmentation, nutrition)
     title = _extract_title(nutrition, dishes)
-    calories = _extract_calories(nutrition)
-    protein = _extract_nutrient(nutrition, "PROCNT")
-    carbs = _extract_nutrient(nutrition, "CHOCDF")
-    fat = _extract_nutrient(nutrition, "FAT")
-    weight = _extract_weight(segmentation)
+
+    calories = totals["calories_kcal"]
+    weight = totals["weight_g"]
+    protein = totals["protein_g"]
+    carbs = totals["carbs_g"]
+    fat = totals["fat_g"]
+    raw_calories = totals["calories_kcal"]
 
     if calories is None:
         raise HTTPException(
@@ -222,6 +230,7 @@ def _build_analysis_response(segmentation: dict[str, Any], nutrition: dict[str, 
             detail="LogMeal не смог определить калорийность. Попробуйте другое фото или введите вручную.",
         )
 
+    weight_is_estimated = bool(totals["weight_is_estimated"])
     summary_parts = [f"Распознано: {title}", f"Калории: {round(calories)} ккал"]
     if protein is not None:
         summary_parts.append(f"Б: {round(protein, 1)} г")
@@ -230,18 +239,32 @@ def _build_analysis_response(segmentation: dict[str, Any], nutrition: dict[str, 
     if carbs is not None:
         summary_parts.append(f"У: {round(carbs, 1)} г")
     if weight is not None:
-        summary_parts.append(f"Вес: {round(weight)} г")
+        summary_parts.append(f"Вес: ~{round(weight)} г")
+
+    portion_note = (
+        "Значения как вернул LogMeal, без нашей коррекции. "
+        "Разверните «LogMeal JSON (отладка)» ниже."
+    )
 
     return MealAnalysisResponse(
         logmeal_image_id=image_id if isinstance(image_id, int) else None,
         title=title,
         calories_kcal=round(calories, 1),
         weight_g=round(weight, 1) if weight is not None else None,
+        weight_is_estimated=weight_is_estimated,
         protein_g=round(protein, 1) if protein is not None else None,
         carbs_g=round(carbs, 1) if carbs is not None else None,
         fat_g=round(fat, 1) if fat is not None else None,
+        logmeal_raw_calories_kcal=round(raw_calories, 1) if raw_calories is not None else None,
+        baseline_weight_g=None,
+        baseline_calories_kcal=None,
+        baseline_protein_g=None,
+        baseline_carbs_g=None,
+        baseline_fat_g=None,
+        calories_derived_from_weight=False,
         dishes=dishes,
         summary=" · ".join(summary_parts),
+        portion_note=portion_note,
         raw={
             "segmentation": segmentation,
             "nutrition": nutrition,
@@ -249,15 +272,53 @@ def _build_analysis_response(segmentation: dict[str, Any], nutrition: dict[str, 
     )
 
 
-def _extract_dishes(segmentation: dict[str, Any]) -> list[MealDishPreview]:
-    dishes: list[MealDishPreview] = []
+def _log_logmeal_response(segmentation: dict[str, Any], nutrition: dict[str, Any]) -> None:
+    payload = {"segmentation": segmentation, "nutrition": nutrition}
+    try:
+        text = json.dumps(payload, ensure_ascii=False, default=str)
+    except TypeError:
+        text = str(payload)
+    if len(text) > 120_000:
+        text = f"{text[:120_000]}… [truncated]"
+    logger.info("LogMeal analyze response: %s", text)
+
+
+def _item_nutrition_values(per_item: dict[str, Any]) -> tuple[float | None, float | None]:
+    item_nutrition = per_item.get("nutritional_info")
+    if not isinstance(item_nutrition, dict):
+        return None, None
+
+    calories = item_nutrition.get("calories")
+    calories_val = float(calories) if isinstance(calories, (int, float)) else None
+    weight_val = per_item.get("serving_size")
+    weight = float(weight_val) if isinstance(weight_val, (int, float)) and weight_val > 0 else None
+    return calories_val, weight
+
+
+def _merge_dish_details(
+    segmentation: dict[str, Any],
+    nutrition: dict[str, Any],
+) -> tuple[list[MealDishPreview], dict[str, float | bool | None]]:
     segments = segmentation.get("segmentation_results")
     if not isinstance(segments, list):
-        return dishes
+        segments = []
+
+    per_items = nutrition.get("nutritional_info_per_item")
+    per_by_position: dict[Any, dict[str, Any]] = {}
+    if isinstance(per_items, list):
+        for item in per_items:
+            if isinstance(item, dict):
+                per_by_position[item.get("food_item_position")] = item
+
+    dishes: list[MealDishPreview] = []
+    per_item_weight_sum = 0.0
+    has_per_item_weight = False
 
     for segment in segments:
         if not isinstance(segment, dict):
             continue
+        position = segment.get("food_item_position")
+        per_item = per_by_position.get(position, {})
         results = segment.get("recognition_results")
         if not isinstance(results, list) or not results:
             continue
@@ -267,10 +328,56 @@ def _extract_dishes(segmentation: dict[str, Any]) -> list[MealDishPreview]:
         name = top.get("name")
         if not isinstance(name, str) or not name.strip():
             continue
+
         prob = top.get("prob")
         confidence = float(prob) if isinstance(prob, (int, float)) else None
-        dishes.append(MealDishPreview(name=name.strip(), confidence=confidence))
-    return dishes
+        item_cal, item_weight = _item_nutrition_values(per_item)
+
+        segment_weight = segment.get("serving_size")
+        if item_weight is None and isinstance(segment_weight, (int, float)) and segment_weight > 0:
+            item_weight = float(segment_weight)
+        if item_weight is not None:
+            per_item_weight_sum += item_weight
+            has_per_item_weight = True
+
+        dishes.append(
+            MealDishPreview(
+                name=name.strip(),
+                confidence=confidence,
+                plate_share_pct=None,
+                weight_g=round(item_weight, 1) if item_weight is not None else None,
+                calories_kcal=round(item_cal, 1) if item_cal is not None else None,
+            )
+        )
+
+    calories = _extract_calories(nutrition)
+    protein = _extract_nutrient(nutrition, "PROCNT")
+    carbs = _extract_nutrient(nutrition, "CHOCDF")
+    fat = _extract_nutrient(nutrition, "FAT")
+
+    top_level_weight = nutrition.get("serving_size")
+    weight: float | None = None
+    if isinstance(top_level_weight, (int, float)) and top_level_weight > 0:
+        weight = float(top_level_weight)
+    elif has_per_item_weight:
+        weight = per_item_weight_sum
+
+    has_detected_segment_weight = any(
+        isinstance(segment, dict)
+        and isinstance(segment.get("serving_size"), (int, float))
+        and segment.get("serving_size") > 0
+        for segment in segments
+    )
+    weight_is_estimated = weight is not None and not has_detected_segment_weight
+
+    return dishes, {
+        "calories_kcal": calories,
+        "weight_g": weight,
+        "protein_g": protein,
+        "carbs_g": carbs,
+        "fat_g": fat,
+        "weight_is_estimated": weight_is_estimated,
+    }
 
 
 def _extract_title(nutrition: dict[str, Any], dishes: list[MealDishPreview]) -> str:
@@ -312,20 +419,3 @@ def _extract_nutrient(payload: dict[str, Any], code: str) -> float | None:
     if isinstance(quantity, (int, float)):
         return float(quantity)
     return None
-
-
-def _extract_weight(segmentation: dict[str, Any]) -> float | None:
-    segments = segmentation.get("segmentation_results")
-    if not isinstance(segments, list):
-        return None
-
-    total = 0.0
-    found = False
-    for segment in segments:
-        if not isinstance(segment, dict):
-            continue
-        serving = segment.get("serving_size")
-        if isinstance(serving, (int, float)) and serving > 0:
-            total += float(serving)
-            found = True
-    return total if found else None
