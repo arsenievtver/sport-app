@@ -250,6 +250,23 @@ async def analyze_meal_photo(
     return await AthleteMealsService(db).analyze_photo(user.athlete_profile, image_bytes)
 
 
+@router.get("/meals/debug/last")
+async def get_last_meal_analyze_debug(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    payload = AthleteMealsService(db).get_last_analyze_debug(user.athlete_profile)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Нет сохранённого ответа LogMeal — сначала распознайте фото через ИИ",
+        )
+    return payload
+
+
 @router.post("/meals", response_model=AthleteMealEntryResponse, status_code=status.HTTP_201_CREATED)
 async def create_meal_entry(
     data: AthleteMealCreateRequest,

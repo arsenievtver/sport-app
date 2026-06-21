@@ -45,6 +45,11 @@ class AthleteMealsService:
     async def analyze_photo(self, profile: AthleteProfile, image_bytes: bytes) -> MealAnalysisResponse:
         return await LogMealService(self.db).analyze_photo(profile, image_bytes)
 
+    def get_last_analyze_debug(self, profile: AthleteProfile) -> dict | None:
+        from app.services.logmeal_debug import load_logmeal_debug_snapshot
+
+        return load_logmeal_debug_snapshot(profile.id)
+
     async def create_entry(
         self,
         profile: AthleteProfile,

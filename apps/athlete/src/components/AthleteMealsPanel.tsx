@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { analyzeAthleteMealPhoto, createAthleteMealEntry, fetchAthleteMeals } from "@sport-app/api-client";
+import { analyzeAthleteMealPhoto, createAthleteMealEntry, downloadLastMealAnalyzeDebug, fetchAthleteMeals } from "@sport-app/api-client";
 import type { AthleteMealEntry, MealAnalysisResult } from "@sport-app/shared";
 import {
   compressMealPhoto,
@@ -304,6 +304,18 @@ export function AthleteMealsPanel() {
                   ) : null}
                   <details className="meal-panel__debug">
                     <summary>LogMeal JSON (отладка)</summary>
+                    <div className="meal-panel__debug-actions">
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-outline--primary"
+                        disabled={busy}
+                        onClick={() => void downloadLastMealAnalyzeDebug().catch((err) => {
+                          setError(err instanceof Error ? err.message : "Не удалось скачать JSON");
+                        })}
+                      >
+                        Скачать JSON
+                      </button>
+                    </div>
                     <pre className="meal-panel__debug-json">{JSON.stringify(analysis.raw, null, 2)}</pre>
                   </details>
                 </div>

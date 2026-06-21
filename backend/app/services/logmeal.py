@@ -125,7 +125,13 @@ class LogMealService:
         if settings.debug or settings.logmeal_log_responses:
             _log_logmeal_response(segmentation, nutrition)
 
-        return _build_analysis_response(segmentation, nutrition)
+        response = _build_analysis_response(segmentation, nutrition)
+        from app.services.logmeal_debug import save_logmeal_debug_snapshot
+
+        debug_path = save_logmeal_debug_snapshot(profile.id, response.raw)
+        logger.warning("LogMeal debug JSON saved to %s", debug_path)
+
+        return response
 
     async def _post_segmentation(
         self,
