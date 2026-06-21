@@ -37,5 +37,10 @@ class Settings(BaseSettings):
     whoop_redirect_uri: str = "http://localhost:8000/api/v1/integrations/whoop/callback"
     athlete_app_url: str = "http://localhost:5173"
 
+    logmeal_api_key: str | None = None
+    logmeal_language: str = "eng"
+    # Trial / single APIUser token: use one LogMeal user for all athletes.
+    logmeal_use_shared_user: bool = True
+
 
 settings = Settings()

@@ -1,4 +1,5 @@
 import { useWhoop } from "../hooks/useWhoop";
+import { AthleteMealsPanel } from "./AthleteMealsPanel";
 import { AthleteWeightDynamicsPanel } from "./AthleteWeightDynamicsPanel";
 import { WhoopDashboard, WhoopDashboardHero } from "./WhoopDashboard";
 
@@ -20,6 +21,7 @@ export function AthleteDataTabPanel({
         openFormSignal={openWeightFormSignal}
         onMeasurementAdded={onWeightMeasurementAdded}
       />
+      <AthleteMealsPanel />
       {connected ? (
         <div className="whoop-tab-content">
           {notice ? <p className="whoop-panel__notice whoop-tab-feedback">{notice}</p> : null}

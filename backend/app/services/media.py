@@ -8,6 +8,8 @@ from app.core.config import settings
 
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+MEAL_PHOTO_MAX_SIDE_PX = 1280
+MEAL_PHOTO_JPEG_QUALITY = 82
 
 
 def _require_pillow():
@@ -67,3 +69,38 @@ async def save_avatar(profile_id: UUID, upload: UploadFile) -> str:
     image.save(out_path, format="JPEG", quality=settings.avatar_jpeg_quality, optimize=True)
 
     return avatar_relative_url(profile_id, version=int(out_path.stat().st_mtime))
+
+
+async def prepare_meal_photo(upload: UploadFile) -> bytes:
+    """Read, validate and compress a meal photo for LogMeal analysis."""
+    Image, UnidentifiedImageError = _require_pillow()
+    if upload.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Поддерживаются только JPEG, PNG и WebP",
+        )
+
+    raw = await upload.read()
+    if not raw:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Пустой файл")
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Файл слишком большой")
+
+    try:
+        image = Image.open(io.BytesIO(raw))
+        image = image.convert("RGB")
+    except UnidentifiedImageError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Не удалось прочитать изображение") from exc
+
+    width, height = image.size
+    longest = max(width, height)
+    if longest > MEAL_PHOTO_MAX_SIDE_PX:
+        scale = MEAL_PHOTO_MAX_SIDE_PX / longest
+        image = image.resize(
+            (max(1, int(width * scale)), max(1, int(height * scale))),
+            Image.Resampling.LANCZOS,
+        )
+
+    buffer = io.BytesIO()
+    image.save(buffer, format="JPEG", quality=MEAL_PHOTO_JPEG_QUALITY, optimize=True)
+    return buffer.getvalue()

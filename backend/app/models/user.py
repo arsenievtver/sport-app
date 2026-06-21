@@ -119,6 +119,10 @@ class AthleteProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         back_populates="athlete",
         cascade="all, delete-orphan",
     )
+    meal_entries: Mapped[list["AthleteMealEntry"]] = relationship(
+        back_populates="athlete",
+        cascade="all, delete-orphan",
+    )
 
 
 class CoachAthleteLink(Base, UUIDPrimaryKeyMixin, TimestampMixin):

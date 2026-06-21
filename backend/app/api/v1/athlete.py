@@ -23,6 +23,12 @@ from app.schemas.athlete_weight import (
     AthleteWeightDynamicsResponse,
     AthleteWeightMeasurementRequest,
 )
+from app.schemas.athlete_meals import (
+    AthleteMealCreateRequest,
+    AthleteMealEntryResponse,
+    AthleteMealListResponse,
+    MealAnalysisResponse,
+)
 from app.schemas.athlete_plan import (
     AthletePlanResponse,
     AthletePlanUpdateRequest,
@@ -33,9 +39,10 @@ from app.schemas.schedule import AthleteUpcomingSessionResponse
 from app.services.activity_type import ActivityTypeService
 from app.services.athlete import AthleteService
 from app.services.athlete_weight import AthleteWeightService
+from app.services.athlete_meals import AthleteMealsService
 from app.services.athlete_plan import AthletePlanService
 from app.services.auth import user_to_response
-from app.services.media import save_avatar
+from app.services.media import prepare_meal_photo, save_avatar
 from app.services.schedule import ScheduleService
 
 router = APIRouter(prefix="/athlete")
@@ -216,6 +223,43 @@ async def add_weight_measurement(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
 
     return await AthleteWeightService(db).add_measurement(user.athlete_profile, data)
+
+
+@router.get("/meals", response_model=AthleteMealListResponse)
+async def list_meals(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=50)] = 30,
+) -> AthleteMealListResponse:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    return await AthleteMealsService(db).list_entries(user.athlete_profile, limit=limit)
+
+
+@router.post("/meals/analyze", response_model=MealAnalysisResponse)
+async def analyze_meal_photo(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    file: Annotated[UploadFile, File()],
+) -> MealAnalysisResponse:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    image_bytes = await prepare_meal_photo(file)
+    return await AthleteMealsService(db).analyze_photo(user.athlete_profile, image_bytes)
+
+
+@router.post("/meals", response_model=AthleteMealEntryResponse, status_code=status.HTTP_201_CREATED)
+async def create_meal_entry(
+    data: AthleteMealCreateRequest,
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AthleteMealEntryResponse:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    return await AthleteMealsService(db).create_entry(user.athlete_profile, data)
 
 
 @router.get("/schedule/upcoming", response_model=list[AthleteUpcomingSessionResponse])

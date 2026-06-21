@@ -782,6 +782,214 @@
   margin: 0;
 }
 
+.meal-panel {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+}
+
+.meal-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.meal-panel__title {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.meal-panel__today {
+  margin: 0;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.meal-panel__today strong {
+  color: var(--color-text);
+}
+
+.meal-panel__form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.meal-panel__hint {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.meal-panel__mode-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.meal-panel__ai-btn {
+  flex: 1;
+  min-width: 140px;
+}
+
+.meal-panel__file-input {
+  display: none;
+}
+
+.meal-panel__progress {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.meal-panel__progress p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.meal-panel__spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: meal-panel-spin 0.8s linear infinite;
+}
+
+@keyframes meal-panel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.meal-panel__analysis {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+.meal-panel__analysis-title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+
+.meal-panel__analysis-summary {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+}
+
+.meal-panel__dishes {
+  margin: 0;
+  padding-left: var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.meal-panel__fields {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.meal-panel__field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.meal-panel__label {
+  font-size: var(--text-sm);
+}
+
+.meal-panel__input {
+  width: 100%;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  color: var(--color-text);
+  font-size: var(--text-base);
+}
+
+.meal-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.meal-panel__form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.meal-panel__error {
+  margin: 0;
+}
+
+.meal-panel__history {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.meal-panel__history-title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+}
+
+.meal-panel__history-empty {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.meal-panel__history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.meal-panel__history-item {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.meal-panel__history-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.meal-panel__history-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.meal-panel__history-name {
+  font-weight: var(--font-semibold);
+}
+
+.meal-panel__history-kcal {
+  white-space: nowrap;
+  font-weight: var(--font-semibold);
+}
+
+.meal-panel__history-meta {
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  line-height: var(--leading-relaxed);
+}
+
 .athlete-add-workout__label {
   margin: 0 0 var(--space-2);
   font-size: var(--text-sm);
