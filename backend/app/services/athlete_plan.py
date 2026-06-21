@@ -42,6 +42,23 @@ def _progress_percent(actual: float, target: float) -> int:
     return min(100, round(actual / target * 100))
 
 
+# Composite plan score: training frequency is the keystone habit (leading indicator);
+# daily kcal and activity minutes are lagging outcomes of those sessions.
+# 50 / 25 / 25 — same 2:1 ratio used in many adherence dashboards (primary KPI + two quality signals).
+COMPLETION_WEIGHT_WORKOUTS = 0.50
+COMPLETION_WEIGHT_CALORIES = 0.25
+COMPLETION_WEIGHT_ACTIVITY = 0.25
+
+
+def _completion_percent(workouts_pct: int, calories_pct: int, activity_pct: int) -> int:
+    weighted = (
+        workouts_pct * COMPLETION_WEIGHT_WORKOUTS
+        + calories_pct * COMPLETION_WEIGHT_CALORIES
+        + activity_pct * COMPLETION_WEIGHT_ACTIVITY
+    )
+    return round(weighted)
+
+
 class AthletePlanService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -143,7 +160,7 @@ class AthletePlanService:
             target_weekly_activity_min=plan.target_weekly_activity_min,
         )
 
-        completion = round((workouts_pct + calories_pct + activity_pct) / 3)
+        completion = _completion_percent(workouts_pct, calories_pct, activity_pct)
 
         return AthleteWeekProgressResponse(
             week_start=week_start.isoformat(),

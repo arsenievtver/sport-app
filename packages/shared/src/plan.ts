@@ -174,3 +174,13 @@ export function formatDailyActivityMin(minutes: number): string {
   }
   return `${Math.round(minutes)} мин/день`;
 }
+
+/** Traffic-light tone for weekly plan completion (matches sessions balance semantics). */
+export type PlanCompletionTone = "low" | "mid" | "high";
+
+export function getPlanCompletionTone(percent: number): PlanCompletionTone {
+  const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+  if (clamped < 30) return "low";
+  if (clamped < 50) return "mid";
+  return "high";
+}

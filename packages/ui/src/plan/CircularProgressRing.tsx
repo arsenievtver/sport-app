@@ -1,3 +1,4 @@
+import { getPlanCompletionTone } from "@sport-app/shared";
 import "./athlete-plan.css";
 
 interface CircularProgressRingProps {
@@ -22,6 +23,7 @@ export function CircularProgressRing({
   const clamped = Math.max(0, Math.min(100, percent));
   const offset = circumference - (clamped / 100) * circumference;
   const center = size / 2;
+  const tone = getPlanCompletionTone(clamped);
 
   return (
     <div
@@ -40,7 +42,7 @@ export function CircularProgressRing({
           fill="none"
         />
         <circle
-          className={`progress-ring__fill${animateFill ? " progress-ring__fill--live" : ""}`}
+          className={`progress-ring__fill progress-ring__fill--${tone}${animateFill ? " progress-ring__fill--live" : ""}`}
           cx={center}
           cy={center}
           r={radius}
@@ -52,7 +54,7 @@ export function CircularProgressRing({
         />
       </svg>
       <div className="progress-ring__center">
-        <span className="progress-ring__value">{label}</span>
+        <span className={`progress-ring__value progress-ring__value--${tone}`}>{label}</span>
         {sublabel ? <span className="progress-ring__sublabel">{sublabel}</span> : null}
       </div>
     </div>

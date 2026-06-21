@@ -11,7 +11,21 @@
 .progress-ring__fill {
   stroke: var(--color-primary);
   stroke-linecap: round;
-  transition: stroke-dashoffset var(--duration-normal) var(--ease-out);
+  transition:
+    stroke-dashoffset var(--duration-normal) var(--ease-out),
+    stroke var(--duration-normal) var(--ease-out);
+}
+
+.progress-ring__fill--low {
+  stroke: var(--color-danger);
+}
+
+.progress-ring__fill--mid {
+  stroke: var(--color-warning);
+}
+
+.progress-ring__fill--high {
+  stroke: var(--color-success);
 }
 
 .progress-ring__fill--live {
@@ -33,6 +47,18 @@
   font-size: var(--text-2xl);
   line-height: var(--leading-tight);
   font-variant-numeric: tabular-nums;
+}
+
+.progress-ring__value--low {
+  color: var(--color-danger);
+}
+
+.progress-ring__value--mid {
+  color: var(--color-warning);
+}
+
+.progress-ring__value--high {
+  color: var(--color-success);
 }
 
 .progress-ring__sublabel {
