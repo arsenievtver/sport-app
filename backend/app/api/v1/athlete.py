@@ -229,12 +229,13 @@ async def add_weight_measurement(
 async def list_meals(
     user: AthleteUser,
     db: Annotated[AsyncSession, Depends(get_db)],
-    limit: Annotated[int, Query(ge=1, le=50)] = 30,
+    limit: Annotated[int, Query(ge=1, le=200)] = 200,
+    days: Annotated[int, Query(ge=1, le=90)] = 30,
 ) -> AthleteMealListResponse:
     if user.athlete_profile is None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
 
-    return await AthleteMealsService(db).list_entries(user.athlete_profile, limit=limit)
+    return await AthleteMealsService(db).list_entries(user.athlete_profile, limit=limit, days=days)
 
 
 @router.post("/meals/analyze", response_model=MealAnalysisResponse)
@@ -248,23 +249,6 @@ async def analyze_meal_photo(
 
     image_bytes = await prepare_meal_photo(file)
     return await AthleteMealsService(db).analyze_photo(user.athlete_profile, image_bytes)
-
-
-@router.get("/meals/debug/last")
-async def get_last_meal_analyze_debug(
-    user: AthleteUser,
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> dict:
-    if user.athlete_profile is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
-
-    payload = AthleteMealsService(db).get_last_analyze_debug(user.athlete_profile)
-    if payload is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Нет сохранённого ответа LogMeal — сначала распознайте фото через ИИ",
-        )
-    return payload
 
 
 @router.post("/meals", response_model=AthleteMealEntryResponse, status_code=status.HTTP_201_CREATED)

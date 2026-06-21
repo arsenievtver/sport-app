@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import select
@@ -14,7 +14,8 @@ from app.schemas.athlete_meals import (
 )
 from app.services.logmeal import LogMealService
 
-MEAL_HISTORY_LIMIT = 30
+MEAL_HISTORY_DAYS = 30
+MEAL_HISTORY_LIMIT = 200
 
 
 def _athlete_now(profile: AthleteProfile) -> datetime:
@@ -30,10 +31,20 @@ class AthleteMealsService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def list_entries(self, profile: AthleteProfile, *, limit: int = MEAL_HISTORY_LIMIT) -> AthleteMealListResponse:
+    async def list_entries(
+        self,
+        profile: AthleteProfile,
+        *,
+        limit: int = MEAL_HISTORY_LIMIT,
+        days: int = MEAL_HISTORY_DAYS,
+    ) -> AthleteMealListResponse:
+        since = _athlete_now(profile) - timedelta(days=days)
         result = await self.db.execute(
             select(AthleteMealEntry)
-            .where(AthleteMealEntry.athlete_id == profile.id)
+            .where(
+                AthleteMealEntry.athlete_id == profile.id,
+                AthleteMealEntry.entry_at >= since,
+            )
             .order_by(AthleteMealEntry.entry_at.desc())
             .limit(limit)
         )
@@ -44,11 +55,6 @@ class AthleteMealsService:
 
     async def analyze_photo(self, profile: AthleteProfile, image_bytes: bytes) -> MealAnalysisResponse:
         return await LogMealService(self.db).analyze_photo(profile, image_bytes)
-
-    def get_last_analyze_debug(self, profile: AthleteProfile) -> dict | None:
-        from app.services.logmeal_debug import load_logmeal_debug_snapshot
-
-        return load_logmeal_debug_snapshot(profile.id)
 
     async def create_entry(
         self,

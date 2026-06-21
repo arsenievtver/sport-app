@@ -13,6 +13,8 @@ export { CoachInvitePanel } from "./invite/CoachInvitePanel";
 export { usePendingCoachInvite } from "./invite/usePendingCoachInvite";
 export type { PendingCoachInviteState } from "./invite/usePendingCoachInvite";
 export type { BottomNavAction, BottomNavItem } from "./BottomNav";
+export { WheelNumberPicker } from "./wheel/WheelNumberPicker";
+export type { WheelNumberPickerProps } from "./wheel/WheelNumberPicker";
 export { theme } from "./theme";
 export type { Theme } from "./theme";
 export { AuthScreen } from "./auth/AuthScreen";

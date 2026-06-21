@@ -1,15 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { analyzeAthleteMealPhoto, createAthleteMealEntry, downloadLastMealAnalyzeDebug, fetchAthleteMeals } from "@sport-app/api-client";
-import type { AthleteMealEntry, MealAnalysisResult } from "@sport-app/shared";
+import { analyzeAthleteMealPhoto, createAthleteMealEntry, fetchAthleteMeals } from "@sport-app/api-client";
+import type { AthleteMealEntry, MealAnalysisResult, MealDishEditorRow, MealNutritionBaseline } from "@sport-app/shared";
+import { WheelNumberPicker } from "@sport-app/ui";
 import {
+  MEAL_HISTORY_DAYS,
   compressMealPhoto,
   formatMealCalories,
   formatMealDateTime,
+  formatMealMacroInput,
+  formatMealWeightInput,
   isValidMealCalories,
+  mealDishEditorRowsFromAnalysis,
+  mealDishRowNutrition,
+  mealNutritionToFormInputs,
   parseMealNumberInput,
+  sumMealDishRows,
 } from "@sport-app/shared";
 
 type FormMode = "choose" | "manual" | "ai" | "review";
+
+const MAX_DISH_WEIGHT_G = 2000;
 
 interface MealFormState {
   title: string;
@@ -20,7 +30,6 @@ interface MealFormState {
   fatInput: string;
   source: "manual" | "ai";
   logmealImageId: number | null;
-  aiAnalysis: Record<string, unknown> | null;
 }
 
 const EMPTY_FORM: MealFormState = {
@@ -32,20 +41,25 @@ const EMPTY_FORM: MealFormState = {
   fatInput: "",
   source: "manual",
   logmealImageId: null,
-  aiAnalysis: null,
 };
 
-function formFromAnalysis(analysis: MealAnalysisResult): MealFormState {
+function formFromAnalysis(analysis: MealAnalysisResult, dishRows: MealDishEditorRow[]): MealFormState {
+  const totals =
+    dishRows.length > 0
+      ? sumMealDishRows(dishRows)
+      : ({
+          weight_g: analysis.weight_g ?? 0,
+          calories_kcal: analysis.calories_kcal,
+          protein_g: analysis.protein_g,
+          carbs_g: analysis.carbs_g,
+          fat_g: analysis.fat_g,
+        } satisfies MealNutritionBaseline);
+
   return {
     title: analysis.title,
-    caloriesInput: String(Math.round(analysis.calories_kcal)),
-    weightInput: analysis.weight_g != null ? String(analysis.weight_g) : "",
-    proteinInput: analysis.protein_g != null ? String(analysis.protein_g) : "",
-    carbsInput: analysis.carbs_g != null ? String(analysis.carbs_g) : "",
-    fatInput: analysis.fat_g != null ? String(analysis.fat_g) : "",
+    ...mealNutritionToFormInputs(totals),
     source: "ai",
     logmealImageId: analysis.logmeal_image_id ?? null,
-    aiAnalysis: analysis.raw,
   };
 }
 
@@ -54,7 +68,35 @@ function optionalNumber(raw: string): number | null {
   return parsed == null ? null : parsed;
 }
 
-export function AthleteMealsPanel() {
+function dishRowWeightG(row: MealDishEditorRow): number {
+  return parseMealNumberInput(row.weightInput) ?? row.baseline.weight_g;
+}
+
+function buildAiAnalysis(
+  logmealImageId: number | null,
+  dishRows: MealDishEditorRow[],
+): Record<string, unknown> | null {
+  if (dishRows.length === 0) {
+    return logmealImageId != null ? { logmeal_image_id: logmealImageId } : null;
+  }
+
+  return {
+    logmeal_image_id: logmealImageId,
+    dishes: dishRows.map((row) => {
+      const nutrition = mealDishRowNutrition(row);
+      return {
+        name: row.name,
+        weight_g: nutrition?.weight_g ?? null,
+        calories_kcal: nutrition?.calories_kcal ?? null,
+        protein_g: nutrition?.protein_g ?? null,
+        carbs_g: nutrition?.carbs_g ?? null,
+        fat_g: nutrition?.fat_g ?? null,
+      };
+    }),
+  };
+}
+
+export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) {
   const [entries, setEntries] = useState<AthleteMealEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -63,6 +105,7 @@ export function AthleteMealsPanel() {
   const [showForm, setShowForm] = useState(false);
   const [mode, setMode] = useState<FormMode>("choose");
   const [analysis, setAnalysis] = useState<MealAnalysisResult | null>(null);
+  const [dishRows, setDishRows] = useState<MealDishEditorRow[]>([]);
   const [form, setForm] = useState<MealFormState>(EMPTY_FORM);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,7 +113,7 @@ export function AthleteMealsPanel() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchAthleteMeals();
+      const data = await fetchAthleteMeals({ days: MEAL_HISTORY_DAYS });
       setEntries(data.entries);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось загрузить записи питания");
@@ -83,10 +126,20 @@ export function AthleteMealsPanel() {
     void loadEntries();
   }, [loadEntries]);
 
+  const applyDishRows = (rows: MealDishEditorRow[]) => {
+    setDishRows(rows);
+    const totals = sumMealDishRows(rows);
+    setForm((current) => ({
+      ...current,
+      ...mealNutritionToFormInputs(totals),
+    }));
+  };
+
   const resetForm = () => {
     setShowForm(false);
     setMode("choose");
     setAnalysis(null);
+    setDishRows([]);
     setForm(EMPTY_FORM);
     setError(null);
   };
@@ -100,8 +153,10 @@ export function AthleteMealsPanel() {
     try {
       const compressed = await compressMealPhoto(file);
       const result = await analyzeAthleteMealPhoto(compressed);
+      const rows = mealDishEditorRowsFromAnalysis(result.dishes);
       setAnalysis(result);
-      setForm(formFromAnalysis(result));
+      setDishRows(rows);
+      setForm(formFromAnalysis(result, rows));
       setMode("review");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось распознать фото");
@@ -112,6 +167,13 @@ export function AthleteMealsPanel() {
         fileInputRef.current.value = "";
       }
     }
+  };
+
+  const handleDishWeightChange = (key: string, weightG: number) => {
+    const nextRows = dishRows.map((row) =>
+      row.key === key ? { ...row, weightInput: formatMealWeightInput(weightG) } : row,
+    );
+    applyDishRows(nextRows);
   };
 
   const handleSave = async () => {
@@ -133,7 +195,7 @@ export function AthleteMealsPanel() {
         fat_g: optionalNumber(form.fatInput),
         source: form.source,
         logmeal_image_id: form.logmealImageId,
-        ai_analysis: form.aiAnalysis,
+        ai_analysis: buildAiAnalysis(form.logmealImageId, dishRows),
       });
       setEntries((current) => [entry, ...current]);
       resetForm();
@@ -144,7 +206,10 @@ export function AthleteMealsPanel() {
     }
   };
 
-  const renderFormFields = () => (
+  const hasDishEditor = dishRows.length > 0;
+  const totals = hasDishEditor ? sumMealDishRows(dishRows) : null;
+
+  const renderManualFields = () => (
     <div className="meal-panel__fields">
       <label className="meal-panel__field">
         <span className="meal-panel__label text-secondary">Блюдо</span>
@@ -218,16 +283,83 @@ export function AthleteMealsPanel() {
     </div>
   );
 
-  return (
-    <section className="meal-panel">
-      <div className="meal-panel__header">
-        <h2 className="meal-panel__title">Питание</h2>
-        {entries.length > 0 ? (
-          <p className="meal-panel__today text-secondary">
-            Последняя запись: <strong>{formatMealCalories(entries[0].calories_kcal)} ккал</strong>
-          </p>
-        ) : null}
+  const renderDishEditor = () => (
+    <div className="meal-panel__fields">
+      <label className="meal-panel__field">
+        <span className="meal-panel__label text-secondary">Блюдо</span>
+        <input
+          type="text"
+          className="meal-panel__input"
+          value={form.title}
+          disabled={busy || analyzing}
+          onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+        />
+      </label>
+
+      <div className="meal-panel__dish-editor">
+        <p className="meal-panel__dish-editor-title text-secondary">Компоненты — поправьте вес, ккал пересчитаются</p>
+        <ul className="meal-panel__dish-list">
+          {dishRows.map((row) => {
+            const nutrition = mealDishRowNutrition(row);
+            return (
+              <li key={row.key} className="meal-panel__dish-row">
+                <div className="meal-panel__dish-main">
+                  <span className="meal-panel__dish-name">{row.name}</span>
+                  <span className="meal-panel__dish-kcal">
+                    {nutrition ? `${formatMealCalories(nutrition.calories_kcal)} ккал` : "—"}
+                  </span>
+                </div>
+                <WheelNumberPicker
+                  value={dishRowWeightG(row)}
+                  onChange={(weightG) => handleDishWeightChange(row.key, weightG)}
+                  min={0}
+                  max={MAX_DISH_WEIGHT_G}
+                  step={1}
+                  unit="г"
+                  ariaLabel={`Вес: ${row.name}`}
+                  disabled={busy || analyzing}
+                />
+              </li>
+            );
+          })}
+        </ul>
       </div>
+
+      {totals ? (
+        <div className="meal-panel__totals">
+          <p className="meal-panel__totals-line">
+            <span>Итого</span>
+            <strong>
+              {formatMealWeightInput(totals.weight_g)} г · {formatMealCalories(totals.calories_kcal)} ккал
+            </strong>
+          </p>
+          {totals.protein_g != null || totals.carbs_g != null || totals.fat_g != null ? (
+            <p className="meal-panel__totals-macros text-secondary">
+              Б {formatMealMacroInput(totals.protein_g) || "—"} / Ж {formatMealMacroInput(totals.fat_g) || "—"} / У{" "}
+              {formatMealMacroInput(totals.carbs_g) || "—"}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+
+  return (
+    <section className={`meal-panel${embedded ? " meal-panel--embedded" : ""}`}>
+      {!embedded ? (
+        <div className="meal-panel__header">
+          <h2 className="meal-panel__title">Питание</h2>
+          {entries.length > 0 ? (
+            <p className="meal-panel__today text-secondary">
+              Последняя запись: <strong>{formatMealCalories(entries[0].calories_kcal)} ккал</strong>
+            </p>
+          ) : null}
+        </div>
+      ) : entries.length > 0 ? (
+        <p className="meal-panel__today text-secondary">
+          Последняя запись: <strong>{formatMealCalories(entries[0].calories_kcal)} ккал</strong>
+        </p>
+      ) : null}
 
       {loading ? <p className="text-muted">Загрузка…</p> : null}
 
@@ -245,6 +377,7 @@ export function AthleteMealsPanel() {
                     setMode("manual");
                     setForm(EMPTY_FORM);
                     setAnalysis(null);
+                    setDishRows([]);
                   }}
                 >
                   Вручную
@@ -285,42 +418,9 @@ export function AthleteMealsPanel() {
                   {analysis.portion_note ? (
                     <p className="meal-panel__analysis-note text-secondary">{analysis.portion_note}</p>
                   ) : null}
-                  {analysis.dishes.length > 0 ? (
-                    <ul className="meal-panel__dishes">
-                      {analysis.dishes.map((dish, index) => {
-                        const parts = [dish.name];
-                        if (dish.calories_kcal != null) {
-                          parts.push(`${Math.round(dish.calories_kcal)} ккал`);
-                        }
-                        if (dish.weight_g != null) {
-                          parts.push(`${dish.weight_g} г`);
-                        }
-                        if (dish.confidence != null) {
-                          parts.push(`prob ${Math.round(dish.confidence * 100)}%`);
-                        }
-                        return <li key={`${dish.name}-${index}`}>{parts.join(" · ")}</li>;
-                      })}
-                    </ul>
-                  ) : null}
-                  <details className="meal-panel__debug">
-                    <summary>LogMeal JSON (отладка)</summary>
-                    <div className="meal-panel__debug-actions">
-                      <button
-                        type="button"
-                        className="btn btn-outline btn-outline--primary"
-                        disabled={busy}
-                        onClick={() => void downloadLastMealAnalyzeDebug().catch((err) => {
-                          setError(err instanceof Error ? err.message : "Не удалось скачать JSON");
-                        })}
-                      >
-                        Скачать JSON
-                      </button>
-                    </div>
-                    <pre className="meal-panel__debug-json">{JSON.stringify(analysis.raw, null, 2)}</pre>
-                  </details>
                 </div>
               ) : null}
-              {renderFormFields()}
+              {hasDishEditor ? renderDishEditor() : renderManualFields()}
               <div className="meal-panel__form-actions">
                 <button
                   type="button"
@@ -336,8 +436,6 @@ export function AthleteMealsPanel() {
               </div>
             </>
           ) : null}
-
-          {mode === "ai" && analyzing ? null : null}
         </div>
       ) : (
         <button
@@ -358,9 +456,11 @@ export function AthleteMealsPanel() {
 
       {!loading ? (
         <div className="meal-panel__history">
-          <h3 className="meal-panel__history-title">История</h3>
+          <h3 className="meal-panel__history-title">История за последний месяц</h3>
           {entries.length === 0 ? (
-            <p className="text-secondary meal-panel__history-empty">Пока нет записей о питании.</p>
+            <p className="text-secondary meal-panel__history-empty">
+              За последние {MEAL_HISTORY_DAYS} дней записей нет.
+            </p>
           ) : (
             <ul className="meal-panel__history-list">
               {entries.map((entry) => (

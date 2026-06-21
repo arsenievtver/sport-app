@@ -782,11 +782,22 @@
   margin: 0;
 }
 
+.athlete-nutrition__subtitle {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+}
+
 .meal-panel {
   display: grid;
   gap: var(--space-3);
   margin-bottom: var(--space-4);
   padding: var(--space-4);
+}
+
+.meal-panel--embedded {
+  padding: 0;
+  margin-bottom: 0;
 }
 
 .meal-panel__header {
@@ -893,43 +904,76 @@
   line-height: var(--leading-relaxed);
 }
 
-.meal-panel__dishes {
-  margin: 0;
-  padding-left: var(--space-4);
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-}
-
-.meal-panel__debug {
-  margin-top: var(--space-2);
-}
-
-.meal-panel__debug summary {
-  cursor: pointer;
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
-.meal-panel__debug-actions {
-  display: flex;
-  flex-wrap: wrap;
+.meal-panel__dish-editor {
+  display: grid;
   gap: var(--space-2);
-  margin-top: var(--space-2);
 }
 
-.meal-panel__debug-json {
-  margin: var(--space-2) 0 0;
-  max-height: 320px;
-  overflow: auto;
-  padding: var(--space-3);
+.meal-panel__dish-editor-title {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.meal-panel__dish-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.meal-panel__dish-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+}
+
+.meal-panel__dish-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.meal-panel__dish-name {
+  font-size: var(--text-sm);
+  line-height: 1.3;
+}
+
+.meal-panel__dish-kcal {
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
-  font-size: 10px;
-  line-height: 1.35;
-  white-space: pre-wrap;
-  word-break: break-word;
+  white-space: nowrap;
+}
+
+.meal-panel__totals {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+}
+
+.meal-panel__totals-line {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.meal-panel__totals-line strong {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.meal-panel__totals-macros {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
 }
 
 .meal-panel__fields {

@@ -46,8 +46,6 @@ class Settings(BaseSettings):
     # LogMeal: APIUserToken — распознавание фото и калории (🔴 APIUser, напр. APIUser_Alex_19).
     logmeal_api_user_token: str | None = None
     logmeal_language: str = "eng"
-    # Временно: писать ответы LogMeal в лог API (docker logs sport-app-api)
-    logmeal_log_responses: bool = False
 
 
 settings = Settings()

@@ -1,11 +1,22 @@
 export type MealSource = "manual" | "ai";
 
+export const MEAL_HISTORY_DAYS = 30;
+
 export interface MealDishPreview {
   name: string;
   confidence?: number | null;
-  plate_share_pct?: number | null;
   weight_g?: number | null;
   calories_kcal?: number | null;
+  protein_g?: number | null;
+  carbs_g?: number | null;
+  fat_g?: number | null;
+}
+
+export interface MealDishEditorRow {
+  key: string;
+  name: string;
+  weightInput: string;
+  baseline: MealNutritionBaseline;
 }
 
 export interface MealNutritionBaseline {
@@ -136,6 +147,98 @@ export function scaleMealNutritionByWeight(
 export function formatMealMacroInput(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "";
   return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(".", ",");
+}
+
+export function formatMealWeightInput(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "";
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1).replace(".", ",");
+}
+
+export function mealDishEditorRowFromPreview(dish: MealDishPreview, index: number): MealDishEditorRow | null {
+  if (dish.weight_g == null || dish.weight_g <= 0 || dish.calories_kcal == null) {
+    return null;
+  }
+  return {
+    key: `${dish.name}-${index}`,
+    name: dish.name,
+    weightInput: formatMealWeightInput(dish.weight_g),
+    baseline: {
+      weight_g: dish.weight_g,
+      calories_kcal: dish.calories_kcal,
+      protein_g: dish.protein_g,
+      carbs_g: dish.carbs_g,
+      fat_g: dish.fat_g,
+    },
+  };
+}
+
+export function mealDishEditorRowsFromAnalysis(dishes: MealDishPreview[]): MealDishEditorRow[] {
+  return dishes
+    .map((dish, index) => mealDishEditorRowFromPreview(dish, index))
+    .filter((row): row is MealDishEditorRow => row != null);
+}
+
+export function mealDishRowNutrition(row: MealDishEditorRow): MealNutritionBaseline | null {
+  const weight = parseMealNumberInput(row.weightInput);
+  if (weight == null || weight <= 0 || row.baseline.weight_g <= 0) {
+    return null;
+  }
+  return scaleMealNutritionByWeight(row.baseline, weight);
+}
+
+export function sumMealDishRows(rows: MealDishEditorRow[]): MealNutritionBaseline {
+  let calories = 0;
+  let weight = 0;
+  let protein = 0;
+  let carbs = 0;
+  let fat = 0;
+  let hasProtein = false;
+  let hasCarbs = false;
+  let hasFat = false;
+
+  for (const row of rows) {
+    const nutrition = mealDishRowNutrition(row);
+    if (!nutrition) continue;
+    calories += nutrition.calories_kcal;
+    weight += nutrition.weight_g;
+    if (nutrition.protein_g != null) {
+      protein += nutrition.protein_g;
+      hasProtein = true;
+    }
+    if (nutrition.carbs_g != null) {
+      carbs += nutrition.carbs_g;
+      hasCarbs = true;
+    }
+    if (nutrition.fat_g != null) {
+      fat += nutrition.fat_g;
+      hasFat = true;
+    }
+  }
+
+  return {
+    weight_g: Math.round(weight * 10) / 10,
+    calories_kcal: Math.max(0, Math.round(calories)),
+    protein_g: hasProtein ? roundMealMacro(protein) : null,
+    carbs_g: hasCarbs ? roundMealMacro(carbs) : null,
+    fat_g: hasFat ? roundMealMacro(fat) : null,
+  };
+}
+
+export function mealNutritionToFormInputs(nutrition: MealNutritionBaseline): {
+  caloriesInput: string;
+  weightInput: string;
+  proteinInput: string;
+  carbsInput: string;
+  fatInput: string;
+} {
+  return {
+    caloriesInput: String(nutrition.calories_kcal),
+    weightInput: formatMealWeightInput(nutrition.weight_g),
+    proteinInput: formatMealMacroInput(nutrition.protein_g),
+    carbsInput: formatMealMacroInput(nutrition.carbs_g),
+    fatInput: formatMealMacroInput(nutrition.fat_g),
+  };
 }
 
 export async function compressMealPhoto(file: File, maxSide = 1280, quality = 0.82): Promise<Blob> {

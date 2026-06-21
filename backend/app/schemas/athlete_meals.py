@@ -8,9 +8,11 @@ from pydantic import BaseModel, Field
 class MealDishPreview(BaseModel):
     name: str
     confidence: float | None = None
-    plate_share_pct: float | None = None
     weight_g: float | None = None
     calories_kcal: float | None = None
+    protein_g: float | None = None
+    carbs_g: float | None = None
+    fat_g: float | None = None
 
 
 class MealAnalysisResponse(BaseModel):

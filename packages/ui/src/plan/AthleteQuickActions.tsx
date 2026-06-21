@@ -2,7 +2,7 @@ import type { CSSProperties, ReactElement } from "react";
 import { IconDumbbell } from "../icons/AthleteMetricIcons";
 import "./athlete-plan.css";
 
-export type AthleteQuickActionId = "my-plan" | "progress" | "workouts";
+export type AthleteQuickActionId = "my-plan" | "nutrition" | "workouts";
 
 interface AthleteQuickActionsProps {
   onAction: (action: AthleteQuickActionId) => void;
@@ -17,10 +17,22 @@ function IconMyPlan() {
   );
 }
 
-function IconProgress() {
+function IconNutrition() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
-      <path d="M4 18v-6M10 18V8M16 18v-3M22 18V4" strokeLinecap="round" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <ellipse cx="12" cy="14.5" rx="6.5" ry="3.5" />
+      <path d="M6.5 3v5.5a1.25 1.25 0 0 0 2.5 0V3" />
+      <path d="M7.75 3v2.25" />
+      <path d="M17.5 3v7.5a1.25 1.25 0 0 1-2.5 0V3" />
+      <path d="M16.25 3v2.25" />
     </svg>
   );
 }
@@ -32,7 +44,7 @@ const ACTIONS: Array<{
   Icon: () => ReactElement;
 }> = [
   { id: "my-plan", label: "Мой план", hint: "Настроить", Icon: IconMyPlan },
-  { id: "progress", label: "Прогресс", hint: "Смотреть", Icon: IconProgress },
+  { id: "nutrition", label: "Питание", hint: "Записать", Icon: IconNutrition },
   { id: "workouts", label: "Тренировки", hint: "Открыть", Icon: IconDumbbell },
 ];
 

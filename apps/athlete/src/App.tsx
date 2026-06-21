@@ -11,7 +11,6 @@ import {
   AthleteOnboarding,
   AthleteQuickActions,
   AthleteSettings,
-  AthleteStubPanel,
   AthleteWeekProgressPanel,
   AthleteWorkoutsPanel,
   AuthScreen,
@@ -31,6 +30,7 @@ import {
 } from "@sport-app/ui";
 import { WhoopOAuthListener } from "./components/WhoopOAuthListener";
 import { AthleteDataTabPanel } from "./components/AthleteDataTabPanel";
+import { AthleteNutritionPanel } from "./components/AthleteNutritionPanel";
 import { BottomNavIconData } from "./components/BottomNavIconData";
 import { WhoopSettingsPanel } from "./components/WhoopSettingsPanel";
 import { AthleteUpcomingSessionsPanel } from "./components/AthleteUpcomingSessionsPanel";
@@ -166,12 +166,8 @@ export default function App() {
                 onBack={() => setHomeOverlay(null)}
                 onSaved={() => setWeekProgressRefreshKey((value) => value + 1)}
               />
-            ) : homeOverlay === "progress" ? (
-              <AthleteStubPanel
-                title="Прогресс"
-                message="Скоро здесь будет подробная история прогресса и графики."
-                onBack={() => setHomeOverlay(null)}
-              />
+            ) : homeOverlay === "nutrition" ? (
+              <AthleteNutritionPanel onBack={() => setHomeOverlay(null)} />
             ) : homeOverlay === "workouts" ? (
               <AthleteWorkoutsPanel
                 refreshKey={sessionsCompleted}

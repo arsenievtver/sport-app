@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-import logging
 from typing import Any
 
 import httpx
@@ -18,7 +16,6 @@ from app.schemas.athlete_meals import MealAnalysisResponse, MealDishPreview
 LOGMEAL_PROVIDER = "logmeal"
 LOGMEAL_BASE_URL = "https://api.logmeal.com"
 MEAL_PHOTO_MAX_SIDE_PX = 1280
-logger = logging.getLogger(__name__)
 
 
 class LogMealService:
@@ -122,16 +119,7 @@ class LogMealService:
 
             nutrition = await self._post_nutrition(client, user_token, image_id, language)
 
-        if settings.debug or settings.logmeal_log_responses:
-            _log_logmeal_response(segmentation, nutrition)
-
-        response = _build_analysis_response(segmentation, nutrition)
-        from app.services.logmeal_debug import save_logmeal_debug_snapshot
-
-        debug_path = save_logmeal_debug_snapshot(profile.id, response.raw)
-        logger.warning("LogMeal debug JSON saved to %s", debug_path)
-
-        return response
+        return _build_analysis_response(segmentation, nutrition)
 
     async def _post_segmentation(
         self,
@@ -248,8 +236,8 @@ def _build_analysis_response(segmentation: dict[str, Any], nutrition: dict[str, 
         summary_parts.append(f"Вес: ~{round(weight)} г")
 
     portion_note = (
-        "Значения как вернул LogMeal, без нашей коррекции. "
-        "Разверните «LogMeal JSON (отладка)» ниже."
+        "LogMeal подставляет типичные порции из базы — поправьте вес каждого компонента, "
+        "калории и БЖУ пересчитаются автоматически."
     )
 
     return MealAnalysisResponse(
@@ -272,33 +260,34 @@ def _build_analysis_response(segmentation: dict[str, Any], nutrition: dict[str, 
         summary=" · ".join(summary_parts),
         portion_note=portion_note,
         raw={
-            "segmentation": segmentation,
-            "nutrition": nutrition,
+            "logmeal_image_id": image_id if isinstance(image_id, int) else None,
+            "dishes": [dish.model_dump() for dish in dishes],
         },
     )
 
 
-def _log_logmeal_response(segmentation: dict[str, Any], nutrition: dict[str, Any]) -> None:
-    payload = {"segmentation": segmentation, "nutrition": nutrition}
-    try:
-        text = json.dumps(payload, ensure_ascii=False, default=str)
-    except TypeError:
-        text = str(payload)
-    if len(text) > 120_000:
-        text = f"{text[:120_000]}… [truncated]"
-    logger.info("LogMeal analyze response: %s", text)
-
-
-def _item_nutrition_values(per_item: dict[str, Any]) -> tuple[float | None, float | None]:
+def _item_nutrition_values(per_item: dict[str, Any]) -> dict[str, float | None]:
     item_nutrition = per_item.get("nutritional_info")
     if not isinstance(item_nutrition, dict):
-        return None, None
+        return {
+            "calories_kcal": None,
+            "weight_g": None,
+            "protein_g": None,
+            "carbs_g": None,
+            "fat_g": None,
+        }
 
     calories = item_nutrition.get("calories")
     calories_val = float(calories) if isinstance(calories, (int, float)) else None
     weight_val = per_item.get("serving_size")
     weight = float(weight_val) if isinstance(weight_val, (int, float)) and weight_val > 0 else None
-    return calories_val, weight
+    return {
+        "calories_kcal": calories_val,
+        "weight_g": weight,
+        "protein_g": _extract_nutrient(per_item, "PROCNT"),
+        "carbs_g": _extract_nutrient(per_item, "CHOCDF"),
+        "fat_g": _extract_nutrient(per_item, "FAT"),
+    }
 
 
 def _merge_dish_details(
@@ -337,7 +326,8 @@ def _merge_dish_details(
 
         prob = top.get("prob")
         confidence = float(prob) if isinstance(prob, (int, float)) else None
-        item_cal, item_weight = _item_nutrition_values(per_item)
+        item_values = _item_nutrition_values(per_item)
+        item_weight = item_values["weight_g"]
 
         segment_weight = segment.get("serving_size")
         if item_weight is None and isinstance(segment_weight, (int, float)) and segment_weight > 0:
@@ -350,9 +340,13 @@ def _merge_dish_details(
             MealDishPreview(
                 name=name.strip(),
                 confidence=confidence,
-                plate_share_pct=None,
                 weight_g=round(item_weight, 1) if item_weight is not None else None,
-                calories_kcal=round(item_cal, 1) if item_cal is not None else None,
+                calories_kcal=round(item_values["calories_kcal"], 1)
+                if item_values["calories_kcal"] is not None
+                else None,
+                protein_g=round(item_values["protein_g"], 1) if item_values["protein_g"] is not None else None,
+                carbs_g=round(item_values["carbs_g"], 1) if item_values["carbs_g"] is not None else None,
+                fat_g=round(item_values["fat_g"], 1) if item_values["fat_g"] is not None else None,
             )
         )
 
