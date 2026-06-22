@@ -1,4 +1,3 @@
-import { MEAL_HISTORY_DAYS } from "@sport-app/shared";
 import { AthleteMealsPanel } from "./AthleteMealsPanel";
 
 interface AthleteNutritionPanelProps {
@@ -13,7 +12,6 @@ export function AthleteNutritionPanel({ onBack }: AthleteNutritionPanelProps) {
           ← Назад
         </button>
         <h1 className="athlete-overlay-screen__title">Питание</h1>
-        <p className="athlete-nutrition__subtitle text-muted">Записи за последние {MEAL_HISTORY_DAYS} дней</p>
       </header>
       <AthleteMealsPanel embedded />
     </div>

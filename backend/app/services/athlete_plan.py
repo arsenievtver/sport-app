@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.enums import CoachAthleteSessionEntryKind, PlanActivityTier
 from app.models.session_ledger import CoachAthleteSessionEntry
@@ -20,6 +21,7 @@ from app.services.baseline_calories import (
     calculate_daily_baseline_calories_kcal,
     calculate_target_daily_calories_kcal,
 )
+from app.services.session_counting import countable_session_entries
 
 
 def _athlete_today(profile: AthleteProfile) -> date:
@@ -134,8 +136,9 @@ class AthletePlanService:
         plan = await self.get_plan(profile)
 
         entries = await self._load_week_entries(profile.id, week_start, week_end)
+        countable_entries = countable_session_entries(entries)
 
-        workouts_completed = sum(entry.sessions_count for entry in entries)
+        workouts_completed = sum(entry.sessions_count for entry in countable_entries)
         workouts_target = plan.workouts_per_week
 
         sedentary_daily = plan.sedentary_daily_kcal or 0
@@ -158,7 +161,7 @@ class AthletePlanService:
             workouts_completed=workouts_completed,
             workouts_target=workouts_target,
             count_pct=count_pct,
-            entries=entries,
+            entries=countable_entries,
         )
 
         completion = _completion_percent(workouts_pct, calories_pct, activity_pct)
@@ -208,6 +211,7 @@ class AthletePlanService:
                     CoachAthleteSessionEntry.athlete_id == athlete_id,
                 ),
             )
+            .options(selectinload(CoachAthleteSessionEntry.activity_type))
         )
         return list(result.scalars().all())
 

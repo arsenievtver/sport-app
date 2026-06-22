@@ -19,6 +19,7 @@ from app.services.activity_load import (
     clamp_activity_effort,
 )
 from app.services.athlete_weight import AthleteWeightService
+from app.services.session_counting import completed_sessions_count_sql_filter
 from app.schemas.athlete import (
     AthleteCoachResponse,
     AthleteCompleteSessionRequest,
@@ -366,12 +367,16 @@ class AthleteService:
             select(func.coalesce(func.sum(CoachAthleteSessionEntry.sessions_count), 0))
             .select_from(CoachAthleteSessionEntry)
             .outerjoin(CoachAthleteLink, CoachAthleteSessionEntry.link_id == CoachAthleteLink.id)
+            .outerjoin(
+                ActivityType,
+                CoachAthleteSessionEntry.activity_type_id == ActivityType.id,
+            )
             .where(
-                CoachAthleteSessionEntry.kind == CoachAthleteSessionEntryKind.debit,
                 or_(
                     CoachAthleteLink.athlete_id == athlete_id,
                     CoachAthleteSessionEntry.athlete_id == athlete_id,
                 ),
+                completed_sessions_count_sql_filter(),
             )
         )
         return int(result.scalar_one())

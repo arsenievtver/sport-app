@@ -17,7 +17,7 @@ from app.services.logmeal import LogMealService
 
 logger = logging.getLogger(__name__)
 
-CATALOG_DISH_TYPES = ("food", "drinks", "combo", "customRecipe")
+CATALOG_DISH_TYPES = ("food", "drinks", "combo", "customRecipe", "ingredients", "sauces")
 TRANSLATE_BATCH_SIZE = 50
 
 ProgressCallback = Callable[[str, int, int, str], Awaitable[None] | None]

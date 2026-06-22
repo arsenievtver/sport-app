@@ -6,13 +6,27 @@ interface MealDishSearchPickerProps {
   label?: string;
   placeholder?: string;
   disabled?: boolean;
+  inactive?: boolean;
+  hideLabel?: boolean;
+  catalogDishCount?: number | null;
+  resetQueryOnSelect?: boolean;
+  inputClassName?: string;
+  onFocus?: () => void;
+  onBlur?: () => void;
   onSelect: (item: MealDishSearchItem) => void;
 }
 
 export function MealDishSearchPicker({
   label = "Найти в базе блюд",
-  placeholder = "гречка, омлет, курица…",
+  placeholder = "введите название блюда",
   disabled = false,
+  inactive = false,
+  hideLabel = false,
+  catalogDishCount = null,
+  resetQueryOnSelect = false,
+  inputClassName = "meal-panel__input",
+  onFocus,
+  onBlur,
   onSelect,
 }: MealDishSearchPickerProps) {
   const listId = useId();
@@ -49,25 +63,39 @@ export function MealDishSearchPicker({
     return () => window.clearTimeout(timer);
   }, [query]);
 
-  return (
-    <label className="meal-panel__field meal-dish-search">
-      <span className="meal-panel__label text-secondary">{label}</span>
-      <input
-        type="search"
-        className="meal-panel__input"
-        placeholder={placeholder}
-        value={query}
-        disabled={disabled}
-        aria-controls={listId}
-        aria-expanded={open && items.length > 0}
-        onChange={(event) => {
-          setQuery(event.target.value);
-          setOpen(true);
-        }}
-        onFocus={() => {
-          if (items.length > 0) setOpen(true);
-        }}
-      />
+  const isDisabled = disabled || inactive;
+  const rootClassName = `meal-dish-search${inactive ? " meal-dish-search--inactive" : ""}${hideLabel ? " meal-dish-search--compact" : ""}`;
+  const input = (
+    <input
+      type="search"
+      className={inputClassName}
+      placeholder={placeholder}
+      value={query}
+      disabled={isDisabled}
+      aria-label={hideLabel ? label : undefined}
+      aria-controls={listId}
+      aria-expanded={open && items.length > 0}
+      onChange={(event) => {
+        setQuery(event.target.value);
+        setOpen(true);
+      }}
+      onFocus={() => {
+        onFocus?.();
+        if (items.length > 0) setOpen(true);
+      }}
+      onBlur={() => {
+        onBlur?.();
+      }}
+    />
+  );
+
+  const hints = (
+    <>
+      {!hideLabel && catalogDishCount === 0 ? (
+        <p className="meal-dish-search__hint text-secondary">
+          База пуста — попросите админа обновить каталог в админке.
+        </p>
+      ) : null}
       {searching ? <p className="meal-dish-search__hint text-muted">Ищем в базе…</p> : null}
       {searchError ? <p className="auth-error meal-dish-search__hint">{searchError}</p> : null}
       {open && items.length > 0 ? (
@@ -77,10 +105,11 @@ export function MealDishSearchPicker({
               <button
                 type="button"
                 className="meal-dish-search__option"
-                disabled={disabled}
+                disabled={isDisabled}
+                onMouseDown={(event) => event.preventDefault()}
                 onClick={() => {
                   onSelect(item);
-                  setQuery(item.name);
+                  setQuery(resetQueryOnSelect ? "" : item.name);
                   setOpen(false);
                 }}
               >
@@ -94,8 +123,29 @@ export function MealDishSearchPicker({
         </ul>
       ) : null}
       {open && !searching && query.trim().length >= 2 && items.length === 0 && !searchError ? (
-        <p className="meal-dish-search__hint text-secondary">Ничего не найдено</p>
+        <p className="meal-dish-search__hint text-secondary">
+          {hideLabel
+            ? "Ничего не найдено"
+            : "Ничего не найдено — попробуйте другое слово или по-английски."}
+        </p>
       ) : null}
+    </>
+  );
+
+  if (hideLabel) {
+    return (
+      <div className={rootClassName}>
+        {input}
+        {hints}
+      </div>
+    );
+  }
+
+  return (
+    <label className={`meal-panel__field ${rootClassName}`}>
+      <span className="meal-panel__label text-secondary">{label}</span>
+      {input}
+      {hints}
     </label>
   );
 }

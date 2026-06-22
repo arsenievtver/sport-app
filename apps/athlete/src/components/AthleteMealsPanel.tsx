@@ -37,6 +37,7 @@ import {
   sumMealDishRows,
 } from "@sport-app/shared";
 import { MealDishSearchPicker } from "./MealDishSearchPicker";
+import { ManualMealForm, type ManualMealSavePayload } from "./ManualMealForm";
 
 type FormMode = "manual" | "ai" | "review";
 
@@ -348,22 +349,32 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
     }
   };
 
-  const handleManualDishPick = async (item: MealDishSearchItem) => {
+  const handleManualSave = async (payload: ManualMealSavePayload) => {
     setBusy(true);
     setError(null);
     try {
-      const dish = await fetchAthleteMealDishNutrition(item.logmeal_dish_id);
-      const row = mealDishEditorRowFromPreview(dish, 0);
-      if (!row) return;
-      applyDishRows([row]);
-      setForm({
-        title: dish.name,
-        ...mealNutritionToFormInputs(row.baseline),
+      const entry = await createAthleteMealEntry({
+        title: payload.title,
+        calories_kcal: payload.calories_kcal,
+        weight_g: payload.weight_g,
         source: "manual",
-        logmealImageId: null,
+        logmeal_image_id: null,
+        ai_analysis:
+          payload.components.length > 0
+            ? {
+                manual_components: payload.components.map((item) => ({
+                  name: item.name,
+                  calories_kcal: item.calories_kcal,
+                  weight_g: item.weight_g,
+                  logmeal_dish_id: item.logmeal_dish_id,
+                })),
+              }
+            : null,
       });
+      setEntries((current) => [entry, ...current]);
+      resetForm();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось загрузить блюдо");
+      setError(err instanceof Error ? err.message : "Не удалось сохранить запись");
     } finally {
       setBusy(false);
     }
@@ -401,86 +412,6 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
 
   const hasDishEditor = dishRows.length > 0;
   const totals = hasDishEditor ? sumMealDishRows(dishRows) : null;
-
-  const renderManualFields = () => (
-    <div className="meal-panel__fields">
-      <MealDishSearchPicker
-        label="Найти в базе блюд"
-        disabled={busy || analyzing}
-        onSelect={(item) => void handleManualDishPick(item)}
-      />
-      <p className="meal-panel__hint text-secondary">или введите вручную</p>
-      <label className="meal-panel__field">
-        <span className="meal-panel__label text-secondary">Блюдо</span>
-        <input
-          type="text"
-          className="meal-panel__input"
-          value={form.title}
-          disabled={busy || analyzing}
-          onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-        />
-      </label>
-      <label className="meal-panel__field">
-        <span className="meal-panel__label text-secondary">Калории, ккал</span>
-        <input
-          type="text"
-          inputMode="decimal"
-          className="meal-panel__input"
-          placeholder="450"
-          value={form.caloriesInput}
-          disabled={busy || analyzing}
-          onChange={(event) => setForm((current) => ({ ...current, caloriesInput: event.target.value }))}
-        />
-      </label>
-      <div className="meal-panel__grid">
-        <label className="meal-panel__field">
-          <span className="meal-panel__label text-secondary">Вес, г</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            className="meal-panel__input"
-            placeholder="опционально"
-            value={form.weightInput}
-            disabled={busy || analyzing}
-            onChange={(event) => setForm((current) => ({ ...current, weightInput: event.target.value }))}
-          />
-        </label>
-        <label className="meal-panel__field">
-          <span className="meal-panel__label text-secondary">Белки, г</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            className="meal-panel__input"
-            value={form.proteinInput}
-            disabled={busy || analyzing}
-            onChange={(event) => setForm((current) => ({ ...current, proteinInput: event.target.value }))}
-          />
-        </label>
-        <label className="meal-panel__field">
-          <span className="meal-panel__label text-secondary">Жиры, г</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            className="meal-panel__input"
-            value={form.fatInput}
-            disabled={busy || analyzing}
-            onChange={(event) => setForm((current) => ({ ...current, fatInput: event.target.value }))}
-          />
-        </label>
-        <label className="meal-panel__field">
-          <span className="meal-panel__label text-secondary">Углеводы, г</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            className="meal-panel__input"
-            value={form.carbsInput}
-            disabled={busy || analyzing}
-            onChange={(event) => setForm((current) => ({ ...current, carbsInput: event.target.value }))}
-          />
-        </label>
-      </div>
-    </div>
-  );
 
   const renderDishEditor = () => (
     <div className="meal-panel__fields">
@@ -537,6 +468,7 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
                   label="Заменить на другое из базы"
                   placeholder="поиск…"
                   disabled={busy || analyzing}
+                  catalogDishCount={catalogStats?.dish_count ?? null}
                   onSelect={(item) => void handleReplaceDishFromSearch(row.key, item)}
                 />
                 <WheelNumberPicker
@@ -559,6 +491,7 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
               label="Добавить компонент из базы"
               placeholder="что ещё на тарелке?"
               disabled={busy || analyzing}
+              catalogDishCount={catalogStats?.dish_count ?? null}
               onSelect={(item) => void handleAddDishComponent(item)}
             />
           </div>
@@ -591,18 +524,13 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
           <h2 className="meal-panel__title">Питание</h2>
           <div className="meal-panel__header-side">
             {catalogStats ? (
-              <p className="meal-panel__catalog-stat text-secondary">
+              <p className="meal-panel__catalog-stat">
                 В базе: <strong>{catalogStats.dish_count}</strong> блюд
                 {catalogStats.search_ready ? (
-                  <span> · обновлено {formatMealCatalogSyncedAt(catalogStats.synced_at)}</span>
+                  <span className="meal-panel__catalog-meta"> · обновлено {formatMealCatalogSyncedAt(catalogStats.synced_at)}</span>
                 ) : (
-                  <span> · поиск пока недоступен</span>
+                  <span className="meal-panel__catalog-meta"> · поиск пока недоступен</span>
                 )}
-              </p>
-            ) : null}
-            {entries.length > 0 ? (
-              <p className="meal-panel__today text-secondary">
-                Последняя запись: <strong>{formatMealCalories(entries[0].calories_kcal)} ккал</strong>
               </p>
             ) : null}
           </div>
@@ -610,13 +538,8 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
       ) : (
         <div className="meal-panel__embedded-meta">
           {catalogStats ? (
-            <p className="meal-panel__catalog-stat text-secondary">
+            <p className="meal-panel__catalog-stat">
               В базе: <strong>{catalogStats.dish_count}</strong> блюд
-            </p>
-          ) : null}
-          {entries.length > 0 ? (
-            <p className="meal-panel__today text-secondary">
-              Последняя запись: <strong>{formatMealCalories(entries[0].calories_kcal)} ккал</strong>
             </p>
           ) : null}
         </div>
@@ -673,20 +596,31 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
                   ) : null}
                 </div>
               ) : null}
-              {hasDishEditor ? renderDishEditor() : renderManualFields()}
-              <div className="meal-panel__form-actions">
-                <button
-                  type="button"
-                  className="btn btn-outline btn-outline--primary"
-                  disabled={busy}
-                  onClick={() => void handleSave()}
-                >
-                  {busy ? "Сохраняем…" : "Записать"}
-                </button>
-                <button type="button" className="btn btn-outline" disabled={busy} onClick={resetForm}>
-                  Отмена
-                </button>
-              </div>
+              {mode === "manual" ? (
+                <ManualMealForm
+                  busy={busy}
+                  catalogDishCount={catalogStats?.dish_count ?? null}
+                  onSave={handleManualSave}
+                  onCancel={resetForm}
+                />
+              ) : hasDishEditor ? (
+                <>
+                  {renderDishEditor()}
+                  <div className="meal-panel__form-actions">
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-outline--primary"
+                      disabled={busy}
+                      onClick={() => void handleSave()}
+                    >
+                      {busy ? "Сохраняем…" : "Записать"}
+                    </button>
+                    <button type="button" className="btn btn-outline" disabled={busy} onClick={resetForm}>
+                      Отмена
+                    </button>
+                  </div>
+                </>
+              ) : null}
             </>
           ) : null}
         </div>
@@ -698,9 +632,7 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
         <div className="meal-panel__history">
           <h3 className="meal-panel__history-title">История за последний месяц</h3>
           {entries.length === 0 ? (
-            <p className="text-secondary meal-panel__history-empty">
-              За последние {MEAL_HISTORY_DAYS} дней записей нет.
-            </p>
+            <p className="text-secondary meal-panel__history-empty">Записей пока нет</p>
           ) : (
             <ul className="meal-panel__history-list">
               {entries.map((entry) => (
