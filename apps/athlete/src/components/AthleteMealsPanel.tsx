@@ -336,7 +336,11 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
       </label>
 
       <div className="meal-panel__dish-editor">
-        <p className="meal-panel__dish-editor-title text-secondary">Компоненты — поправьте вес, ккал пересчитаются</p>
+        <p className="meal-panel__dish-editor-title text-secondary">
+          {dishRows.length > 1
+            ? `Найдено компонентов: ${dishRows.length} — поправьте вес каждого`
+            : "Компоненты — поправьте вес, ккал пересчитаются"}
+        </p>
         <ul className="meal-panel__dish-list">
           {dishRows.map((row) => {
             const nutrition = mealDishRowNutrition(row);

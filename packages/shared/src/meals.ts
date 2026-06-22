@@ -174,19 +174,25 @@ export function formatMealWeightInput(value: number | null | undefined): string 
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1).replace(".", ",");
 }
 
+export const MEAL_DISH_FALLBACK_WEIGHT_G = 100;
+
 export function mealDishEditorRowFromPreview(dish: MealDishPreview, index: number): MealDishEditorRow | null {
-  if (dish.weight_g == null || dish.weight_g <= 0 || dish.calories_kcal == null) {
-    return null;
-  }
+  const name = dish.name?.trim();
+  if (!name) return null;
+
+  const weight_g =
+    dish.weight_g != null && dish.weight_g > 0 ? dish.weight_g : MEAL_DISH_FALLBACK_WEIGHT_G;
+  const calories_kcal = dish.calories_kcal != null ? Math.max(0, dish.calories_kcal) : 0;
+
   return {
-    key: `${dish.name}-${index}`,
-    name: dish.name,
+    key: `${dish.logmeal_dish_id ?? name}-${index}`,
+    name,
     name_en: dish.name_en ?? dish.name,
     logmeal_dish_id: dish.logmeal_dish_id ?? null,
-    weightInput: formatMealWeightInput(dish.weight_g),
+    weightInput: formatMealWeightInput(weight_g),
     baseline: {
-      weight_g: dish.weight_g,
-      calories_kcal: dish.calories_kcal,
+      weight_g,
+      calories_kcal,
       protein_g: dish.protein_g,
       carbs_g: dish.carbs_g,
       fat_g: dish.fat_g,

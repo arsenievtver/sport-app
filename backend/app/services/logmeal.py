@@ -261,6 +261,9 @@ def _build_analysis_response(segmentation: dict[str, Any], nutrition: dict[str, 
         portion_note=portion_note,
         raw={
             "logmeal_image_id": image_id if isinstance(image_id, int) else None,
+            "segment_count": len(segmentation.get("segmentation_results") or [])
+            if isinstance(segmentation.get("segmentation_results"), list)
+            else 0,
             "dishes": [dish.model_dump() for dish in dishes],
         },
     )
@@ -290,6 +293,114 @@ def _item_nutrition_values(per_item: dict[str, Any]) -> dict[str, float | None]:
     }
 
 
+def _normalize_food_position(value: Any) -> int | str | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return None
+        if stripped.isdigit():
+            return int(stripped)
+        return stripped
+    return None
+
+
+def _nutrition_id_name_map(nutrition: dict[str, Any]) -> dict[int, str]:
+    food_names = nutrition.get("foodName")
+    ids = nutrition.get("ids")
+    result: dict[int, str] = {}
+
+    if isinstance(food_names, list) and isinstance(ids, list):
+        for name, dish_id in zip(food_names, ids, strict=False):
+            if isinstance(dish_id, int) and isinstance(name, str) and name.strip():
+                result[dish_id] = name.strip()
+        return result
+
+    if isinstance(food_names, str) and food_names.strip():
+        if isinstance(ids, list):
+            for dish_id in ids:
+                if isinstance(dish_id, int):
+                    result[dish_id] = food_names.strip()
+                    break
+        elif isinstance(ids, int):
+            result[ids] = food_names.strip()
+
+    return result
+
+
+def _dish_preview_from_parts(
+    *,
+    name: str,
+    logmeal_dish_id: int | None,
+    confidence: float | None,
+    per_item: dict[str, Any],
+    segment: dict[str, Any] | None = None,
+) -> MealDishPreview:
+    item_values = _item_nutrition_values(per_item)
+    item_weight = item_values["weight_g"]
+
+    if segment is not None:
+        segment_weight = segment.get("serving_size")
+        if item_weight is None and isinstance(segment_weight, (int, float)) and segment_weight > 0:
+            item_weight = float(segment_weight)
+
+    return MealDishPreview(
+        name=name,
+        name_en=name,
+        logmeal_dish_id=logmeal_dish_id,
+        confidence=confidence,
+        weight_g=round(item_weight, 1) if item_weight is not None else None,
+        calories_kcal=round(item_values["calories_kcal"], 1)
+        if item_values["calories_kcal"] is not None
+        else None,
+        protein_g=round(item_values["protein_g"], 1) if item_values["protein_g"] is not None else None,
+        carbs_g=round(item_values["carbs_g"], 1) if item_values["carbs_g"] is not None else None,
+        fat_g=round(item_values["fat_g"], 1) if item_values["fat_g"] is not None else None,
+    )
+
+
+def _fill_missing_item_nutrition(
+    dishes: list[MealDishPreview],
+    nutrition: dict[str, Any],
+) -> list[MealDishPreview]:
+    total_calories = _extract_calories(nutrition)
+    if total_calories is None or not dishes:
+        return dishes
+
+    missing = [dish for dish in dishes if dish.calories_kcal is None]
+    if not missing:
+        return dishes
+
+    known_calories = sum(dish.calories_kcal or 0 for dish in dishes if dish.calories_kcal is not None)
+    remaining_calories = max(0.0, total_calories - known_calories)
+    missing_weight_sum = sum(
+        dish.weight_g if dish.weight_g is not None and dish.weight_g > 0 else 100.0 for dish in missing
+    )
+    if missing_weight_sum <= 0:
+        missing_weight_sum = float(len(missing) * 100)
+
+    filled: list[MealDishPreview] = []
+    for dish in dishes:
+        if dish.calories_kcal is not None:
+            filled.append(dish)
+            continue
+
+        weight = dish.weight_g if dish.weight_g is not None and dish.weight_g > 0 else 100.0
+        share = weight / missing_weight_sum
+        filled.append(
+            dish.model_copy(
+                update={
+                    "weight_g": round(weight, 1),
+                    "calories_kcal": round(remaining_calories * share, 1),
+                },
+            ),
+        )
+    return filled
+
+
 def _merge_dish_details(
     segmentation: dict[str, Any],
     nutrition: dict[str, Any],
@@ -299,62 +410,84 @@ def _merge_dish_details(
         segments = []
 
     per_items = nutrition.get("nutritional_info_per_item")
-    per_by_position: dict[Any, dict[str, Any]] = {}
+    per_by_position: dict[int | str, dict[str, Any]] = {}
     if isinstance(per_items, list):
         for item in per_items:
             if isinstance(item, dict):
-                per_by_position[item.get("food_item_position")] = item
+                position = _normalize_food_position(item.get("food_item_position"))
+                if position is not None:
+                    per_by_position[position] = item
 
+    id_to_name = _nutrition_id_name_map(nutrition)
     dishes: list[MealDishPreview] = []
+    seen_positions: set[int | str] = set()
     per_item_weight_sum = 0.0
     has_per_item_weight = False
 
     for segment in segments:
         if not isinstance(segment, dict):
             continue
-        position = segment.get("food_item_position")
+
+        position = _normalize_food_position(segment.get("food_item_position"))
+        if position is None:
+            continue
+
         per_item = per_by_position.get(position, {})
         results = segment.get("recognition_results")
         if not isinstance(results, list) or not results:
             continue
+
         top = results[0]
         if not isinstance(top, dict):
             continue
+
         name = top.get("name")
         if not isinstance(name, str) or not name.strip():
             continue
 
         dish_id = top.get("id")
         logmeal_dish_id = dish_id if isinstance(dish_id, int) else None
-        name_str = name.strip()
-
         prob = top.get("prob")
         confidence = float(prob) if isinstance(prob, (int, float)) else None
-        item_values = _item_nutrition_values(per_item)
-        item_weight = item_values["weight_g"]
 
-        segment_weight = segment.get("serving_size")
-        if item_weight is None and isinstance(segment_weight, (int, float)) and segment_weight > 0:
-            item_weight = float(segment_weight)
-        if item_weight is not None:
-            per_item_weight_sum += item_weight
+        dish = _dish_preview_from_parts(
+            name=name.strip(),
+            logmeal_dish_id=logmeal_dish_id,
+            confidence=confidence,
+            per_item=per_item,
+            segment=segment,
+        )
+        if dish.weight_g is not None:
+            per_item_weight_sum += dish.weight_g
             has_per_item_weight = True
 
-        dishes.append(
-            MealDishPreview(
-                name=name_str,
-                name_en=name_str,
-                logmeal_dish_id=logmeal_dish_id,
-                confidence=confidence,
-                weight_g=round(item_weight, 1) if item_weight is not None else None,
-                calories_kcal=round(item_values["calories_kcal"], 1)
-                if item_values["calories_kcal"] is not None
-                else None,
-                protein_g=round(item_values["protein_g"], 1) if item_values["protein_g"] is not None else None,
-                carbs_g=round(item_values["carbs_g"], 1) if item_values["carbs_g"] is not None else None,
-                fat_g=round(item_values["fat_g"], 1) if item_values["fat_g"] is not None else None,
-            )
+        dishes.append(dish)
+        seen_positions.add(position)
+
+    for position, per_item in per_by_position.items():
+        if position in seen_positions:
+            continue
+
+        dish_id = per_item.get("id")
+        logmeal_dish_id = dish_id if isinstance(dish_id, int) else None
+        name = id_to_name.get(logmeal_dish_id) if logmeal_dish_id is not None else None
+        if not isinstance(name, str) or not name.strip():
+            continue
+
+        dish = _dish_preview_from_parts(
+            name=name.strip(),
+            logmeal_dish_id=logmeal_dish_id,
+            confidence=None,
+            per_item=per_item,
         )
+        if dish.weight_g is not None:
+            per_item_weight_sum += dish.weight_g
+            has_per_item_weight = True
+
+        dishes.append(dish)
+        seen_positions.add(position)
+
+    dishes = _fill_missing_item_nutrition(dishes, nutrition)
 
     calories = _extract_calories(nutrition)
     protein = _extract_nutrient(nutrition, "PROCNT")
@@ -387,6 +520,9 @@ def _merge_dish_details(
 
 
 def _extract_title(nutrition: dict[str, Any], dishes: list[MealDishPreview]) -> str:
+    if dishes:
+        return ", ".join(dish.name for dish in dishes)
+
     food_name = nutrition.get("foodName")
     if isinstance(food_name, str) and food_name.strip():
         return food_name.strip()
@@ -394,8 +530,6 @@ def _extract_title(nutrition: dict[str, Any], dishes: list[MealDishPreview]) -> 
         names = [item.strip() for item in food_name if isinstance(item, str) and item.strip()]
         if names:
             return ", ".join(names)
-    if dishes:
-        return ", ".join(dish.name for dish in dishes)
     return "Блюдо"
 
 
