@@ -11,6 +11,7 @@ from app.models.schedule import CoachScheduleSettings, ScheduleSlotCompletion, S
 from app.models.user import AthleteProfile, CoachAthleteLink, CoachProfile, User
 from app.models.activity_type import ActivityType
 from app.models.athlete_weight import AthleteWeightEntry
+from app.models.food_name_translation import FoodNameTranslation
 from app.models.meal_entry import AthleteMealEntry
 from app.models.session_ledger import CoachAthleteSessionEntry
 from app.models.workout import Workout, WorkoutExercise, WorkoutLog, WorkoutLogExercise
@@ -25,6 +26,7 @@ __all__ = [
     "ActivityType",
     "AthleteWeightEntry",
     "AthleteMealEntry",
+    "FoodNameTranslation",
     "CoachScheduleSettings",
     "ScheduleTemplateSlot",
     "ScheduleWeekException",

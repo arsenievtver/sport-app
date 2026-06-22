@@ -47,5 +47,11 @@ class Settings(BaseSettings):
     logmeal_api_user_token: str | None = None
     logmeal_language: str = "eng"
 
+    # Yandex Cloud Translate — кэш русских названий блюд LogMeal (EN → RU)
+    yandex_translate_api_key: str | None = None
+    yandex_translate_folder_id: str | None = None
+    food_translation_source_lang: str = "en"
+    food_translation_target_lang: str = "ru"
+
 
 settings = Settings()

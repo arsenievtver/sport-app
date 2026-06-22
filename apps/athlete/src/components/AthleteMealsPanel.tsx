@@ -17,7 +17,7 @@ import {
   sumMealDishRows,
 } from "@sport-app/shared";
 
-type FormMode = "choose" | "manual" | "ai" | "review";
+type FormMode = "manual" | "ai" | "review";
 
 const MAX_DISH_WEIGHT_G = 2000;
 
@@ -86,6 +86,8 @@ function buildAiAnalysis(
       const nutrition = mealDishRowNutrition(row);
       return {
         name: row.name,
+        name_en: row.name_en ?? null,
+        logmeal_dish_id: row.logmeal_dish_id ?? null,
         weight_g: nutrition?.weight_g ?? null,
         calories_kcal: nutrition?.calories_kcal ?? null,
         protein_g: nutrition?.protein_g ?? null,
@@ -103,7 +105,7 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [mode, setMode] = useState<FormMode>("choose");
+  const [mode, setMode] = useState<FormMode>("manual");
   const [analysis, setAnalysis] = useState<MealAnalysisResult | null>(null);
   const [dishRows, setDishRows] = useState<MealDishEditorRow[]>([]);
   const [form, setForm] = useState<MealFormState>(EMPTY_FORM);
@@ -137,16 +139,26 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
 
   const resetForm = () => {
     setShowForm(false);
-    setMode("choose");
+    setMode("manual");
     setAnalysis(null);
     setDishRows([]);
     setForm(EMPTY_FORM);
     setError(null);
   };
 
+  const openManualForm = () => {
+    setShowForm(true);
+    setMode("manual");
+    setForm(EMPTY_FORM);
+    setAnalysis(null);
+    setDishRows([]);
+    setError(null);
+  };
+
   const handlePhotoSelected = async (file: File | null) => {
     if (!file) return;
 
+    setShowForm(true);
     setAnalyzing(true);
     setError(null);
     setMode("ai");
@@ -160,7 +172,8 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
       setMode("review");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось распознать фото");
-      setMode("choose");
+      setShowForm(false);
+      setMode("manual");
     } finally {
       setAnalyzing(false);
       if (fileInputRef.current) {
@@ -363,45 +376,35 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
 
       {loading ? <p className="text-muted">Загрузка…</p> : null}
 
-      {showForm ? (
+      {!showForm ? (
+        <div className="meal-panel__mode-actions">
+          <button
+            type="button"
+            className="btn btn-outline btn-outline--primary"
+            disabled={loading || busy || analyzing}
+            onClick={openManualForm}
+          >
+            Вручную
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline btn-outline--primary meal-panel__ai-btn"
+            disabled={loading || busy || analyzing}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Через ИИ ✨
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="meal-panel__file-input"
+            onChange={(event) => void handlePhotoSelected(event.target.files?.[0] ?? null)}
+          />
+        </div>
+      ) : (
         <div className="meal-panel__form">
-          {mode === "choose" ? (
-            <>
-              <p className="meal-panel__hint text-secondary">Как добавить приём пищи?</p>
-              <div className="meal-panel__mode-actions">
-                <button
-                  type="button"
-                  className="btn btn-outline btn-outline--primary"
-                  disabled={busy || analyzing}
-                  onClick={() => {
-                    setMode("manual");
-                    setForm(EMPTY_FORM);
-                    setAnalysis(null);
-                    setDishRows([]);
-                  }}
-                >
-                  Вручную
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline btn-outline--primary meal-panel__ai-btn"
-                  disabled={busy || analyzing}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Через ИИ ✨
-                </button>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="meal-panel__file-input"
-                onChange={(event) => void handlePhotoSelected(event.target.files?.[0] ?? null)}
-              />
-            </>
-          ) : null}
-
           {analyzing ? (
             <div className="meal-panel__progress">
               <div className="meal-panel__spinner" aria-hidden="true" />
@@ -437,19 +440,6 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
             </>
           ) : null}
         </div>
-      ) : (
-        <button
-          type="button"
-          className="btn btn-outline btn-outline--primary btn--block"
-          disabled={loading || busy}
-          onClick={() => {
-            setShowForm(true);
-            setMode("choose");
-            setError(null);
-          }}
-        >
-          Добавить питание
-        </button>
       )}
 
       {error ? <p className="auth-error meal-panel__error">{error}</p> : null}

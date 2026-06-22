@@ -12,6 +12,7 @@ from app.schemas.athlete_meals import (
     AthleteMealListResponse,
     MealAnalysisResponse,
 )
+from app.services.food_translation import FoodTranslationService
 from app.services.logmeal import LogMealService
 
 MEAL_HISTORY_DAYS = 30
@@ -54,7 +55,8 @@ class AthleteMealsService:
         )
 
     async def analyze_photo(self, profile: AthleteProfile, image_bytes: bytes) -> MealAnalysisResponse:
-        return await LogMealService(self.db).analyze_photo(profile, image_bytes)
+        analysis = await LogMealService(self.db).analyze_photo(profile, image_bytes)
+        return await FoodTranslationService(self.db).localize_analysis(analysis)
 
     async def create_entry(
         self,
@@ -80,5 +82,7 @@ class AthleteMealsService:
             notes=data.notes.strip() if data.notes else None,
         )
         self.db.add(entry)
+        if data.source == "ai":
+            await FoodTranslationService(self.db).record_user_overrides(data.ai_analysis)
         await self.db.flush()
         return AthleteMealEntryResponse.model_validate(entry)

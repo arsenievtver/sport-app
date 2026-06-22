@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field
 
 class MealDishPreview(BaseModel):
     name: str
+    name_en: str | None = None
+    logmeal_dish_id: int | None = None
     confidence: float | None = None
     weight_g: float | None = None
     calories_kcal: float | None = None

@@ -324,6 +324,10 @@ def _merge_dish_details(
         if not isinstance(name, str) or not name.strip():
             continue
 
+        dish_id = top.get("id")
+        logmeal_dish_id = dish_id if isinstance(dish_id, int) else None
+        name_str = name.strip()
+
         prob = top.get("prob")
         confidence = float(prob) if isinstance(prob, (int, float)) else None
         item_values = _item_nutrition_values(per_item)
@@ -338,7 +342,9 @@ def _merge_dish_details(
 
         dishes.append(
             MealDishPreview(
-                name=name.strip(),
+                name=name_str,
+                name_en=name_str,
+                logmeal_dish_id=logmeal_dish_id,
                 confidence=confidence,
                 weight_g=round(item_weight, 1) if item_weight is not None else None,
                 calories_kcal=round(item_values["calories_kcal"], 1)

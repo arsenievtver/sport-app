@@ -4,6 +4,8 @@ export const MEAL_HISTORY_DAYS = 30;
 
 export interface MealDishPreview {
   name: string;
+  name_en?: string | null;
+  logmeal_dish_id?: number | null;
   confidence?: number | null;
   weight_g?: number | null;
   calories_kcal?: number | null;
@@ -15,6 +17,8 @@ export interface MealDishPreview {
 export interface MealDishEditorRow {
   key: string;
   name: string;
+  name_en?: string | null;
+  logmeal_dish_id?: number | null;
   weightInput: string;
   baseline: MealNutritionBaseline;
 }
@@ -162,6 +166,8 @@ export function mealDishEditorRowFromPreview(dish: MealDishPreview, index: numbe
   return {
     key: `${dish.name}-${index}`,
     name: dish.name,
+    name_en: dish.name_en ?? dish.name,
+    logmeal_dish_id: dish.logmeal_dish_id ?? null,
     weightInput: formatMealWeightInput(dish.weight_g),
     baseline: {
       weight_g: dish.weight_g,
