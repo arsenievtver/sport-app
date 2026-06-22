@@ -2,6 +2,21 @@ export type MealSource = "manual" | "ai";
 
 export const MEAL_HISTORY_DAYS = 30;
 
+/** Playful status lines while LogMeal + translation run (shown in rotation). */
+export const MEAL_ANALYSIS_LOADING_MESSAGES = [
+  "Смотрим на ваше фото…",
+  "Ищем на нём что-нибудь съедобное…",
+  "Отделяем тарелку от фона…",
+  "Разбираем блюдо на компоненты…",
+  "Считаем калории — весы пока в отпуске…",
+  "Взвешиваем белки, жиры и углеводы…",
+  "Сверяем с базой блюд…",
+  "Переводим названия на русский…",
+  "Почти готово — уточняем порции…",
+] as const;
+
+export const MEAL_ANALYSIS_LOADING_INTERVAL_MS = 2800;
+
 export interface MealDishPreview {
   name: string;
   name_en?: string | null;

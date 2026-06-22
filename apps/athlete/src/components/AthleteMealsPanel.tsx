@@ -3,6 +3,8 @@ import { analyzeAthleteMealPhoto, createAthleteMealEntry, fetchAthleteMeals } fr
 import type { AthleteMealEntry, MealAnalysisResult, MealDishEditorRow, MealNutritionBaseline } from "@sport-app/shared";
 import { WheelNumberPicker } from "@sport-app/ui";
 import {
+  MEAL_ANALYSIS_LOADING_INTERVAL_MS,
+  MEAL_ANALYSIS_LOADING_MESSAGES,
   MEAL_HISTORY_DAYS,
   compressMealPhoto,
   formatMealCalories,
@@ -20,6 +22,25 @@ import {
 type FormMode = "manual" | "ai" | "review";
 
 const MAX_DISH_WEIGHT_G = 2000;
+
+function useRotatingMessage(messages: readonly string[], active: boolean, intervalMs: number): string {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (!active) {
+      setIndex(0);
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setIndex((current) => (current + 1) % messages.length);
+    }, intervalMs);
+
+    return () => window.clearInterval(timer);
+  }, [active, intervalMs, messages]);
+
+  return messages[index] ?? messages[0];
+}
 
 interface MealFormState {
   title: string;
@@ -110,6 +131,11 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
   const [dishRows, setDishRows] = useState<MealDishEditorRow[]>([]);
   const [form, setForm] = useState<MealFormState>(EMPTY_FORM);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const analysisLoadingMessage = useRotatingMessage(
+    MEAL_ANALYSIS_LOADING_MESSAGES,
+    analyzing,
+    MEAL_ANALYSIS_LOADING_INTERVAL_MS,
+  );
 
   const loadEntries = useCallback(async () => {
     setLoading(true);
@@ -406,9 +432,11 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
       ) : (
         <div className="meal-panel__form">
           {analyzing ? (
-            <div className="meal-panel__progress">
+            <div className="meal-panel__progress" aria-busy="true">
               <div className="meal-panel__spinner" aria-hidden="true" />
-              <p>Распознаём блюдо…</p>
+              <p key={analysisLoadingMessage} className="meal-panel__progress-message" aria-live="polite">
+                {analysisLoadingMessage}
+              </p>
             </div>
           ) : null}
 

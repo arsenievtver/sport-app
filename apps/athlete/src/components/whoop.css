@@ -862,6 +862,24 @@
   color: var(--color-text-secondary);
 }
 
+.meal-panel__progress-message {
+  text-align: center;
+  max-width: 22rem;
+  animation: meal-panel-progress-fade 0.45s ease;
+}
+
+@keyframes meal-panel-progress-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .meal-panel__spinner {
   width: 28px;
   height: 28px;
