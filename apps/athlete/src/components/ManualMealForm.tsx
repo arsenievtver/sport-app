@@ -28,7 +28,10 @@ interface ManualMealFormProps {
   onCancel: () => void;
 }
 
-function dishToComponent(dish: Awaited<ReturnType<typeof fetchAthleteMealDishNutrition>>, logmealDishId: number): ManualMealComponent {
+function dishToComponent(
+  dish: Awaited<ReturnType<typeof fetchAthleteMealDishNutrition>>,
+  logmealDishId: number,
+): ManualMealComponent {
   return {
     key: `component-${logmealDishId}-${Date.now()}`,
     name: dish.name,
@@ -43,6 +46,7 @@ export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: Man
   const [pickedDish, setPickedDish] = useState<ManualMealComponent | null>(null);
   const [components, setComponents] = useState<ManualMealComponent[]>([]);
   const [loadingDish, setLoadingDish] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchResetKey, setSearchResetKey] = useState(0);
 
@@ -69,6 +73,7 @@ export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: Man
     if (!component) return;
     setPickedDish(component);
     setSearchResetKey((current) => current + 1);
+    setSearchOpen(false);
   };
 
   const handleCompositePick = async (item: MealDishSearchItem) => {
@@ -76,6 +81,7 @@ export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: Man
     if (!component) return;
     setComponents((current) => [...current, component]);
     setSearchResetKey((current) => current + 1);
+    setSearchOpen(false);
   };
 
   const removeComponent = (key: string) => {
@@ -124,6 +130,7 @@ export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: Man
   const switchTab = (next: ManualMealTab) => {
     setTab(next);
     setError(null);
+    setSearchOpen(false);
     if (next === "simple") {
       setComponents([]);
     } else {
@@ -132,12 +139,14 @@ export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: Man
   };
 
   const formBusy = busy || loadingDish;
+  const searchLabel = tab === "simple" ? "Найти в базе" : "Добавить из базы";
+  const searchPlaceholder = tab === "simple" ? "например: курица, рис…" : "добавить ингредиент…";
 
   const renderComponentRow = (item: ManualMealComponent, onRemove: () => void) => (
     <li key={item.key} className="meal-manual__component">
       <div className="meal-manual__component-main">
         <span className="meal-manual__component-name">{item.name}</span>
-        <span className="meal-manual__component-meta text-secondary">
+        <span className="meal-manual__component-meta">
           {formatMealCalories(item.calories_kcal)} ккал
           {item.weight_g != null ? ` · ${formatMealWeightInput(item.weight_g)} г` : ""}
         </span>
@@ -155,98 +164,99 @@ export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: Man
   );
 
   return (
-    <div className="meal-manual glass glass--panel">
-      <div className="meal-manual__tabs" role="tablist" aria-label="Тип блюда">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "simple"}
-          className={`meal-manual__tab${tab === "simple" ? " meal-manual__tab--active" : ""}`}
-          disabled={formBusy}
-          onClick={() => switchTab("simple")}
-        >
-          Простое
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "composite"}
-          className={`meal-manual__tab${tab === "composite" ? " meal-manual__tab--active" : ""}`}
-          disabled={formBusy}
-          onClick={() => switchTab("composite")}
-        >
-          Составное
-        </button>
-      </div>
+    <div className={`meal-manual${searchOpen ? " meal-manual--search-open" : ""}`}>
+      <div className="meal-manual__inner">
+        <div className="meal-manual__tabs" role="tablist" aria-label="Тип блюда">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "simple"}
+            className={`meal-manual__tab${tab === "simple" ? " meal-manual__tab--active" : ""}`}
+            disabled={formBusy}
+            onClick={() => switchTab("simple")}
+          >
+            Простое
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "composite"}
+            className={`meal-manual__tab${tab === "composite" ? " meal-manual__tab--active" : ""}`}
+            disabled={formBusy}
+            onClick={() => switchTab("composite")}
+          >
+            Составное
+          </button>
+        </div>
 
-      {tab === "simple" ? (
-        <div className="meal-manual__body" role="tabpanel">
+        <div className="meal-manual__main">
+        <div className="meal-manual__search-block">
           <MealDishSearchPicker
-            key={`simple-search-${searchResetKey}`}
-            label="Найти в базе"
-            placeholder="начните вводить название…"
+            key={`${tab}-search-${searchResetKey}`}
+            label={searchLabel}
+            placeholder={searchPlaceholder}
             disabled={formBusy}
             catalogDishCount={catalogDishCount}
             resetQueryOnSelect
-            onSelect={(item) => void handleSimplePick(item)}
+            resultsMode="inline"
+            inputClassName="meal-manual__input"
+            onOpenChange={setSearchOpen}
+            onSelect={(item) => void (tab === "simple" ? handleSimplePick(item) : handleCompositePick(item))}
           />
-
-          {pickedDish ? (
-            <ul className="meal-manual__components">{renderComponentRow(pickedDish, () => setPickedDish(null))}</ul>
-          ) : (
-            <p className="meal-manual__empty text-secondary">Выберите блюдо из базы — калории подставятся автоматически</p>
-          )}
         </div>
-      ) : (
-        <div className="meal-manual__body" role="tabpanel">
-          {components.length > 0 ? (
-            <ul className="meal-manual__components">
-              {components.map((item) => renderComponentRow(item, () => removeComponent(item.key)))}
-            </ul>
-          ) : (
-            <p className="meal-manual__empty text-secondary">Добавьте компоненты из базы — они сложатся в одно блюдо</p>
-          )}
 
-          <div className="meal-manual__add-row">
-            <MealDishSearchPicker
-              key={`composite-search-${searchResetKey}`}
-              label="Добавить компонент"
-              hideLabel
-              placeholder="найти и добавить…"
-              disabled={formBusy}
-              catalogDishCount={catalogDishCount}
-              resetQueryOnSelect
-              onSelect={(item) => void handleCompositePick(item)}
-            />
-            <span className="meal-manual__add-icon" aria-hidden="true">
-              +
-            </span>
+        {tab === "simple" ? (
+          <div className="meal-manual__body" role="tabpanel">
+            {pickedDish ? (
+              <div className="meal-manual__selection">
+                <p className="meal-manual__selection-label">Выбрано</p>
+                <ul className="meal-manual__components">
+                  {renderComponentRow(pickedDish, () => setPickedDish(null))}
+                </ul>
+              </div>
+            ) : !searchOpen ? (
+              <p className="meal-manual__empty">Начните вводить название — калории подставятся из базы</p>
+            ) : null}
           </div>
-
-          {components.length > 0 ? (
-            <div className="meal-manual__composite-total">
-              <span className="text-secondary">Итого</span>
-              <strong>{compositeTitle}</strong>
-              <span className="meal-manual__composite-kcal">{formatMealCalories(compositeCalories)} ккал</span>
-            </div>
-          ) : null}
+        ) : (
+          <div className="meal-manual__body" role="tabpanel">
+            {components.length > 0 ? (
+              <>
+                <div className="meal-manual__selection">
+                  <p className="meal-manual__selection-label">В составе · {components.length}</p>
+                  <ul className="meal-manual__components">
+                    {components.map((item) => renderComponentRow(item, () => removeComponent(item.key)))}
+                  </ul>
+                </div>
+                <div className="meal-manual__composite-total">
+                  <span className="meal-manual__composite-total-label">Итого</span>
+                  <strong className="meal-manual__composite-title">{compositeTitle}</strong>
+                  <span className="meal-manual__composite-kcal">{formatMealCalories(compositeCalories)} ккал</span>
+                </div>
+              </>
+            ) : !searchOpen ? (
+              <p className="meal-manual__empty">Добавьте несколько блюд из базы — они сложатся в одну запись</p>
+            ) : null}
+          </div>
+        )}
         </div>
-      )}
+      </div>
 
-      {error ? <p className="auth-error meal-manual__error">{error}</p> : null}
-
-      <div className="meal-manual__actions">
-        <button
-          type="button"
-          className="btn btn-outline btn-outline--primary"
-          disabled={formBusy}
-          onClick={() => void handleSubmit()}
-        >
-          {formBusy ? "Сохраняем…" : "Записать"}
-        </button>
-        <button type="button" className="btn btn-outline btn-outline--muted" disabled={formBusy} onClick={onCancel}>
-          Отмена
-        </button>
+      <div className={`meal-manual__footer${searchOpen ? " meal-manual__footer--hidden" : ""}`}>
+        {error ? <p className="auth-error meal-manual__error">{error}</p> : null}
+        <div className="meal-manual__actions">
+          <button
+            type="button"
+            className="btn btn-outline btn-outline--primary meal-manual__submit"
+            disabled={formBusy}
+            onClick={() => void handleSubmit()}
+          >
+            {formBusy ? "Сохраняем…" : "Записать"}
+          </button>
+          <button type="button" className="btn btn-outline btn-outline--muted" disabled={formBusy} onClick={onCancel}>
+            Отмена
+          </button>
+        </div>
       </div>
     </div>
   );
