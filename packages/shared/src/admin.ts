@@ -29,12 +29,13 @@ export interface AdminCoach {
 
 export interface AdminAthlete {
   id: string;
-  user_id: string;
-  phone: string;
+  user_id: string | null;
+  phone: string | null;
   display_name: string;
   birth_date: string | null;
   timezone: string;
   is_active: boolean;
+  is_managed: boolean;
   coaches: LinkedCoachSummary[];
   created_at: string;
 }

@@ -5,16 +5,50 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 
+class MealDishCandidate(BaseModel):
+    logmeal_dish_id: int
+    name: str
+    name_en: str | None = None
+    confidence: float | None = None
+
+
 class MealDishPreview(BaseModel):
     name: str
     name_en: str | None = None
     logmeal_dish_id: int | None = None
+    food_item_position: int | str | None = None
     confidence: float | None = None
+    candidates: list[MealDishCandidate] = Field(default_factory=list)
     weight_g: float | None = None
     calories_kcal: float | None = None
     protein_g: float | None = None
     carbs_g: float | None = None
     fat_g: float | None = None
+
+
+class MealDishSearchItem(BaseModel):
+    logmeal_dish_id: int
+    name: str
+    name_en: str
+    portion_size_g: float | None = None
+    dish_type: str
+
+
+class MealDishSearchResponse(BaseModel):
+    items: list[MealDishSearchItem]
+    catalog_synced_at: datetime | None = None
+    catalog_dish_count: int = 0
+
+
+class MealConfirmItem(BaseModel):
+    food_item_position: int | str
+    logmeal_dish_id: int
+
+
+class MealConfirmRequest(BaseModel):
+    logmeal_image_id: int
+    segmentation: dict[str, Any]
+    items: list[MealConfirmItem] = Field(min_length=1)
 
 
 class MealAnalysisResponse(BaseModel):

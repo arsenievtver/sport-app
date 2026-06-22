@@ -11,3 +11,4 @@ export * from "./activity-load";
 export * from "./weight";
 export * from "./plan";
 export * from "./meals";
+export * from "./meal-catalog";

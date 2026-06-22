@@ -28,7 +28,11 @@ from app.schemas.athlete_meals import (
     AthleteMealEntryResponse,
     AthleteMealListResponse,
     MealAnalysisResponse,
+    MealConfirmRequest,
+    MealDishPreview,
+    MealDishSearchResponse,
 )
+from app.schemas.meal_catalog import MealCatalogStats
 from app.schemas.athlete_plan import (
     AthletePlanResponse,
     AthletePlanUpdateRequest,
@@ -249,6 +253,54 @@ async def analyze_meal_photo(
 
     image_bytes = await prepare_meal_photo(file)
     return await AthleteMealsService(db).analyze_photo(user.athlete_profile, image_bytes)
+
+
+@router.get("/meals/dishes/search", response_model=MealDishSearchResponse)
+async def search_meal_dishes(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    q: Annotated[str, Query(min_length=2, max_length=100)],
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> MealDishSearchResponse:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    return await AthleteMealsService(db).search_dishes(q, limit=limit)
+
+
+@router.get("/meals/catalog/stats", response_model=MealCatalogStats)
+async def get_meal_catalog_stats(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MealCatalogStats:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    return await AthleteMealsService(db).get_catalog_stats()
+
+
+@router.get("/meals/dishes/{logmeal_dish_id}/nutrition", response_model=MealDishPreview)
+async def get_meal_dish_nutrition(
+    logmeal_dish_id: int,
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MealDishPreview:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    return await AthleteMealsService(db).get_dish_nutrition(user.athlete_profile, logmeal_dish_id)
+
+
+@router.post("/meals/confirm", response_model=MealAnalysisResponse)
+async def confirm_meal_dishes(
+    data: MealConfirmRequest,
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MealAnalysisResponse:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    return await AthleteMealsService(db).confirm_dishes(user.athlete_profile, data)
 
 
 @router.post("/meals", response_model=AthleteMealEntryResponse, status_code=status.HTTP_201_CREATED)

@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.token_crypto import decrypt_secret, encrypt_secret
 from app.models.health import HealthConnection
 from app.models.user import AthleteProfile
-from app.schemas.athlete_meals import MealAnalysisResponse, MealDishPreview
+from app.schemas.athlete_meals import MealAnalysisResponse, MealDishCandidate, MealDishPreview
 
 LOGMEAL_PROVIDER = "logmeal"
 LOGMEAL_BASE_URL = "https://api.logmeal.com"
@@ -60,6 +60,16 @@ class LogMealService:
             return decrypt_secret(connection.access_token_encrypted)
 
         return await self._signup_api_user(profile)
+
+    async def _resolve_user_token(self, profile: AthleteProfile | None = None) -> str:
+        if settings.logmeal_api_user_token:
+            return settings.logmeal_api_user_token
+        if profile is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Нужен LOGMEAL_API_USER_TOKEN для операций с каталогом LogMeal",
+            )
+        return await self._ensure_api_user(profile)
 
     async def _signup_api_user(self, profile: AthleteProfile) -> str:
         company_key = self._require_company_token()
@@ -121,6 +131,91 @@ class LogMealService:
 
         return _build_analysis_response(segmentation, nutrition)
 
+    async def fetch_dish_dataset(self, profile: AthleteProfile | None = None) -> dict[str, Any]:
+        user_token = await self._resolve_user_token(profile)
+        language = settings.logmeal_language
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            try:
+                response = await client.get(
+                    f"{LOGMEAL_BASE_URL}/v2/dataset/dishes",
+                    params={"language": language},
+                    headers={"Authorization": f"Bearer {user_token}"},
+                )
+            except httpx.HTTPError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="Не удалось загрузить каталог блюд LogMeal",
+                ) from exc
+
+        if response.status_code >= 400:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=_logmeal_error_message(response, "LogMeal не вернул каталог блюд"),
+            )
+
+        data = response.json()
+        if not isinstance(data, dict):
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="LogMeal вернул неожиданный каталог блюд",
+            )
+        return data
+
+    async def confirm_dishes_and_refresh(
+        self,
+        profile: AthleteProfile,
+        *,
+        logmeal_image_id: int,
+        segmentation: dict[str, Any],
+        items: list[tuple[int | str, int]],
+    ) -> MealAnalysisResponse:
+        user_token = await self._ensure_api_user(profile)
+        language = settings.logmeal_language
+
+        payload = {
+            "imageId": logmeal_image_id,
+            "confirmedClass": [dish_id for _, dish_id in items],
+            "source": ["logmeal"] * len(items),
+            "food_item_position": [position for position, _ in items],
+        }
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            try:
+                response = await client.post(
+                    f"{LOGMEAL_BASE_URL}/v2/image/confirm/dish",
+                    params={"language": language},
+                    headers={
+                        "Authorization": f"Bearer {user_token}",
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                )
+            except httpx.HTTPError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="Не удалось подтвердить блюда в LogMeal",
+                ) from exc
+
+            if response.status_code >= 400:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=_logmeal_error_message(response, "LogMeal отклонил подтверждение блюд"),
+                )
+
+            nutrition = await self._post_nutrition(client, user_token, logmeal_image_id, language)
+
+        return _build_analysis_response(segmentation, nutrition)
+
+    async def get_nutrition_for_class_id(self, profile: AthleteProfile, class_id: int) -> MealDishPreview:
+        user_token = await self._ensure_api_user(profile)
+        language = settings.logmeal_language
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            nutrition = await self._post_nutrition_for_class(client, user_token, class_id, language)
+
+        return _dish_preview_from_class_nutrition(class_id, nutrition)
+
     async def _post_segmentation(
         self,
         client: httpx.AsyncClient,
@@ -162,6 +257,40 @@ class LogMealService:
         image_id: int,
         language: str,
     ) -> dict[str, Any]:
+        return await self._post_nutrition_payload(
+            client,
+            user_token,
+            {"imageId": image_id},
+            language,
+            "Не удалось получить питательность из LogMeal",
+            "LogMeal не вернул данные о питательности",
+        )
+
+    async def _post_nutrition_for_class(
+        self,
+        client: httpx.AsyncClient,
+        user_token: str,
+        class_id: int,
+        language: str,
+    ) -> dict[str, Any]:
+        return await self._post_nutrition_payload(
+            client,
+            user_token,
+            {"class_id": class_id},
+            language,
+            "Не удалось получить питательность блюда из LogMeal",
+            "LogMeal не вернул данные о блюде",
+        )
+
+    async def _post_nutrition_payload(
+        self,
+        client: httpx.AsyncClient,
+        user_token: str,
+        payload: dict[str, Any],
+        language: str,
+        transport_error: str,
+        api_error: str,
+    ) -> dict[str, Any]:
         try:
             response = await client.post(
                 f"{LOGMEAL_BASE_URL}/v2/nutrition/recipe/nutritionalInfo",
@@ -170,18 +299,18 @@ class LogMealService:
                     "Authorization": f"Bearer {user_token}",
                     "Content-Type": "application/json",
                 },
-                json={"imageId": image_id},
+                json=payload,
             )
         except httpx.HTTPError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Не удалось получить питательность из LogMeal",
+                detail=transport_error,
             ) from exc
 
         if response.status_code >= 400:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=_logmeal_error_message(response, "LogMeal не вернул данные о питательности"),
+                detail=_logmeal_error_message(response, api_error),
             )
 
         data = response.json()
@@ -261,6 +390,7 @@ def _build_analysis_response(segmentation: dict[str, Any], nutrition: dict[str, 
         portion_note=portion_note,
         raw={
             "logmeal_image_id": image_id if isinstance(image_id, int) else None,
+            "segmentation": segmentation,
             "segment_count": len(segmentation.get("segmentation_results") or [])
             if isinstance(segmentation.get("segmentation_results"), list)
             else 0,
@@ -331,6 +461,52 @@ def _nutrition_id_name_map(nutrition: dict[str, Any]) -> dict[int, str]:
     return result
 
 
+def _extract_candidates(results: list[Any]) -> list[MealDishCandidate]:
+    candidates: list[MealDishCandidate] = []
+    for item in results[:5]:
+        if not isinstance(item, dict):
+            continue
+        dish_id = item.get("id")
+        name = item.get("name")
+        if not isinstance(dish_id, int) or not isinstance(name, str) or not name.strip():
+            continue
+        prob = item.get("prob")
+        confidence = float(prob) if isinstance(prob, (int, float)) else None
+        candidates.append(
+            MealDishCandidate(
+                logmeal_dish_id=dish_id,
+                name=name.strip(),
+                name_en=name.strip(),
+                confidence=confidence,
+            ),
+        )
+    return candidates
+
+
+def _dish_preview_from_class_nutrition(class_id: int, nutrition: dict[str, Any]) -> MealDishPreview:
+    food_name = nutrition.get("foodName")
+    name = food_name.strip() if isinstance(food_name, str) and food_name.strip() else f"Dish {class_id}"
+    item_values = _item_nutrition_values(nutrition)
+    weight = item_values["weight_g"]
+    if weight is None:
+        top_level_weight = nutrition.get("serving_size")
+        if isinstance(top_level_weight, (int, float)) and top_level_weight > 0:
+            weight = float(top_level_weight)
+
+    return MealDishPreview(
+        name=name,
+        name_en=name,
+        logmeal_dish_id=class_id,
+        weight_g=round(weight, 1) if weight is not None else None,
+        calories_kcal=round(item_values["calories_kcal"], 1)
+        if item_values["calories_kcal"] is not None
+        else None,
+        protein_g=round(item_values["protein_g"], 1) if item_values["protein_g"] is not None else None,
+        carbs_g=round(item_values["carbs_g"], 1) if item_values["carbs_g"] is not None else None,
+        fat_g=round(item_values["fat_g"], 1) if item_values["fat_g"] is not None else None,
+    )
+
+
 def _dish_preview_from_parts(
     *,
     name: str,
@@ -338,6 +514,8 @@ def _dish_preview_from_parts(
     confidence: float | None,
     per_item: dict[str, Any],
     segment: dict[str, Any] | None = None,
+    food_item_position: int | str | None = None,
+    candidates: list[MealDishCandidate] | None = None,
 ) -> MealDishPreview:
     item_values = _item_nutrition_values(per_item)
     item_weight = item_values["weight_g"]
@@ -351,7 +529,9 @@ def _dish_preview_from_parts(
         name=name,
         name_en=name,
         logmeal_dish_id=logmeal_dish_id,
+        food_item_position=food_item_position,
         confidence=confidence,
+        candidates=candidates or [],
         weight_g=round(item_weight, 1) if item_weight is not None else None,
         calories_kcal=round(item_values["calories_kcal"], 1)
         if item_values["calories_kcal"] is not None
@@ -456,6 +636,8 @@ def _merge_dish_details(
             confidence=confidence,
             per_item=per_item,
             segment=segment,
+            food_item_position=position,
+            candidates=_extract_candidates(results),
         )
         if dish.weight_g is not None:
             per_item_weight_sum += dish.weight_g
@@ -479,6 +661,7 @@ def _merge_dish_details(
             logmeal_dish_id=logmeal_dish_id,
             confidence=None,
             per_item=per_item,
+            food_item_position=position,
         )
         if dish.weight_g is not None:
             per_item_weight_sum += dish.weight_g

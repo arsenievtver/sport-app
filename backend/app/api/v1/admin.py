@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -16,7 +16,10 @@ from app.schemas.admin import (
     CoachAthleteLinkCreate,
     CoachAthleteLinkResponse,
 )
+from app.schemas.meal_catalog import AdminMealCatalogStatusResponse
 from app.services.admin import AdminService
+from app.services.logmeal_catalog import LogMealCatalogService
+from app.services.logmeal_catalog_job import CatalogJobAlreadyRunningError, catalog_job_runner
 
 router = APIRouter(prefix="/admin")
 
@@ -103,3 +106,37 @@ async def delete_link(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> None:
     await AdminService(db).delete_link(link_id)
+
+
+@router.get("/meal-catalog/status", response_model=AdminMealCatalogStatusResponse)
+async def get_meal_catalog_status(
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AdminMealCatalogStatusResponse:
+    stats = await LogMealCatalogService(db).get_stats()
+    return AdminMealCatalogStatusResponse(job=catalog_job_runner.snapshot(), **stats.model_dump())
+
+
+async def _start_catalog_job(job_type: str) -> None:
+    try:
+        await catalog_job_runner.start(job_type)  # type: ignore[arg-type]
+    except CatalogJobAlreadyRunningError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Задача уже выполняется") from exc
+
+
+@router.post("/meal-catalog/sync", status_code=status.HTTP_202_ACCEPTED)
+async def start_meal_catalog_sync(_admin: AdminUser) -> dict[str, str]:
+    await _start_catalog_job("sync")
+    return {"status": "accepted"}
+
+
+@router.post("/meal-catalog/translate", status_code=status.HTTP_202_ACCEPTED)
+async def start_meal_catalog_translate(_admin: AdminUser) -> dict[str, str]:
+    await _start_catalog_job("translate")
+    return {"status": "accepted"}
+
+
+@router.post("/meal-catalog/refresh", status_code=status.HTTP_202_ACCEPTED)
+async def start_meal_catalog_refresh(_admin: AdminUser) -> dict[str, str]:
+    await _start_catalog_job("full")
+    return {"status": "accepted"}

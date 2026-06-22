@@ -39,12 +39,13 @@ class AdminCoachResponse(BaseModel):
 
 class AdminAthleteResponse(BaseModel):
     id: UUID
-    user_id: UUID
-    phone: str
+    user_id: UUID | None = None
+    phone: str | None = None
     display_name: str
     birth_date: date | None
     timezone: str
     is_active: bool
+    is_managed: bool = False
     coaches: list[LinkedCoachSummary]
     created_at: datetime
 

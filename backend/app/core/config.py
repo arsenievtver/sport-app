@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     yandex_translate_folder_id: str | None = None
     food_translation_source_lang: str = "en"
     food_translation_target_lang: str = "ru"
+    logmeal_catalog_sync_max_age_days: int = 7
 
 
 settings = Settings()

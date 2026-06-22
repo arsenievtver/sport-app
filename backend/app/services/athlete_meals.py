@@ -11,9 +11,14 @@ from app.schemas.athlete_meals import (
     AthleteMealEntryResponse,
     AthleteMealListResponse,
     MealAnalysisResponse,
+    MealConfirmRequest,
+    MealDishPreview,
+    MealDishSearchResponse,
 )
+from app.schemas.meal_catalog import MealCatalogStats
 from app.services.food_translation import FoodTranslationService
 from app.services.logmeal import LogMealService
+from app.services.logmeal_catalog import LogMealCatalogService
 
 MEAL_HISTORY_DAYS = 30
 MEAL_HISTORY_LIMIT = 200
@@ -56,6 +61,32 @@ class AthleteMealsService:
 
     async def analyze_photo(self, profile: AthleteProfile, image_bytes: bytes) -> MealAnalysisResponse:
         analysis = await LogMealService(self.db).analyze_photo(profile, image_bytes)
+        return await FoodTranslationService(self.db).localize_analysis(analysis)
+
+    async def search_dishes(
+        self,
+        query: str,
+        *,
+        limit: int = 20,
+    ) -> MealDishSearchResponse:
+        return await LogMealCatalogService(self.db).search(query, limit=limit)
+
+    async def get_catalog_stats(self) -> MealCatalogStats:
+        return await LogMealCatalogService(self.db).get_stats()
+
+    async def get_dish_nutrition(self, profile: AthleteProfile, logmeal_dish_id: int) -> MealDishPreview:
+        dish = await LogMealService(self.db).get_nutrition_for_class_id(profile, logmeal_dish_id)
+        localized = await FoodTranslationService(self.db).localize_dish_previews([dish])
+        return localized[0]
+
+    async def confirm_dishes(self, profile: AthleteProfile, data: MealConfirmRequest) -> MealAnalysisResponse:
+        items = [(item.food_item_position, item.logmeal_dish_id) for item in data.items]
+        analysis = await LogMealService(self.db).confirm_dishes_and_refresh(
+            profile,
+            logmeal_image_id=data.logmeal_image_id,
+            segmentation=data.segmentation,
+            items=items,
+        )
         return await FoodTranslationService(self.db).localize_analysis(analysis)
 
     async def create_entry(

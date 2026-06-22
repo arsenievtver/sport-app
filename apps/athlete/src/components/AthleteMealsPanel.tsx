@@ -1,6 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { analyzeAthleteMealPhoto, createAthleteMealEntry, fetchAthleteMeals } from "@sport-app/api-client";
-import type { AthleteMealEntry, MealAnalysisResult, MealDishEditorRow, MealNutritionBaseline } from "@sport-app/shared";
+import {
+  analyzeAthleteMealPhoto,
+  confirmAthleteMealDishes,
+  createAthleteMealEntry,
+  fetchAthleteMealCatalogStats,
+  fetchAthleteMealDishNutrition,
+  fetchAthleteMeals,
+} from "@sport-app/api-client";
+import type {
+  AthleteMealEntry,
+  MealAnalysisResult,
+  MealCatalogStats,
+  MealDishCandidate,
+  MealDishEditorRow,
+  MealDishSearchItem,
+  MealNutritionBaseline,
+} from "@sport-app/shared";
 import { WheelNumberPicker } from "@sport-app/ui";
 import {
   MEAL_ANALYSIS_LOADING_INTERVAL_MS,
@@ -9,15 +24,19 @@ import {
   compressMealPhoto,
   formatMealCalories,
   formatMealDateTime,
+  formatMealCatalogSyncedAt,
   formatMealMacroInput,
   formatMealWeightInput,
   isValidMealCalories,
+  mealConfirmItemsFromRows,
+  mealDishEditorRowFromPreview,
   mealDishEditorRowsFromAnalysis,
   mealDishRowNutrition,
   mealNutritionToFormInputs,
   parseMealNumberInput,
   sumMealDishRows,
 } from "@sport-app/shared";
+import { MealDishSearchPicker } from "./MealDishSearchPicker";
 
 type FormMode = "manual" | "ai" | "review";
 
@@ -109,6 +128,7 @@ function buildAiAnalysis(
         name: row.name,
         name_en: row.name_en ?? null,
         logmeal_dish_id: row.logmeal_dish_id ?? null,
+        food_item_position: row.food_item_position ?? null,
         weight_g: nutrition?.weight_g ?? null,
         calories_kcal: nutrition?.calories_kcal ?? null,
         protein_g: nutrition?.protein_g ?? null,
@@ -130,12 +150,67 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
   const [analysis, setAnalysis] = useState<MealAnalysisResult | null>(null);
   const [dishRows, setDishRows] = useState<MealDishEditorRow[]>([]);
   const [form, setForm] = useState<MealFormState>(EMPTY_FORM);
+  const [catalogStats, setCatalogStats] = useState<MealCatalogStats | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const analysisLoadingMessage = useRotatingMessage(
     MEAL_ANALYSIS_LOADING_MESSAGES,
     analyzing,
     MEAL_ANALYSIS_LOADING_INTERVAL_MS,
   );
+
+  const applyAnalysisResult = useCallback((result: MealAnalysisResult) => {
+    const rows = mealDishEditorRowsFromAnalysis(result.dishes);
+    setAnalysis(result);
+    setDishRows(rows);
+    setForm(formFromAnalysis(result, rows));
+  }, []);
+
+  const confirmAndApply = useCallback(
+    async (rows: MealDishEditorRow[]) => {
+      if (!analysis?.logmeal_image_id) {
+        applyDishRows(rows);
+        return;
+      }
+
+      const segmentation = analysis.raw?.segmentation;
+      if (!segmentation || typeof segmentation !== "object") {
+        applyDishRows(rows);
+        return;
+      }
+
+      const items = mealConfirmItemsFromRows(rows);
+      if (items.length === 0) {
+        applyDishRows(rows);
+        return;
+      }
+
+      setBusy(true);
+      setError(null);
+      try {
+        const result = await confirmAthleteMealDishes({
+          logmeal_image_id: analysis.logmeal_image_id,
+          segmentation: segmentation as Record<string, unknown>,
+          items,
+        });
+        applyAnalysisResult(result);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Не удалось обновить состав блюда");
+        applyDishRows(rows);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [analysis, applyAnalysisResult],
+  );
+
+  const loadCatalogStats = useCallback(async () => {
+    try {
+      const stats = await fetchAthleteMealCatalogStats();
+      setCatalogStats(stats);
+    } catch {
+      setCatalogStats(null);
+    }
+  }, []);
 
   const loadEntries = useCallback(async () => {
     setLoading(true);
@@ -152,7 +227,8 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
 
   useEffect(() => {
     void loadEntries();
-  }, [loadEntries]);
+    void loadCatalogStats();
+  }, [loadEntries, loadCatalogStats]);
 
   const applyDishRows = (rows: MealDishEditorRow[]) => {
     setDishRows(rows);
@@ -191,10 +267,7 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
     try {
       const compressed = await compressMealPhoto(file);
       const result = await analyzeAthleteMealPhoto(compressed);
-      const rows = mealDishEditorRowsFromAnalysis(result.dishes);
-      setAnalysis(result);
-      setDishRows(rows);
-      setForm(formFromAnalysis(result, rows));
+      applyAnalysisResult(result);
       setMode("review");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось распознать фото");
@@ -213,6 +286,87 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
       row.key === key ? { ...row, weightInput: formatMealWeightInput(weightG) } : row,
     );
     applyDishRows(nextRows);
+  };
+
+  const handlePickCandidate = async (rowKey: string, candidate: MealDishCandidate) => {
+    const nextRows = dishRows.map((row) =>
+      row.key === rowKey
+        ? {
+            ...row,
+            name: candidate.name,
+            name_en: candidate.name_en ?? candidate.name,
+            logmeal_dish_id: candidate.logmeal_dish_id,
+          }
+        : row,
+    );
+    await confirmAndApply(nextRows);
+  };
+
+  const handleReplaceDishFromSearch = async (rowKey: string, item: MealDishSearchItem) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const dish = await fetchAthleteMealDishNutrition(item.logmeal_dish_id);
+      const nextRows = dishRows.map((row) => {
+        if (row.key !== rowKey) return row;
+        const updated = mealDishEditorRowFromPreview(
+          {
+            ...dish,
+            food_item_position: row.food_item_position,
+            candidates: row.candidates,
+          },
+          0,
+        );
+        return updated ? { ...updated, key: row.key } : row;
+      });
+      await confirmAndApply(nextRows);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось загрузить блюдо");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleAddDishComponent = async (item: MealDishSearchItem) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const dish = await fetchAthleteMealDishNutrition(item.logmeal_dish_id);
+      const newRow = mealDishEditorRowFromPreview(
+        {
+          ...dish,
+          food_item_position: `added-${Date.now()}`,
+        },
+        dishRows.length,
+      );
+      if (!newRow) return;
+      await confirmAndApply([...dishRows, newRow]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось добавить компонент");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleManualDishPick = async (item: MealDishSearchItem) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const dish = await fetchAthleteMealDishNutrition(item.logmeal_dish_id);
+      const row = mealDishEditorRowFromPreview(dish, 0);
+      if (!row) return;
+      applyDishRows([row]);
+      setForm({
+        title: dish.name,
+        ...mealNutritionToFormInputs(row.baseline),
+        source: "manual",
+        logmealImageId: null,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось загрузить блюдо");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleSave = async () => {
@@ -250,6 +404,12 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
 
   const renderManualFields = () => (
     <div className="meal-panel__fields">
+      <MealDishSearchPicker
+        label="Найти в базе блюд"
+        disabled={busy || analyzing}
+        onSelect={(item) => void handleManualDishPick(item)}
+      />
+      <p className="meal-panel__hint text-secondary">или введите вручную</p>
       <label className="meal-panel__field">
         <span className="meal-panel__label text-secondary">Блюдо</span>
         <input
@@ -344,6 +504,9 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
         <ul className="meal-panel__dish-list">
           {dishRows.map((row) => {
             const nutrition = mealDishRowNutrition(row);
+            const otherCandidates = (row.candidates ?? []).filter(
+              (candidate) => candidate.logmeal_dish_id !== row.logmeal_dish_id,
+            );
             return (
               <li key={row.key} className="meal-panel__dish-row">
                 <div className="meal-panel__dish-main">
@@ -352,6 +515,30 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
                     {nutrition ? `${formatMealCalories(nutrition.calories_kcal)} ккал` : "—"}
                   </span>
                 </div>
+                {otherCandidates.length > 0 ? (
+                  <div className="meal-panel__dish-candidates">
+                    <span className="meal-panel__dish-candidates-label text-secondary">Варианты ИИ:</span>
+                    <div className="meal-panel__dish-candidates-list">
+                      {otherCandidates.map((candidate) => (
+                        <button
+                          key={candidate.logmeal_dish_id}
+                          type="button"
+                          className="meal-panel__dish-candidate"
+                          disabled={busy || analyzing}
+                          onClick={() => void handlePickCandidate(row.key, candidate)}
+                        >
+                          {candidate.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                <MealDishSearchPicker
+                  label="Заменить на другое из базы"
+                  placeholder="поиск…"
+                  disabled={busy || analyzing}
+                  onSelect={(item) => void handleReplaceDishFromSearch(row.key, item)}
+                />
                 <WheelNumberPicker
                   value={dishRowWeightG(row)}
                   onChange={(weightG) => handleDishWeightChange(row.key, weightG)}
@@ -366,6 +553,16 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
             );
           })}
         </ul>
+        {analysis?.logmeal_image_id ? (
+          <div className="meal-panel__add-dish">
+            <MealDishSearchPicker
+              label="Добавить компонент из базы"
+              placeholder="что ещё на тарелке?"
+              disabled={busy || analyzing}
+              onSelect={(item) => void handleAddDishComponent(item)}
+            />
+          </div>
+        ) : null}
       </div>
 
       {totals ? (
@@ -392,17 +589,38 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
       {!embedded ? (
         <div className="meal-panel__header">
           <h2 className="meal-panel__title">Питание</h2>
+          <div className="meal-panel__header-side">
+            {catalogStats ? (
+              <p className="meal-panel__catalog-stat text-secondary">
+                В базе: <strong>{catalogStats.dish_count}</strong> блюд
+                {catalogStats.search_ready ? (
+                  <span> · обновлено {formatMealCatalogSyncedAt(catalogStats.synced_at)}</span>
+                ) : (
+                  <span> · поиск пока недоступен</span>
+                )}
+              </p>
+            ) : null}
+            {entries.length > 0 ? (
+              <p className="meal-panel__today text-secondary">
+                Последняя запись: <strong>{formatMealCalories(entries[0].calories_kcal)} ккал</strong>
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : (
+        <div className="meal-panel__embedded-meta">
+          {catalogStats ? (
+            <p className="meal-panel__catalog-stat text-secondary">
+              В базе: <strong>{catalogStats.dish_count}</strong> блюд
+            </p>
+          ) : null}
           {entries.length > 0 ? (
             <p className="meal-panel__today text-secondary">
               Последняя запись: <strong>{formatMealCalories(entries[0].calories_kcal)} ккал</strong>
             </p>
           ) : null}
         </div>
-      ) : entries.length > 0 ? (
-        <p className="meal-panel__today text-secondary">
-          Последняя запись: <strong>{formatMealCalories(entries[0].calories_kcal)} ккал</strong>
-        </p>
-      ) : null}
+      )}
 
       {loading ? <p className="text-muted">Загрузка…</p> : null}
 

@@ -58,3 +58,22 @@ export async function updateAthlete(id: string, payload: AdminAthleteUpdatePaylo
 export async function deleteAthlete(id: string): Promise<void> {
   await authenticatedFetchOk(`/admin/athletes/${id}`, { method: "DELETE" });
 }
+
+export async function fetchAdminMealCatalogStatus(): Promise<
+  import("@sport-app/shared").AdminMealCatalogStatus
+> {
+  const res = await authenticatedFetchOk("/admin/meal-catalog/status");
+  return res.json() as Promise<import("@sport-app/shared").AdminMealCatalogStatus>;
+}
+
+export async function startAdminMealCatalogSync(): Promise<void> {
+  await authenticatedFetchOk("/admin/meal-catalog/sync", { method: "POST" });
+}
+
+export async function startAdminMealCatalogTranslate(): Promise<void> {
+  await authenticatedFetchOk("/admin/meal-catalog/translate", { method: "POST" });
+}
+
+export async function startAdminMealCatalogRefresh(): Promise<void> {
+  await authenticatedFetchOk("/admin/meal-catalog/refresh", { method: "POST" });
+}

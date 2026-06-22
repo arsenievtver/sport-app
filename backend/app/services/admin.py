@@ -142,9 +142,9 @@ class AdminService:
             profile.birth_date = data.birth_date
         if data.timezone is not None:
             profile.timezone = data.timezone
-        if data.is_active is not None:
+        if data.is_active is not None and profile.user is not None:
             profile.user.is_active = data.is_active
-        if data.pin is not None:
+        if data.pin is not None and profile.user is not None:
             profile.user.password_hash = hash_pin(data.pin)
         if data.coach_ids is not None:
             await self._sync_athlete_coaches(athlete_id, data.coach_ids)
@@ -155,7 +155,8 @@ class AdminService:
         profile = await self._get_athlete_profile(athlete_id)
         user = profile.user
         await self.db.delete(profile)
-        await self._remove_role(user, UserRole.athlete)
+        if user is not None:
+            await self._remove_role(user, UserRole.athlete)
 
     async def create_link(self, data: CoachAthleteLinkCreate) -> CoachAthleteLinkResponse:
         await self._get_coach_profile(data.coach_id)
@@ -320,6 +321,8 @@ class AdminService:
 
     @staticmethod
     def _athlete_to_response(profile: AthleteProfile) -> AdminAthleteResponse:
+        user = profile.user
+        is_managed = profile.user_id is None
         coaches = [
             LinkedCoachSummary(
                 link_id=link.id,
@@ -332,11 +335,12 @@ class AdminService:
         return AdminAthleteResponse(
             id=profile.id,
             user_id=profile.user_id,
-            phone=profile.user.phone,
+            phone=user.phone if user is not None else None,
             display_name=profile.display_name,
             birth_date=profile.birth_date,
             timezone=profile.timezone,
-            is_active=profile.user.is_active,
+            is_active=user.is_active if user is not None else False,
+            is_managed=is_managed,
             coaches=coaches,
             created_at=profile.created_at,
         )

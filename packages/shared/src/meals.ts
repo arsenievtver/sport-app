@@ -17,11 +17,20 @@ export const MEAL_ANALYSIS_LOADING_MESSAGES = [
 
 export const MEAL_ANALYSIS_LOADING_INTERVAL_MS = 2800;
 
+export interface MealDishCandidate {
+  logmeal_dish_id: number;
+  name: string;
+  name_en?: string | null;
+  confidence?: number | null;
+}
+
 export interface MealDishPreview {
   name: string;
   name_en?: string | null;
   logmeal_dish_id?: number | null;
+  food_item_position?: number | string | null;
   confidence?: number | null;
+  candidates?: MealDishCandidate[];
   weight_g?: number | null;
   calories_kcal?: number | null;
   protein_g?: number | null;
@@ -29,11 +38,38 @@ export interface MealDishPreview {
   fat_g?: number | null;
 }
 
+export interface MealDishSearchItem {
+  logmeal_dish_id: number;
+  name: string;
+  name_en: string;
+  portion_size_g?: number | null;
+  dish_type: string;
+}
+
+export interface MealDishSearchResult {
+  items: MealDishSearchItem[];
+  catalog_synced_at?: string | null;
+  catalog_dish_count?: number;
+}
+
+export interface MealConfirmItem {
+  food_item_position: number | string;
+  logmeal_dish_id: number;
+}
+
+export interface MealConfirmPayload {
+  logmeal_image_id: number;
+  segmentation: Record<string, unknown>;
+  items: MealConfirmItem[];
+}
+
 export interface MealDishEditorRow {
   key: string;
   name: string;
   name_en?: string | null;
   logmeal_dish_id?: number | null;
+  food_item_position?: number | string | null;
+  candidates?: MealDishCandidate[];
   weightInput: string;
   baseline: MealNutritionBaseline;
 }
@@ -189,6 +225,8 @@ export function mealDishEditorRowFromPreview(dish: MealDishPreview, index: numbe
     name,
     name_en: dish.name_en ?? dish.name,
     logmeal_dish_id: dish.logmeal_dish_id ?? null,
+    food_item_position: dish.food_item_position ?? null,
+    candidates: dish.candidates ?? [],
     weightInput: formatMealWeightInput(weight_g),
     baseline: {
       weight_g,
@@ -266,6 +304,18 @@ export function mealNutritionToFormInputs(nutrition: MealNutritionBaseline): {
     carbsInput: formatMealMacroInput(nutrition.carbs_g),
     fatInput: formatMealMacroInput(nutrition.fat_g),
   };
+}
+
+export function mealConfirmItemsFromRows(rows: MealDishEditorRow[]): MealConfirmItem[] {
+  return rows
+    .filter(
+      (row): row is MealDishEditorRow & { logmeal_dish_id: number; food_item_position: number | string } =>
+        row.logmeal_dish_id != null && row.food_item_position != null,
+    )
+    .map((row) => ({
+      food_item_position: row.food_item_position,
+      logmeal_dish_id: row.logmeal_dish_id,
+    }));
 }
 
 export async function compressMealPhoto(file: File, maxSide = 1280, quality = 0.82): Promise<Blob> {

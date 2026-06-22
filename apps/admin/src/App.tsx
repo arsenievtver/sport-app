@@ -3,6 +3,7 @@ import { ROLE_LABELS } from "@sport-app/shared";
 import { AuthScreen, useAuthSession } from "@sport-app/ui";
 
 import { AdminLayout, type AdminPage } from "./components/AdminLayout";
+import { MealCatalogPage } from "./components/MealCatalogPage";
 import { UsersPage } from "./components/UsersPage";
 import "./admin.css";
 
@@ -35,16 +36,28 @@ export default function App() {
     );
   }
 
+  const pageMeta =
+    page === "meal-catalog"
+      ? {
+          title: "Каталог блюд",
+          subtitle: "Синхронизация LogMeal, перевод и готовность поиска для атлетов",
+        }
+      : {
+          title: "Пользователи",
+          subtitle: "Тренеры, атлеты и связи между ними",
+        };
+
   return (
     <AdminLayout
       page={page}
       onNavigate={setPage}
       phone={user.phone}
       onLogout={logout}
-      title="Пользователи"
-      subtitle="Тренеры, атлеты и связи между ними"
+      title={pageMeta.title}
+      subtitle={pageMeta.subtitle}
     >
       {page === "users" && <UsersPage />}
+      {page === "meal-catalog" && <MealCatalogPage />}
     </AdminLayout>
   );
 }

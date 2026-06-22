@@ -73,7 +73,7 @@ export function AthletesTab() {
 
   const openEdit = (athlete: AdminAthlete) => {
     setForm({
-      phone: athlete.phone,
+      phone: athlete.phone ?? "",
       pin: "",
       display_name: athlete.display_name,
       birth_date: athlete.birth_date ?? "",
@@ -204,10 +204,22 @@ export function AthletesTab() {
                       </div>
                     )}
                   </td>
-                  <td>{formatPhoneDisplay(athlete.phone)}</td>
+                  <td>
+                    {athlete.is_managed || !athlete.phone ? (
+                      <span className="text-muted" title="Создан тренером, без входа в приложение">
+                        без приложения
+                      </span>
+                    ) : (
+                      formatPhoneDisplay(athlete.phone)
+                    )}
+                  </td>
                   <td>{athlete.timezone}</td>
                   <td>
-                    <StatusBadge ok={athlete.is_active} label={athlete.is_active ? "Активен" : "Неактивен"} />
+                    {athlete.is_managed ? (
+                      <StatusBadge ok label="У тренера" />
+                    ) : (
+                      <StatusBadge ok={athlete.is_active} label={athlete.is_active ? "Активен" : "Неактивен"} />
+                    )}
                   </td>
                   <td>
                     {athlete.coaches.length === 0 ? (
@@ -257,12 +269,18 @@ export function AthletesTab() {
               <>
                 <div className="admin-field">
                   <label>Телефон</label>
-                  <input type="text" value={formatPhoneDisplay(form.phone)} disabled />
+                  <input
+                    type="text"
+                    value={form.phone ? formatPhoneDisplay(form.phone) : "без приложения"}
+                    disabled
+                  />
                 </div>
-                <div className="admin-field">
-                  <label htmlFor="athlete-pin-edit">Новый PIN (необязательно)</label>
-                  <PinInput id="athlete-pin-edit" value={form.pin} onChange={(pin) => setForm((f) => ({ ...f, pin }))} />
-                </div>
+                {!editingId || athletes.find((item) => item.id === editingId)?.is_managed ? null : (
+                  <div className="admin-field">
+                    <label htmlFor="athlete-pin-edit">Новый PIN (необязательно)</label>
+                    <PinInput id="athlete-pin-edit" value={form.pin} onChange={(pin) => setForm((f) => ({ ...f, pin }))} />
+                  </div>
+                )}
               </>
             )}
 
@@ -297,7 +315,7 @@ export function AthletesTab() {
               />
             </div>
 
-            {formMode === "edit" && (
+            {formMode === "edit" && editingId && !athletes.find((item) => item.id === editingId)?.is_managed && (
               <div className="admin-field admin-field--checkbox">
                 <label>
                   <input
