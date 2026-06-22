@@ -13,6 +13,7 @@ from app.schemas.athlete_plan import (
     AthleteWeekProgressMetric,
     AthleteWeekProgressResponse,
 )
+from app.services.activity_load import clamp_activity_effort
 from app.services.activity_tier import get_tier_spec, resolve_activity_tier
 from app.services.athlete_weight import AthleteWeightService
 from app.services.baseline_calories import (
@@ -48,6 +49,10 @@ def _progress_percent(actual: float, target: float) -> int:
 COMPLETION_WEIGHT_WORKOUTS = 0.50
 COMPLETION_WEIGHT_CALORIES = 0.25
 COMPLETION_WEIGHT_ACTIVITY = 0.25
+
+# Per-session reference for 100% resultative score (matches ACTIVITY_EFFORT_DEFAULT in shared).
+RESULTATIVE_SESSION_FULL_DURATION_MIN = 60
+RESULTATIVE_SESSION_TARGET_EFFORT = 5
 
 
 def _completion_percent(workouts_pct: int, calories_pct: int, activity_pct: int) -> int:
@@ -149,15 +154,11 @@ class AthletePlanService:
         activity_pct = _progress_percent(daily_actual_activity_min, daily_target_activity_min)
 
         count_pct = _progress_percent(workouts_completed, workouts_target)
-        workouts_pct = self._workouts_quality_percent(
+        workouts_pct = self._workouts_progress_percent(
             workouts_completed=workouts_completed,
             workouts_target=workouts_target,
             count_pct=count_pct,
-            workout_kcal_total=workout_kcal_total,
-            workout_min_total=workout_min_total,
-            target_daily_kcal=target_daily_kcal,
-            sedentary_daily=sedentary_daily,
-            target_weekly_activity_min=plan.target_weekly_activity_min,
+            entries=entries,
         )
 
         completion = _completion_percent(workouts_pct, calories_pct, activity_pct)
@@ -211,40 +212,50 @@ class AthletePlanService:
         return list(result.scalars().all())
 
     @staticmethod
-    def _workouts_quality_percent(
+    def _session_resultative_percent(duration_min: int | None, effort: int | None) -> int:
+        """60 min + medium effort (5/10) = 100%; duration and effort contribute equally."""
+        if duration_min is None or duration_min <= 0:
+            return 0
+
+        duration_score = min(
+            100,
+            round(duration_min / RESULTATIVE_SESSION_FULL_DURATION_MIN * 100),
+        )
+        effort_value = (
+            RESULTATIVE_SESSION_TARGET_EFFORT
+            if effort is None
+            else clamp_activity_effort(effort)
+        )
+        effort_score = min(
+            100,
+            round(effort_value / RESULTATIVE_SESSION_TARGET_EFFORT * 100),
+        )
+        return round((duration_score + effort_score) / 2)
+
+    @staticmethod
+    def _sessions_resultative_percent(entries: list[CoachAthleteSessionEntry]) -> int:
+        scores: list[int] = []
+        for entry in entries:
+            score = AthletePlanService._session_resultative_percent(entry.duration_min, entry.effort)
+            scores.extend([score] * max(1, entry.sessions_count))
+        if not scores:
+            return 0
+        return round(sum(scores) / len(scores))
+
+    @staticmethod
+    def _workouts_progress_percent(
         *,
         workouts_completed: int,
         workouts_target: int,
         count_pct: int,
-        workout_kcal_total: float,
-        workout_min_total: int,
-        target_daily_kcal: float,
-        sedentary_daily: float,
-        target_weekly_activity_min: int,
+        entries: list[CoachAthleteSessionEntry],
     ) -> int:
-        """Count alone is not enough — weak sessions lower plan adherence."""
         if workouts_completed <= 0 or workouts_target <= 0:
             return 0
 
-        weekly_active_kcal_target = max(0.0, (target_daily_kcal - sedentary_daily) * 7)
-        expected_kcal_per_session = weekly_active_kcal_target / workouts_target
-        expected_min_per_session = target_weekly_activity_min / workouts_target
-
-        avg_kcal = workout_kcal_total / workouts_completed
-        avg_min = workout_min_total / workouts_completed
-
-        quality_parts: list[int] = []
-        if expected_kcal_per_session > 0:
-            quality_parts.append(_progress_percent(avg_kcal, expected_kcal_per_session))
-        if expected_min_per_session > 0:
-            quality_parts.append(_progress_percent(avg_min, expected_min_per_session))
-
-        session_quality_pct = (
-            round(sum(quality_parts) / len(quality_parts)) if quality_parts else count_pct
-        )
+        session_quality_pct = AthletePlanService._sessions_resultative_percent(entries)
 
         if workouts_completed >= workouts_target:
             return min(count_pct, session_quality_pct)
 
-        # Partial week: blend progress toward count with session quality so far.
         return round(count_pct * 0.5 + session_quality_pct * 0.5)
