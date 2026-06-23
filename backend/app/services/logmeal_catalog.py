@@ -12,7 +12,7 @@ from fastapi import HTTPException, status
 
 from app.core.config import settings
 from app.models.logmeal_dish_catalog import LogMealCatalogSync, LogMealDishCatalog
-from app.schemas.athlete_meals import MealDishSearchItem, MealDishSearchResponse
+from app.schemas.athlete_meals import MealDishPreview, MealDishSearchItem, MealDishSearchResponse
 from app.schemas.meal_catalog import AdminMealCatalogDishUpdate, MealCatalogStats
 from app.services.food_translation import FoodTranslationService, LOGMEAL_SOURCE
 from app.services.logmeal import LogMealService
@@ -25,6 +25,24 @@ ADMIN_CATALOG_PAGE_SIZE_DEFAULT = 100
 ADMIN_CATALOG_PAGE_SIZE_MAX = 100
 
 ProgressCallback = Callable[[str, int, int, str], Awaitable[None] | None]
+
+
+def _parse_catalog_portion_size(value: object) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        parsed = float(value)
+        return parsed if parsed > 0 else None
+    if isinstance(value, str):
+        trimmed = value.strip().replace(",", ".")
+        if not trimmed:
+            return None
+        try:
+            parsed = float(trimmed)
+        except ValueError:
+            return None
+        return parsed if parsed > 0 else None
+    return None
 
 
 class LogMealCatalogService:
@@ -83,6 +101,37 @@ class LogMealCatalogService:
             .limit(page_size),
         )
         return list(result.scalars().all()), total
+
+    async def get_cached_dish_nutrition(self, logmeal_id: int) -> MealDishPreview | None:
+        result = await self.db.execute(
+            select(LogMealDishCatalog).where(
+                LogMealDishCatalog.logmeal_id == logmeal_id,
+                LogMealDishCatalog.dish_type.in_(CATALOG_DISH_TYPES),
+            ),
+        )
+        row = result.scalar_one_or_none()
+        if row is None or not _has_nutrition_cache(row):
+            return None
+        return _dish_preview_from_catalog_cache(row)
+
+    async def save_dish_nutrition_cache(self, logmeal_id: int, dish: MealDishPreview) -> None:
+        if dish.calories_kcal is None:
+            return
+
+        result = await self.db.execute(
+            select(LogMealDishCatalog).where(LogMealDishCatalog.logmeal_id == logmeal_id),
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            return
+
+        row.cached_weight_g = dish.weight_g
+        row.cached_calories_kcal = dish.calories_kcal
+        row.cached_protein_g = dish.protein_g
+        row.cached_carbs_g = dish.carbs_g
+        row.cached_fat_g = dish.fat_g
+        row.nutrition_cached_at = datetime.now(UTC)
+        await self.db.flush()
 
     async def update_dish_admin(
         self,
@@ -182,8 +231,7 @@ class LogMealCatalogService:
                 name = item.get("name")
                 if not isinstance(dish_id, int) or not isinstance(name, str) or not name.strip():
                     continue
-                portion = item.get("portion_size")
-                portion_size = float(portion) if isinstance(portion, (int, float)) else None
+                portion_size = _parse_catalog_portion_size(item.get("portion_size"))
                 entries.append((dish_id, name.strip(), portion_size, dish_type))
 
         total = len(entries)
@@ -300,6 +348,7 @@ class LogMealCatalogService:
             existing.dish_type = dish_type
             if existing.name_ru is not None:
                 existing.name_ru = None
+            _clear_nutrition_cache(existing)
             return True
 
         self.db.add(
@@ -369,9 +418,36 @@ class LogMealCatalogService:
             logmeal_dish_id=row.logmeal_id,
             name=display_name,
             name_en=row.name_en,
-            portion_size_g=row.portion_size_g,
+            portion_size_g=row.portion_size_g or row.cached_weight_g,
             dish_type=row.dish_type,
         )
+
+
+def _has_nutrition_cache(row: LogMealDishCatalog) -> bool:
+    return row.nutrition_cached_at is not None and row.cached_calories_kcal is not None
+
+
+def _clear_nutrition_cache(row: LogMealDishCatalog) -> None:
+    row.cached_weight_g = None
+    row.cached_calories_kcal = None
+    row.cached_protein_g = None
+    row.cached_carbs_g = None
+    row.cached_fat_g = None
+    row.nutrition_cached_at = None
+
+
+def _dish_preview_from_catalog_cache(row: LogMealDishCatalog) -> MealDishPreview:
+    display_name = row.name_ru or row.name_en
+    return MealDishPreview(
+        name=display_name,
+        name_en=row.name_en,
+        logmeal_dish_id=row.logmeal_id,
+        weight_g=row.cached_weight_g,
+        calories_kcal=row.cached_calories_kcal,
+        protein_g=row.cached_protein_g,
+        carbs_g=row.cached_carbs_g,
+        fat_g=row.cached_fat_g,
+    )
 
 
 async def _notify(

@@ -16,6 +16,12 @@ class LogMealDishCatalog(Base, TimestampMixin):
     name_ru: Mapped[str | None] = mapped_column(String(500))
     portion_size_g: Mapped[float | None] = mapped_column(Float)
     dish_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    cached_weight_g: Mapped[float | None] = mapped_column(Float)
+    cached_calories_kcal: Mapped[float | None] = mapped_column(Float)
+    cached_protein_g: Mapped[float | None] = mapped_column(Float)
+    cached_carbs_g: Mapped[float | None] = mapped_column(Float)
+    cached_fat_g: Mapped[float | None] = mapped_column(Float)
+    nutrition_cached_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class LogMealCatalogSync(Base):

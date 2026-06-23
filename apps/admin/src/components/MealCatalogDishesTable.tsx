@@ -174,6 +174,13 @@ export function MealCatalogDishesTable({ refreshKey = 0, onDataChanged }: MealCa
 
       <p className="admin-catalog__table-meta text-secondary">
         {loading ? "Загрузка…" : `Показано ${items.length} из ${total} · страница ${page} из ${totalPages}`}
+        {!loading ? (
+          <span className="admin-catalog__table-note">
+            {" "}
+            · Порция — справочный размер из LogMeal при синхронизации; если пусто, задайте вручную или смотрите вес
+            при выборе блюда у атлета
+          </span>
+        ) : null}
       </p>
 
       <div className="admin-table-wrap">

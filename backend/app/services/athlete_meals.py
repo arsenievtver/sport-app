@@ -75,7 +75,14 @@ class AthleteMealsService:
         return await LogMealCatalogService(self.db).get_stats()
 
     async def get_dish_nutrition(self, profile: AthleteProfile, logmeal_dish_id: int) -> MealDishPreview:
+        catalog = LogMealCatalogService(self.db)
+        cached = await catalog.get_cached_dish_nutrition(logmeal_dish_id)
+        if cached is not None:
+            localized = await FoodTranslationService(self.db).localize_dish_previews([cached])
+            return localized[0]
+
         dish = await LogMealService(self.db).get_nutrition_for_class_id(profile, logmeal_dish_id)
+        await catalog.save_dish_nutrition_cache(logmeal_dish_id, dish)
         localized = await FoodTranslationService(self.db).localize_dish_previews([dish])
         return localized[0]
 
