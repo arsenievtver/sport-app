@@ -16,7 +16,12 @@ from app.schemas.admin import (
     CoachAthleteLinkCreate,
     CoachAthleteLinkResponse,
 )
-from app.schemas.meal_catalog import AdminMealCatalogStatusResponse
+from app.schemas.meal_catalog import (
+    AdminMealCatalogDish,
+    AdminMealCatalogDishListResponse,
+    AdminMealCatalogDishUpdate,
+    AdminMealCatalogStatusResponse,
+)
 from app.services.admin import AdminService
 from app.services.logmeal_catalog import LogMealCatalogService
 from app.services.logmeal_catalog_job import CatalogJobAlreadyRunningError, catalog_job_runner
@@ -115,6 +120,45 @@ async def get_meal_catalog_status(
 ) -> AdminMealCatalogStatusResponse:
     stats = await LogMealCatalogService(db).get_stats()
     return AdminMealCatalogStatusResponse(job=catalog_job_runner.snapshot(), **stats.model_dump())
+
+
+@router.get("/meal-catalog/dishes", response_model=AdminMealCatalogDishListResponse)
+async def list_meal_catalog_dishes(
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    page: int = 1,
+    page_size: int = 100,
+    q: str | None = None,
+) -> AdminMealCatalogDishListResponse:
+    rows, total = await LogMealCatalogService(db).list_dishes_admin(page=page, page_size=page_size, query=q)
+    return AdminMealCatalogDishListResponse(
+        items=[AdminMealCatalogDish.model_validate(row) for row in rows],
+        total=total,
+        page=max(1, page),
+        page_size=min(100, max(1, page_size)),
+    )
+
+
+@router.patch("/meal-catalog/dishes/{logmeal_id}", response_model=AdminMealCatalogDish)
+async def update_meal_catalog_dish(
+    logmeal_id: int,
+    data: AdminMealCatalogDishUpdate,
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AdminMealCatalogDish:
+    if not data.model_dump(exclude_unset=True):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нет полей для обновления")
+    row = await LogMealCatalogService(db).update_dish_admin(logmeal_id, data)
+    return AdminMealCatalogDish.model_validate(row)
+
+
+@router.delete("/meal-catalog/dishes/{logmeal_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_meal_catalog_dish(
+    logmeal_id: int,
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    await LogMealCatalogService(db).delete_dish_admin(logmeal_id)
 
 
 async def _start_catalog_job(job_type: str) -> None:

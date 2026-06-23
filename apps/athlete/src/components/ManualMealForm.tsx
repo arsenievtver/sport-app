@@ -1,12 +1,30 @@
 import { useState } from "react";
 import { fetchAthleteMealDishNutrition } from "@sport-app/api-client";
-import type { MealDishSearchItem } from "@sport-app/shared";
-import { formatMealCalories, formatMealWeightInput, isValidMealCalories } from "@sport-app/shared";
+import type { MealDishSearchItem, MealNutritionBaseline } from "@sport-app/shared";
+import {
+  MEAL_DISH_FALLBACK_WEIGHT_G,
+  formatMealCalories,
+  formatMealWeightInput,
+  isValidMealCalories,
+  parseMealNumberInput,
+  scaleMealNutritionByWeight,
+} from "@sport-app/shared";
+import { WheelNumberPicker } from "@sport-app/ui";
 import { MealDishSearchPicker } from "./MealDishSearchPicker";
 
 type ManualMealTab = "simple" | "composite";
 
+const MAX_DISH_WEIGHT_G = 2000;
+
 export interface ManualMealComponent {
+  key: string;
+  name: string;
+  logmeal_dish_id: number | null;
+  weightInput: string;
+  baseline: MealNutritionBaseline;
+}
+
+export interface ManualMealSavedComponent {
   key: string;
   name: string;
   calories_kcal: number;
@@ -18,7 +36,7 @@ export interface ManualMealSavePayload {
   title: string;
   calories_kcal: number;
   weight_g: number | null;
-  components: ManualMealComponent[];
+  components: ManualMealSavedComponent[];
 }
 
 interface ManualMealFormProps {
@@ -32,13 +50,35 @@ function dishToComponent(
   dish: Awaited<ReturnType<typeof fetchAthleteMealDishNutrition>>,
   logmealDishId: number,
 ): ManualMealComponent {
+  const weight_g =
+    dish.weight_g != null && dish.weight_g > 0 ? dish.weight_g : MEAL_DISH_FALLBACK_WEIGHT_G;
+  const calories_kcal = dish.calories_kcal != null ? Math.max(0, dish.calories_kcal) : 0;
+
   return {
     key: `component-${logmealDishId}-${Date.now()}`,
     name: dish.name,
-    calories_kcal: Math.round(dish.calories_kcal ?? 0),
-    weight_g: dish.weight_g ?? null,
     logmeal_dish_id: logmealDishId,
+    weightInput: formatMealWeightInput(weight_g),
+    baseline: {
+      weight_g,
+      calories_kcal,
+      protein_g: dish.protein_g,
+      carbs_g: dish.carbs_g,
+      fat_g: dish.fat_g,
+    },
   };
+}
+
+function componentWeightG(item: ManualMealComponent): number {
+  return parseMealNumberInput(item.weightInput) ?? item.baseline.weight_g;
+}
+
+function componentNutrition(item: ManualMealComponent): MealNutritionBaseline | null {
+  const weight = componentWeightG(item);
+  if (weight <= 0 || item.baseline.weight_g <= 0) {
+    return null;
+  }
+  return scaleMealNutritionByWeight(item.baseline, weight);
 }
 
 export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: ManualMealFormProps) {
@@ -50,8 +90,14 @@ export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: Man
   const [error, setError] = useState<string | null>(null);
   const [searchResetKey, setSearchResetKey] = useState(0);
 
-  const compositeCalories = components.reduce((sum, item) => sum + item.calories_kcal, 0);
-  const compositeWeight = components.reduce((sum, item) => sum + (item.weight_g ?? 0), 0);
+  const compositeCalories = components.reduce(
+    (sum, item) => sum + (componentNutrition(item)?.calories_kcal ?? 0),
+    0,
+  );
+  const compositeWeight = components.reduce(
+    (sum, item) => sum + (componentNutrition(item)?.weight_g ?? 0),
+    0,
+  );
   const compositeTitle = components.map((item) => item.name).join(", ");
 
   const loadDish = async (item: MealDishSearchItem) => {
@@ -88,6 +134,18 @@ export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: Man
     setComponents((current) => current.filter((item) => item.key !== key));
   };
 
+  const handleComponentWeightChange = (key: string, weightG: number) => {
+    const update = (item: ManualMealComponent) =>
+      item.key === key ? { ...item, weightInput: formatMealWeightInput(weightG) } : item;
+
+    if (tab === "simple" && pickedDish?.key === key) {
+      setPickedDish(update(pickedDish));
+      return;
+    }
+
+    setComponents((current) => current.map(update));
+  };
+
   const handleSubmit = async () => {
     setError(null);
 
@@ -96,15 +154,16 @@ export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: Man
         setError("Выберите блюдо из базы");
         return;
       }
-      if (!isValidMealCalories(pickedDish.calories_kcal)) {
+      const nutrition = componentNutrition(pickedDish);
+      if (!nutrition || !isValidMealCalories(nutrition.calories_kcal)) {
         setError("Не удалось определить калорийность блюда");
         return;
       }
 
       await onSave({
         title: pickedDish.name,
-        calories_kcal: pickedDish.calories_kcal,
-        weight_g: pickedDish.weight_g,
+        calories_kcal: nutrition.calories_kcal,
+        weight_g: nutrition.weight_g,
         components: [],
       });
       return;
@@ -123,7 +182,16 @@ export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: Man
       title: compositeTitle,
       calories_kcal: compositeCalories,
       weight_g: compositeWeight > 0 ? Math.round(compositeWeight * 10) / 10 : null,
-      components,
+      components: components.map((item) => {
+        const nutrition = componentNutrition(item);
+        return {
+          key: item.key,
+          name: item.name,
+          calories_kcal: nutrition?.calories_kcal ?? 0,
+          weight_g: nutrition?.weight_g ?? null,
+          logmeal_dish_id: item.logmeal_dish_id,
+        };
+      }),
     });
   };
 
@@ -142,26 +210,41 @@ export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: Man
   const searchLabel = tab === "simple" ? "Найти в базе" : "Добавить из базы";
   const searchPlaceholder = tab === "simple" ? "например: курица, рис…" : "добавить ингредиент…";
 
-  const renderComponentRow = (item: ManualMealComponent, onRemove: () => void) => (
-    <li key={item.key} className="meal-manual__component">
-      <div className="meal-manual__component-main">
-        <span className="meal-manual__component-name">{item.name}</span>
-        <span className="meal-manual__component-meta">
-          {formatMealCalories(item.calories_kcal)} ккал
-          {item.weight_g != null ? ` · ${formatMealWeightInput(item.weight_g)} г` : ""}
-        </span>
-      </div>
-      <button
-        type="button"
-        className="meal-manual__component-remove"
-        disabled={formBusy}
-        aria-label={`Убрать ${item.name}`}
-        onClick={onRemove}
-      >
-        ×
-      </button>
-    </li>
-  );
+  const renderComponentRow = (item: ManualMealComponent, onRemove: () => void) => {
+    const nutrition = componentNutrition(item);
+
+    return (
+      <li key={item.key} className="meal-manual__component">
+        <div className="meal-manual__component-top">
+          <div className="meal-manual__component-main">
+            <span className="meal-manual__component-name">{item.name}</span>
+            <span className="meal-manual__component-meta">
+              {nutrition ? `${formatMealCalories(nutrition.calories_kcal)} ккал` : "—"}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="meal-manual__component-remove"
+            disabled={formBusy}
+            aria-label={`Убрать ${item.name}`}
+            onClick={onRemove}
+          >
+            ×
+          </button>
+        </div>
+        <WheelNumberPicker
+          value={componentWeightG(item)}
+          onChange={(weightG) => handleComponentWeightChange(item.key, weightG)}
+          min={0}
+          max={MAX_DISH_WEIGHT_G}
+          step={1}
+          unit="г"
+          ariaLabel={`Вес: ${item.name}`}
+          disabled={formBusy}
+        />
+      </li>
+    );
+  };
 
   return (
     <div className={`meal-manual${searchOpen ? " meal-manual--search-open" : ""}`}>
@@ -209,7 +292,7 @@ export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: Man
           <div className="meal-manual__body" role="tabpanel">
             {pickedDish ? (
               <div className="meal-manual__selection">
-                <p className="meal-manual__selection-label">Выбрано</p>
+                <p className="meal-manual__selection-label">Выбрано — поправьте вес, ккал пересчитаются</p>
                 <ul className="meal-manual__components">
                   {renderComponentRow(pickedDish, () => setPickedDish(null))}
                 </ul>
@@ -223,7 +306,9 @@ export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: Man
             {components.length > 0 ? (
               <>
                 <div className="meal-manual__selection">
-                  <p className="meal-manual__selection-label">В составе · {components.length}</p>
+                  <p className="meal-manual__selection-label">
+                    В составе · {components.length} — поправьте вес каждого
+                  </p>
                   <ul className="meal-manual__components">
                     {components.map((item) => renderComponentRow(item, () => removeComponent(item.key)))}
                   </ul>
@@ -231,7 +316,9 @@ export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: Man
                 <div className="meal-manual__composite-total">
                   <span className="meal-manual__composite-total-label">Итого</span>
                   <strong className="meal-manual__composite-title">{compositeTitle}</strong>
-                  <span className="meal-manual__composite-kcal">{formatMealCalories(compositeCalories)} ккал</span>
+                  <span className="meal-manual__composite-kcal">
+                    {formatMealWeightInput(compositeWeight)} г · {formatMealCalories(compositeCalories)} ккал
+                  </span>
                 </div>
               </>
             ) : !searchOpen ? (

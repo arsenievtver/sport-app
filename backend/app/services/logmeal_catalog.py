@@ -8,10 +8,12 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fastapi import HTTPException, status
+
 from app.core.config import settings
 from app.models.logmeal_dish_catalog import LogMealCatalogSync, LogMealDishCatalog
 from app.schemas.athlete_meals import MealDishSearchItem, MealDishSearchResponse
-from app.schemas.meal_catalog import MealCatalogStats
+from app.schemas.meal_catalog import AdminMealCatalogDishUpdate, MealCatalogStats
 from app.services.food_translation import FoodTranslationService, LOGMEAL_SOURCE
 from app.services.logmeal import LogMealService
 
@@ -19,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 CATALOG_DISH_TYPES = ("food", "drinks", "combo", "customRecipe", "ingredients", "sauces")
 TRANSLATE_BATCH_SIZE = 50
+ADMIN_CATALOG_PAGE_SIZE_DEFAULT = 100
+ADMIN_CATALOG_PAGE_SIZE_MAX = 100
 
 ProgressCallback = Callable[[str, int, int, str], Awaitable[None] | None]
 
@@ -40,6 +44,92 @@ class LogMealCatalogService:
             search_ready=dish_count > 0,
             translator_enabled=translator.is_enabled(),
         )
+
+    async def list_dishes_admin(
+        self,
+        *,
+        page: int = 1,
+        page_size: int = ADMIN_CATALOG_PAGE_SIZE_DEFAULT,
+        query: str | None = None,
+    ) -> tuple[list[LogMealDishCatalog], int]:
+        page = max(1, page)
+        page_size = min(ADMIN_CATALOG_PAGE_SIZE_MAX, max(1, page_size))
+        filters = [LogMealDishCatalog.dish_type.in_(CATALOG_DISH_TYPES)]
+
+        normalized = (query or "").strip()
+        if normalized:
+            if normalized.isdigit():
+                dish_id = int(normalized)
+                filters.append(LogMealDishCatalog.logmeal_id == dish_id)
+            else:
+                pattern = f"%{normalized.lower()}%"
+                filters.append(
+                    or_(
+                        func.lower(LogMealDishCatalog.name_en).like(pattern),
+                        func.lower(LogMealDishCatalog.name_ru).like(pattern),
+                    ),
+                )
+
+        count_result = await self.db.execute(
+            select(func.count()).select_from(LogMealDishCatalog).where(*filters),
+        )
+        total = int(count_result.scalar_one())
+
+        result = await self.db.execute(
+            select(LogMealDishCatalog)
+            .where(*filters)
+            .order_by(LogMealDishCatalog.logmeal_id)
+            .offset((page - 1) * page_size)
+            .limit(page_size),
+        )
+        return list(result.scalars().all()), total
+
+    async def update_dish_admin(
+        self,
+        logmeal_id: int,
+        data: AdminMealCatalogDishUpdate,
+    ) -> LogMealDishCatalog:
+        row = await self._get_dish_or_404(logmeal_id)
+        payload = data.model_dump(exclude_unset=True)
+
+        if "name_ru" in payload:
+            name_ru = payload["name_ru"]
+            if name_ru is not None:
+                name_ru = name_ru.strip() or None
+            row.name_ru = name_ru
+            translator = FoodTranslationService(self.db)
+            if name_ru:
+                await translator.save_verified_translation(
+                    external_id=row.logmeal_id,
+                    source_name=row.name_en,
+                    translated_name=name_ru,
+                )
+            else:
+                await translator.delete_translation(row.logmeal_id)
+
+        if "portion_size_g" in payload:
+            row.portion_size_g = payload["portion_size_g"]
+
+        await self.db.flush()
+        return row
+
+    async def delete_dish_admin(self, logmeal_id: int) -> None:
+        row = await self._get_dish_or_404(logmeal_id)
+        await FoodTranslationService(self.db).delete_translation(logmeal_id)
+        await self.db.delete(row)
+        await self.db.flush()
+
+    async def _get_dish_or_404(self, logmeal_id: int) -> LogMealDishCatalog:
+        result = await self.db.execute(
+            select(LogMealDishCatalog).where(
+                LogMealDishCatalog.logmeal_id == logmeal_id,
+                LogMealDishCatalog.dish_type.in_(CATALOG_DISH_TYPES),
+            ),
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Блюдо не найдено")
+        return row
 
     async def search(self, query: str, *, limit: int = 20) -> MealDishSearchResponse:
         normalized = query.strip().lower()

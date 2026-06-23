@@ -77,3 +77,33 @@ export async function startAdminMealCatalogTranslate(): Promise<void> {
 export async function startAdminMealCatalogRefresh(): Promise<void> {
   await authenticatedFetchOk("/admin/meal-catalog/refresh", { method: "POST" });
 }
+
+export async function fetchAdminMealCatalogDishes(params?: {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+}): Promise<import("@sport-app/shared").AdminMealCatalogDishList> {
+  const search = new URLSearchParams();
+  search.set("page", String(params?.page ?? 1));
+  search.set("page_size", String(params?.pageSize ?? 100));
+  if (params?.q?.trim()) {
+    search.set("q", params.q.trim());
+  }
+  const res = await authenticatedFetchOk(`/admin/meal-catalog/dishes?${search.toString()}`);
+  return res.json() as Promise<import("@sport-app/shared").AdminMealCatalogDishList>;
+}
+
+export async function updateAdminMealCatalogDish(
+  logmealId: number,
+  payload: import("@sport-app/shared").AdminMealCatalogDishUpdatePayload,
+): Promise<import("@sport-app/shared").AdminMealCatalogDish> {
+  const res = await authenticatedFetchOk(`/admin/meal-catalog/dishes/${logmealId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<import("@sport-app/shared").AdminMealCatalogDish>;
+}
+
+export async function deleteAdminMealCatalogDish(logmealId: number): Promise<void> {
+  await authenticatedFetchOk(`/admin/meal-catalog/dishes/${logmealId}`, { method: "DELETE" });
+}

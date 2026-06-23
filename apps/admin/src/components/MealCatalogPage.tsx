@@ -8,11 +8,14 @@ import {
 import type { AdminMealCatalogStatus } from "@sport-app/shared";
 import { formatMealCatalogSyncedAt, mealCatalogJobProgressPercent } from "@sport-app/shared";
 
+import { MealCatalogDishesTable } from "./MealCatalogDishesTable";
+
 export function MealCatalogPage() {
   const [status, setStatus] = useState<AdminMealCatalogStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
+  const [tableRefreshKey, setTableRefreshKey] = useState(0);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -44,6 +47,7 @@ export function MealCatalogPage() {
     try {
       await action();
       await loadStatus();
+      setTableRefreshKey((current) => current + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось запустить задачу");
     } finally {
@@ -142,6 +146,13 @@ export function MealCatalogPage() {
               {job.error ? <p className="auth-error">{job.error}</p> : null}
             </div>
           ) : null}
+
+          <MealCatalogDishesTable
+            refreshKey={tableRefreshKey}
+            onDataChanged={() => {
+              void loadStatus();
+            }}
+          />
         </>
       ) : null}
 

@@ -212,6 +212,34 @@ class FoodTranslationService:
         )
         return result.scalar_one_or_none()
 
+    async def save_verified_translation(
+        self,
+        *,
+        external_id: int,
+        source_name: str,
+        translated_name: str,
+    ) -> None:
+        await self._upsert_translation(
+            source=LOGMEAL_SOURCE,
+            external_id=external_id,
+            source_name=source_name,
+            translated_name=translated_name,
+            provider="admin",
+            verified=True,
+        )
+
+    async def delete_translation(self, external_id: int) -> None:
+        result = await self.db.execute(
+            select(FoodNameTranslation).where(
+                FoodNameTranslation.source == LOGMEAL_SOURCE,
+                FoodNameTranslation.external_id == external_id,
+                FoodNameTranslation.target_lang == self.target_lang,
+            ),
+        )
+        row = result.scalar_one_or_none()
+        if row is not None:
+            await self.db.delete(row)
+
     async def _upsert_translation(
         self,
         *,
