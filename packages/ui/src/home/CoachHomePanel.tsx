@@ -125,6 +125,7 @@ export function CoachHomePanel({ onOpenAthlete }: CoachHomePanelProps) {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [grid, setGrid] = useState<ScheduleGridResponse | null>(null);
   const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
+  const [headingLabels, setHeadingLabels] = useState<Record<string, string>>({});
   const [completions, setCompletions] = useState<ScheduleSlotCompletion[]>([]);
   const [balanceByAthlete, setBalanceByAthlete] = useState<Map<string, number>>(new Map());
   const [showHidden, setShowHidden] = useState(false);
@@ -184,8 +185,14 @@ export function CoachHomePanel({ onOpenAthlete }: CoachHomePanelProps) {
 
   useEffect(() => {
     void fetchCoachActivityTypes()
-      .then((data) => setActivityTypes(data.items))
-      .catch(() => setActivityTypes([]));
+      .then((data) => {
+        setActivityTypes(data.items);
+        setHeadingLabels(data.major_heading_labels ?? {});
+      })
+      .catch(() => {
+        setActivityTypes([]);
+        setHeadingLabels({});
+      });
   }, []);
 
   useEffect(() => {
@@ -572,6 +579,7 @@ export function CoachHomePanel({ onOpenAthlete }: CoachHomePanelProps) {
 
               <ScheduleActivityTypeField
                 activityTypes={activityTypes}
+                headingLabels={headingLabels}
                 value={completeActivityTypeId}
                 disabled={completeBusy}
                 onChange={setCompleteActivityTypeId}

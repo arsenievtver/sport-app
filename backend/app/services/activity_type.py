@@ -1,11 +1,12 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import nulls_last, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.activity_type import ActivityType
 from app.models.user import AthleteProfile
 from app.schemas.activity_type import ActivityTypeResponse, ActivityTypesListResponse
+from app.services.activity_compendium import ActivityCompendiumService
 
 
 class ActivityTypeService:
@@ -16,7 +17,7 @@ class ActivityTypeService:
         result = await self.db.execute(
             select(ActivityType)
             .where(ActivityType.is_active.is_(True))
-            .order_by(ActivityType.sort_order, ActivityType.name_ru)
+            .order_by(nulls_last(ActivityType.major_heading.asc()), ActivityType.name_ru.asc())
         )
         return [ActivityTypeResponse.model_validate(item) for item in result.scalars().all()]
 
@@ -31,8 +32,20 @@ class ActivityTypeService:
                 continue
             if parsed in active_ids and parsed not in recent_ids:
                 recent_ids.append(parsed)
-        return ActivityTypesListResponse(items=items, recent_ids=recent_ids)
+        return await self._build_list_response(items, recent_ids)
 
     async def list_all(self) -> ActivityTypesListResponse:
         items = await self.list_active()
-        return ActivityTypesListResponse(items=items, recent_ids=[])
+        return await self._build_list_response(items, [])
+
+    async def _build_list_response(
+        self,
+        items: list[ActivityTypeResponse],
+        recent_ids: list[UUID],
+    ) -> ActivityTypesListResponse:
+        labels = await ActivityCompendiumService(self.db).get_major_heading_labels()
+        return ActivityTypesListResponse(
+            items=items,
+            recent_ids=recent_ids,
+            major_heading_labels=labels,
+        )

@@ -65,6 +65,7 @@ export function CoachSchedulePanel() {
   const [grid, setGrid] = useState<ScheduleGridResponse | null>(null);
   const [athletes, setAthletes] = useState<CoachAthleteSummary[]>([]);
   const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
+  const [headingLabels, setHeadingLabels] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,8 +110,14 @@ export function CoachSchedulePanel() {
       .then(setAthletes)
       .catch(() => setAthletes([]));
     void fetchCoachActivityTypes()
-      .then((data) => setActivityTypes(data.items))
-      .catch(() => setActivityTypes([]));
+      .then((data) => {
+        setActivityTypes(data.items);
+        setHeadingLabels(data.major_heading_labels ?? {});
+      })
+      .catch(() => {
+        setActivityTypes([]);
+        setHeadingLabels({});
+      });
   }, []);
 
   const cellMap = useMemo(() => (grid ? buildCellMap(grid.cells) : new Map()), [grid]);
@@ -441,6 +448,7 @@ export function CoachSchedulePanel() {
         <ScheduleAthleteSheet
           athletes={athletes}
           activityTypes={activityTypes}
+          headingLabels={headingLabels}
           mode={mode}
           dayOfWeek={selectedCell.dayOfWeek}
           startTime={selectedCell.startTime}
@@ -541,6 +549,7 @@ function ScheduleGridRow({
 function ScheduleAthleteSheet({
   athletes,
   activityTypes,
+  headingLabels,
   mode,
   dayOfWeek,
   startTime,
@@ -559,6 +568,7 @@ function ScheduleAthleteSheet({
 }: {
   athletes: CoachAthleteSummary[];
   activityTypes: ActivityType[];
+  headingLabels: Record<string, string>;
   mode: ScheduleMode;
   dayOfWeek: number;
   startTime: string;
@@ -653,6 +663,7 @@ function ScheduleAthleteSheet({
             </button>
             <ScheduleActivityTypeField
               activityTypes={activityTypes}
+              headingLabels={headingLabels}
               value={selectedActivityTypeId}
               disabled={saving}
               onChange={setSelectedActivityTypeId}
@@ -677,6 +688,7 @@ function ScheduleAthleteSheet({
             ) : null}
             <ScheduleActivityTypeField
               activityTypes={activityTypes}
+              headingLabels={headingLabels}
               value={selectedActivityTypeId}
               disabled={saving}
               onChange={setSelectedActivityTypeId}

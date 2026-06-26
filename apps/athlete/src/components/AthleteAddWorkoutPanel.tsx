@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { completeAthleteSession, fetchActivityTypes, fetchAthleteCoaches, fetchAthleteWeightDynamics } from "@sport-app/api-client";
-import type { ActivityCategory, ActivityType, AthleteCoachLink } from "@sport-app/shared";
+import type { ActivityType, AthleteCoachLink } from "@sport-app/shared";
 import {
-  ACTIVITY_CATEGORY_LABELS,
   ACTIVITY_DURATION_MIN_MAX,
   ACTIVITY_DURATION_MIN_MIN,
   ACTIVITY_EFFORT_DEFAULT,
@@ -18,6 +17,7 @@ import {
   clampActivityEffort,
   formatCaloriesKcal,
   getActivityEffortLabel,
+  groupActivityTypesByMajorHeading,
 } from "@sport-app/shared";
 
 interface AthleteAddWorkoutPanelProps {
@@ -43,6 +43,7 @@ export function AthleteAddWorkoutPanel({
 }: AthleteAddWorkoutPanelProps) {
   const [coaches, setCoaches] = useState<AthleteCoachLink[]>([]);
   const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
+  const [headingLabels, setHeadingLabels] = useState<Record<string, string>>({});
   const [recentActivityTypeIds, setRecentActivityTypeIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -65,6 +66,7 @@ export function AthleteAddWorkoutPanel({
       ]);
       setCoaches(coachItems);
       setActivityTypes(activityData.items);
+      setHeadingLabels(activityData.major_heading_labels ?? {});
       setRecentActivityTypeIds(activityData.recent_ids);
       setCurrentWeightKg(weightData.current_weight_kg ?? null);
       setActivityTypeId((current) => {
@@ -134,20 +136,13 @@ export function AthleteAddWorkoutPanel({
     [recentActivityTypes],
   );
 
-  const groupedActivityTypes = useMemo(() => {
-    const groups = new Map<ActivityCategory, ActivityType[]>();
-    for (const item of activityTypes) {
-      if (recentActivityTypeIdSet.has(item.id)) {
-        continue;
-      }
-      const bucket = groups.get(item.category) ?? [];
-      bucket.push(item);
-      groups.set(item.category, bucket);
-    }
-    return [...groups.entries()].sort(([left], [right]) =>
-      ACTIVITY_CATEGORY_LABELS[left].localeCompare(ACTIVITY_CATEGORY_LABELS[right], "ru"),
-    );
-  }, [activityTypes, recentActivityTypeIdSet]);
+  const groupedActivityTypes = useMemo(
+    () =>
+      groupActivityTypesByMajorHeading(activityTypes, headingLabels, {
+        excludeIds: recentActivityTypeIdSet,
+      }),
+    [activityTypes, headingLabels, recentActivityTypeIdSet],
+  );
 
   const previewLoad = useMemo(() => {
     if (!selectedActivity) return null;
@@ -263,9 +258,9 @@ export function AthleteAddWorkoutPanel({
               ))}
             </optgroup>
           ) : null}
-          {groupedActivityTypes.map(([category, items]) => (
-            <optgroup key={category} label={ACTIVITY_CATEGORY_LABELS[category]}>
-              {items.map((item) => (
+          {groupedActivityTypes.map((group) => (
+            <optgroup key={group.heading || "__ungrouped__"} label={group.label}>
+              {group.items.map((item) => (
                 <option key={item.id} value={item.id} title={item.name_en}>
                   {item.name_ru} · MET {item.met_value}
                 </option>

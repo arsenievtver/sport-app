@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.enums import ActivityCategory
 
@@ -10,6 +10,7 @@ class ActivityTypeResponse(BaseModel):
     compendium_code: str
     name_ru: str
     name_en: str
+    major_heading: str | None = None
     category: ActivityCategory
     met_value: float
     sort_order: int
@@ -20,3 +21,4 @@ class ActivityTypeResponse(BaseModel):
 class ActivityTypesListResponse(BaseModel):
     items: list[ActivityTypeResponse]
     recent_ids: list[UUID] = []
+    major_heading_labels: dict[str, str] = Field(default_factory=dict)
