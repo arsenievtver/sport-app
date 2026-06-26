@@ -50,5 +50,22 @@ class AdminActivityCompendiumListResponse(BaseModel):
 
 
 class AdminActivityCompendiumItemUpdate(BaseModel):
+    major_heading: str | None = None
+    name_en: str | None = None
     name_ru: str | None = None
+    met_value: float | None = None
     is_active: bool | None = None
+
+
+class AdminActivityCompendiumItemCreate(BaseModel):
+    compendium_code: str
+    major_heading: str
+    name_en: str
+    name_ru: str | None = None
+    met_value: float
+    is_active: bool = False
+
+
+class AdminActivityCompendiumGroupRename(BaseModel):
+    from_heading: str
+    to_heading: str

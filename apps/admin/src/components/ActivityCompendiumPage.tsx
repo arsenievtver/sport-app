@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   fetchAdminActivityCompendiumStatus,
-  importAdminActivityCompendiumPdf,
   startAdminActivityCompendiumTranslate,
 } from "@sport-app/api-client";
 import type { AdminActivityCompendiumStatus } from "@sport-app/shared";
@@ -11,6 +10,8 @@ import {
 } from "@sport-app/shared";
 
 import { ActivityCompendiumTable } from "./ActivityCompendiumTable";
+import { ActivityCreateModal } from "./ActivityCreateModal";
+import { ActivityGroupRenameModal } from "./ActivityGroupRenameModal";
 
 export function ActivityCompendiumPage() {
   const [status, setStatus] = useState<AdminActivityCompendiumStatus | null>(null);
@@ -18,7 +19,8 @@ export function ActivityCompendiumPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [tableRefreshKey, setTableRefreshKey] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [renameGroupOpen, setRenameGroupOpen] = useState(false);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -58,28 +60,6 @@ export function ActivityCompendiumPage() {
     }
   };
 
-  const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-
-    setActionBusy(true);
-    setError(null);
-    try {
-      const result = await importAdminActivityCompendiumPdf(file);
-      await loadStatus();
-      setTableRefreshKey((current) => current + 1);
-      setError(null);
-      if (result.activity_count) {
-        // status polling will show job progress
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось загрузить PDF");
-    } finally {
-      setActionBusy(false);
-    }
-  };
-
   const job = status?.job;
   const progress = job ? activityCompendiumJobProgressPercent(job) : 0;
   const isRunning = job?.status === "running";
@@ -112,9 +92,9 @@ export function ActivityCompendiumPage() {
           </div>
 
           <p className="admin-catalog__hint text-secondary">
-            Загрузите PDF «2024 Adult Compendium of Physical Activities» — данные импортируются в боевую базу,
-            затем автоматически переводятся через Яндекс Translate. Новые активности по умолчанию скрыты от
-            атлетов; включайте вручную нужные позиции.
+            Справочник загружен на сервер. Добавляйте и правьте позиции вручную: группа, названия, MET и
+            видимость для атлетов. Массовый импорт PDF — только через API/скрипт для повторной загрузки
+            Compendium.
           </p>
 
           {!status.translator_enabled ? (
@@ -124,20 +104,21 @@ export function ActivityCompendiumPage() {
           ) : null}
 
           <div className="admin-catalog__actions">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/pdf,.pdf"
-              hidden
-              onChange={(event) => void handleFileSelected(event)}
-            />
             <button
               type="button"
               className="admin-btn admin-btn--primary"
               disabled={actionBusy || isRunning}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => setCreateOpen(true)}
             >
-              Загрузить справочник (PDF)
+              Добавить активность
+            </button>
+            <button
+              type="button"
+              className="admin-btn"
+              disabled={actionBusy || isRunning || status.major_headings.length === 0}
+              onClick={() => setRenameGroupOpen(true)}
+            >
+              Переименовать группу
             </button>
             <button
               type="button"
@@ -179,6 +160,30 @@ export function ActivityCompendiumPage() {
               void loadStatus();
             }}
           />
+
+          {createOpen ? (
+            <ActivityCreateModal
+              majorHeadings={status.major_headings}
+              onClose={() => setCreateOpen(false)}
+              onCreated={() => {
+                setCreateOpen(false);
+                void loadStatus();
+                setTableRefreshKey((current) => current + 1);
+              }}
+            />
+          ) : null}
+
+          {renameGroupOpen ? (
+            <ActivityGroupRenameModal
+              majorHeadings={status.major_headings}
+              onClose={() => setRenameGroupOpen(false)}
+              onRenamed={() => {
+                setRenameGroupOpen(false);
+                void loadStatus();
+                setTableRefreshKey((current) => current + 1);
+              }}
+            />
+          ) : null}
         </>
       ) : null}
 

@@ -45,8 +45,25 @@ export interface AdminActivityCompendiumList {
 }
 
 export interface AdminActivityCompendiumItemUpdatePayload {
+  major_heading?: string | null;
+  name_en?: string | null;
   name_ru?: string | null;
+  met_value?: number | null;
   is_active?: boolean | null;
+}
+
+export interface AdminActivityCompendiumItemCreatePayload {
+  compendium_code: string;
+  major_heading: string;
+  name_en: string;
+  name_ru?: string | null;
+  met_value: number;
+  is_active?: boolean;
+}
+
+export interface AdminActivityCompendiumGroupRenamePayload {
+  from_heading: string;
+  to_heading: string;
 }
 
 export type ActivityCompendiumSortField =

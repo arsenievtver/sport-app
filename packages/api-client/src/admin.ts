@@ -157,6 +157,26 @@ export async function updateAdminActivityCompendiumItem(
   return res.json() as Promise<import("@sport-app/shared").AdminActivityCompendiumItem>;
 }
 
+export async function createAdminActivityCompendiumItem(
+  payload: import("@sport-app/shared").AdminActivityCompendiumItemCreatePayload,
+): Promise<import("@sport-app/shared").AdminActivityCompendiumItem> {
+  const res = await authenticatedFetchOk("/admin/activity-compendium/activities", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<import("@sport-app/shared").AdminActivityCompendiumItem>;
+}
+
+export async function renameAdminActivityCompendiumGroup(
+  payload: import("@sport-app/shared").AdminActivityCompendiumGroupRenamePayload,
+): Promise<{ updated: number; to_heading: string }> {
+  const res = await authenticatedFetchOk("/admin/activity-compendium/groups/rename", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<{ updated: number; to_heading: string }>;
+}
+
 export async function deleteAdminActivityCompendiumItem(activityId: string): Promise<void> {
   await authenticatedFetchOk(`/admin/activity-compendium/activities/${activityId}`, { method: "DELETE" });
 }

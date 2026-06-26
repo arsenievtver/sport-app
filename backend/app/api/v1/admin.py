@@ -17,7 +17,9 @@ from app.schemas.admin import (
     CoachAthleteLinkResponse,
 )
 from app.schemas.activity_compendium import (
+    AdminActivityCompendiumGroupRename,
     AdminActivityCompendiumItem,
+    AdminActivityCompendiumItemCreate,
     AdminActivityCompendiumItemUpdate,
     AdminActivityCompendiumListResponse,
     AdminActivityCompendiumStatusResponse,
@@ -33,6 +35,10 @@ from app.services.activity_compendium_job import (
     ActivityCompendiumJobAlreadyRunningError,
     activity_compendium_job_runner,
 )
+# Compendium PDF import (bulk load / re-import):
+#   POST /api/v1/admin/activity-compendium/import
+#   backend/scripts/import_compendium.py
+# Hidden from admin UI after initial server load; use for full Compendium refresh only.
 from app.services.compendium_parser import parse_compendium_pdf_bytes
 from app.services.admin import AdminService
 from app.services.logmeal_catalog import LogMealCatalogService
@@ -249,13 +255,58 @@ async def update_activity_compendium_item(
     try:
         row = await ActivityCompendiumService(db).update_admin(
             activity_id,
+            major_heading=data.major_heading,
+            name_en=data.name_en,
             name_ru=data.name_ru,
+            met_value=data.met_value,
             is_active=data.is_active,
         )
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Активность не найдена") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     await db.commit()
     return AdminActivityCompendiumItem.model_validate(row)
+
+
+@router.post("/activity-compendium/activities", response_model=AdminActivityCompendiumItem, status_code=status.HTTP_201_CREATED)
+async def create_activity_compendium_item(
+    data: AdminActivityCompendiumItemCreate,
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AdminActivityCompendiumItem:
+    try:
+        row = await ActivityCompendiumService(db).create_admin(
+            compendium_code=data.compendium_code,
+            major_heading=data.major_heading,
+            name_en=data.name_en,
+            name_ru=data.name_ru,
+            met_value=data.met_value,
+            is_active=data.is_active,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    await db.commit()
+    return AdminActivityCompendiumItem.model_validate(row)
+
+
+@router.post("/activity-compendium/groups/rename")
+async def rename_activity_compendium_group(
+    data: AdminActivityCompendiumGroupRename,
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, int | str]:
+    try:
+        updated = await ActivityCompendiumService(db).rename_major_heading(
+            data.from_heading,
+            data.to_heading,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Группа не найдена") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    await db.commit()
+    return {"updated": updated, "to_heading": data.to_heading.strip()}
 
 
 @router.delete("/activity-compendium/activities/{activity_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -276,6 +327,11 @@ async def import_activity_compendium_pdf(
     _admin: AdminUser,
     file: Annotated[UploadFile, File(description="2024 Adult Compendium PDF")],
 ) -> dict[str, str | int]:
+    """Bulk import from the 2024 Compendium PDF.
+
+    Kept for ops/re-import (see backend/scripts/import_compendium.py).
+    Not exposed in the admin UI after the initial server load.
+    """
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нужен PDF-файл справочника")
 

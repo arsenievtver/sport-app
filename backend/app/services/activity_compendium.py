@@ -171,9 +171,37 @@ class ActivityCompendiumService:
         rows = (await self.db.execute(stmt)).scalars().all()
         return list(rows), total
 
-    async def update_admin(self, activity_id: UUID, *, name_ru: str | None, is_active: bool | None) -> ActivityType:
+    async def update_admin(
+        self,
+        activity_id: UUID,
+        *,
+        major_heading: str | None = None,
+        name_en: str | None = None,
+        name_ru: str | None = None,
+        met_value: float | None = None,
+        is_active: bool | None = None,
+    ) -> ActivityType:
         row = await self._get_by_id(activity_id)
         translator = FoodTranslationService(self.db)
+
+        if major_heading is not None:
+            cleaned_heading = major_heading.strip()
+            if not cleaned_heading:
+                raise ValueError("Группа не может быть пустой")
+            row.major_heading = cleaned_heading
+            row.category = self._category_for_heading(cleaned_heading)
+
+        if name_en is not None:
+            cleaned_en = name_en.strip()
+            if not cleaned_en:
+                raise ValueError("Название EN не может быть пустым")
+            if cleaned_en != row.name_en:
+                row.name_en = cleaned_en
+
+        if met_value is not None:
+            if met_value <= 0:
+                raise ValueError("MET должен быть больше нуля")
+            row.met_value = met_value
 
         if name_ru is not None:
             cleaned = name_ru.strip()
@@ -191,6 +219,88 @@ class ActivityCompendiumService:
 
         await self.db.flush()
         return row
+
+    async def create_admin(
+        self,
+        *,
+        compendium_code: str,
+        major_heading: str,
+        name_en: str,
+        name_ru: str | None,
+        met_value: float,
+        is_active: bool,
+    ) -> ActivityType:
+        code = self._normalize_compendium_code(compendium_code)
+        heading = major_heading.strip()
+        english = name_en.strip()
+        if not heading:
+            raise ValueError("Укажите группу")
+        if not english:
+            raise ValueError("Укажите название EN")
+        if met_value <= 0:
+            raise ValueError("MET должен быть больше нуля")
+
+        existing = await self.db.execute(
+            select(ActivityType).where(ActivityType.compendium_code == code),
+        )
+        if existing.scalar_one_or_none() is not None:
+            raise ValueError(f"Активность с кодом {code} уже существует")
+
+        russian = (name_ru or "").strip()
+        row = ActivityType(
+            id=compendium_activity_id(code),
+            compendium_code=code,
+            name_en=english,
+            name_ru=russian,
+            major_heading=heading,
+            category=self._category_for_heading(heading),
+            met_value=met_value,
+            sort_order=int(code),
+            is_active=is_active,
+        )
+        self.db.add(row)
+        await self.db.flush()
+
+        if russian:
+            await FoodTranslationService(self.db).save_verified_translation(
+                source=COMPENDIUM_SOURCE,
+                external_id=compendium_external_id(code),
+                source_name=english,
+                translated_name=russian,
+            )
+
+        return row
+
+    async def rename_major_heading(self, from_heading: str, to_heading: str) -> int:
+        source = from_heading.strip()
+        target = to_heading.strip()
+        if not source or not target:
+            raise ValueError("Укажите исходную и новую группу")
+        if source == target:
+            return 0
+
+        rows = (
+            await self.db.execute(select(ActivityType).where(ActivityType.major_heading == source))
+        ).scalars().all()
+        if not rows:
+            raise LookupError("Группа не найдена")
+
+        category = self._category_for_heading(target)
+        for row in rows:
+            row.major_heading = target
+            row.category = category
+
+        await self.db.flush()
+        return len(rows)
+
+    @staticmethod
+    def _normalize_compendium_code(raw_code: str) -> str:
+        code = raw_code.strip()
+        if not code.isdigit():
+            raise ValueError("Код Compendium должен состоять из цифр")
+        if len(code) > 5:
+            raise ValueError("Код Compendium — не более 5 цифр")
+        return code.zfill(5)
 
     async def delete_admin(self, activity_id: UUID) -> None:
         row = await self._get_by_id(activity_id)
