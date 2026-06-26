@@ -235,10 +235,15 @@ class FoodTranslationService:
             verified=verified,
         )
 
-    async def delete_translation(self, external_id: int) -> None:
+    async def delete_translation(
+        self,
+        external_id: int,
+        *,
+        source: str = LOGMEAL_SOURCE,
+    ) -> None:
         result = await self.db.execute(
             select(FoodNameTranslation).where(
-                FoodNameTranslation.source == LOGMEAL_SOURCE,
+                FoodNameTranslation.source == source,
                 FoodNameTranslation.external_id == external_id,
                 FoodNameTranslation.target_lang == self.target_lang,
             ),

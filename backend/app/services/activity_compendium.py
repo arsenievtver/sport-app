@@ -224,6 +224,10 @@ class ActivityCompendiumService:
             if existing is not None:
                 if existing.name_en != item.name_en:
                     existing.name_ru = ""
+                    await FoodTranslationService(self.db).delete_translation(
+                        compendium_external_id(item.compendium_code),
+                        source=COMPENDIUM_SOURCE,
+                    )
                 existing.name_en = item.name_en
                 existing.met_value = item.met_value
                 existing.major_heading = item.major_heading
@@ -254,10 +258,66 @@ class ActivityCompendiumService:
             await _notify(progress, "import", total, total, f"Импорт завершён: {total} активностей")
         return imported
 
+    async def repair_stale_name_ru(self) -> int:
+        """Clear RU titles that no longer match the current English compendium name."""
+        translator = FoodTranslationService(self.db)
+        rows = (
+            await self.db.execute(
+                select(ActivityType).where(
+                    ActivityType.name_ru != "",
+                    ActivityType.name_ru.is_not(None),
+                ),
+            )
+        ).scalars().all()
+        if not rows:
+            return 0
+
+        cached_map = await translator._get_translations_map(
+            COMPENDIUM_SOURCE,
+            [compendium_external_id(row.compendium_code) for row in rows],
+            translator.target_lang,
+        )
+
+        cleared = 0
+        for row in rows:
+            ext_id = compendium_external_id(row.compendium_code)
+            cached = cached_map.get(ext_id)
+            keep_admin_override = (
+                cached is not None
+                and cached.provider == "admin"
+                and cached.verified
+                and cached.source_name == row.name_en
+            )
+            if keep_admin_override:
+                continue
+
+            stale = cached is None or cached.source_name != row.name_en
+            if not stale:
+                continue
+
+            row.name_ru = ""
+            if cached is not None:
+                await translator.delete_translation(ext_id, source=COMPENDIUM_SOURCE)
+            cleared += 1
+
+        if cleared:
+            await self.db.flush()
+        return cleared
+
     async def translate_all_missing(self, *, progress: ProgressCallback | None = None) -> int:
         translator = FoodTranslationService(self.db)
         if not translator.is_enabled():
             return 0
+
+        repaired = await self.repair_stale_name_ru()
+        if progress and repaired:
+            await _notify(
+                progress,
+                "translate",
+                0,
+                0,
+                f"Сброшено устаревших переводов: {repaired}",
+            )
 
         total = await self._count_untranslated()
         if total == 0:
