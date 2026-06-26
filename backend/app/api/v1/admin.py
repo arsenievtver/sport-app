@@ -287,6 +287,11 @@ async def import_activity_compendium_pdf(
         rows = parse_compendium_pdf_bytes(raw)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Не удалось разобрать PDF. Проверьте, что это 2024 Adult Compendium.",
+        ) from exc
 
     try:
         await activity_compendium_job_runner.start_import(rows, job_type="full")

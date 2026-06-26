@@ -17,6 +17,11 @@ def test_parse_compendium_pdf_full_reference() -> None:
     assert len({row.compendium_code for row in rows}) == 1097
     assert len({row.major_heading for row in rows}) == 22
 
+    from app.services.compendium_parser import parse_compendium_pdf_bytes
+
+    byte_rows = parse_compendium_pdf_bytes(PDF_PATH.read_bytes())
+    assert len(byte_rows) == 1097
+
     walking = next(row for row in rows if row.compendium_code == "17151")
     assert walking.major_heading == "Walking"
     assert walking.met_value == 2.3

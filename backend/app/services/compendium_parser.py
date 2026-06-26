@@ -20,17 +20,22 @@ class CompendiumActivityRow:
     name_en: str
 
 
-def parse_compendium_pdf(source: bytes | Path | str) -> list[CompendiumActivityRow]:
+def parse_compendium_pdf(source: bytes | bytearray | Path | str | BytesIO) -> list[CompendiumActivityRow]:
     """Parse the 2024 Adult Compendium PDF into structured activity rows."""
     if isinstance(source, (bytes, bytearray)):
-        pdf_file: bytes | str = bytes(source)
+        pdf_source: bytes | str | BytesIO = BytesIO(bytes(source))
+    elif isinstance(source, BytesIO):
+        source.seek(0)
+        pdf_source = source
+    elif isinstance(source, Path):
+        pdf_source = str(source)
     else:
-        pdf_file = str(source)
+        pdf_source = source
 
     activities: list[CompendiumActivityRow] = []
     current_heading: str | None = None
 
-    with pdfplumber.open(pdf_file) as pdf:
+    with pdfplumber.open(pdf_source) as pdf:
         for page in pdf.pages:
             text = page.extract_text() or ""
             for raw_line in text.split("\n"):
@@ -77,4 +82,4 @@ def parse_compendium_pdf_file(path: Path) -> list[CompendiumActivityRow]:
 
 
 def parse_compendium_pdf_bytes(data: bytes) -> list[CompendiumActivityRow]:
-    return parse_compendium_pdf(BytesIO(data))
+    return parse_compendium_pdf(data)
