@@ -215,12 +215,18 @@ async def list_activity_compendium(
     page_size: int = 100,
     q: str | None = None,
     major_heading: str | None = None,
+    is_active: bool | None = None,
+    sort_by: str | None = None,
+    sort_dir: str | None = None,
 ) -> AdminActivityCompendiumListResponse:
     rows, total = await ActivityCompendiumService(db).list_admin(
         page=page,
         page_size=page_size,
         query=q,
         major_heading=major_heading,
+        is_active=is_active,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
     )
     return AdminActivityCompendiumListResponse(
         items=[AdminActivityCompendiumItem.model_validate(row) for row in rows],
@@ -250,6 +256,19 @@ async def update_activity_compendium_item(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Активность не найдена") from exc
     await db.commit()
     return AdminActivityCompendiumItem.model_validate(row)
+
+
+@router.delete("/activity-compendium/activities/{activity_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_activity_compendium_item(
+    activity_id: UUID,
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    try:
+        await ActivityCompendiumService(db).delete_admin(activity_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Активность не найдена") from exc
+    await db.commit()
 
 
 @router.post("/activity-compendium/import", status_code=status.HTTP_202_ACCEPTED)

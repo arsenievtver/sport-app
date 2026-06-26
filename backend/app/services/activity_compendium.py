@@ -7,12 +7,13 @@ from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, nulls_first, nulls_last, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.activity_compendium_import import ActivityCompendiumImport
 from app.models.activity_type import ActivityType
 from app.models.enums import ActivityCategory
+from app.models.user import AthleteProfile
 from app.schemas.activity_compendium import ActivityCompendiumStats
 from app.services.compendium_parser import CompendiumActivityRow
 from app.services.food_translation import COMPENDIUM_SOURCE, FoodTranslationService
@@ -23,6 +24,20 @@ NAMESPACE = uuid.UUID("6ba7b811-9dad-11d1-80b4-00c04fd430c8")
 TRANSLATE_BATCH_SIZE = 50
 
 ProgressCallback = Callable[[str, int, int, str], Awaitable[None] | None]
+
+ActivitySortField = Literal[
+    "compendium_code",
+    "major_heading",
+    "name_en",
+    "name_ru",
+    "met_value",
+    "is_active",
+    "updated_at",
+]
+ActivitySortDir = Literal["asc", "desc"]
+
+DEFAULT_SORT_BY: ActivitySortField = "major_heading"
+DEFAULT_SORT_DIR: ActivitySortDir = "asc"
 
 HEADING_TO_CATEGORY: dict[str, ActivityCategory] = {
     "Bicycling": ActivityCategory.cardio,
@@ -42,6 +57,47 @@ def compendium_activity_id(code: str) -> UUID:
 
 def compendium_external_id(code: str) -> int:
     return int(code)
+
+
+def _resolve_sort(sort_by: str | None, sort_dir: str | None) -> tuple[ActivitySortField, ActivitySortDir]:
+    allowed_fields: set[str] = {
+        "compendium_code",
+        "major_heading",
+        "name_en",
+        "name_ru",
+        "met_value",
+        "is_active",
+        "updated_at",
+    }
+    field = sort_by if sort_by in allowed_fields else DEFAULT_SORT_BY
+    direction: ActivitySortDir = "desc" if sort_dir == "desc" else "asc"
+    return field, direction  # type: ignore[return-value]
+
+
+def _order_clauses(sort_by: ActivitySortField, sort_dir: ActivitySortDir):
+    columns = {
+        "compendium_code": ActivityType.compendium_code,
+        "major_heading": ActivityType.major_heading,
+        "name_en": ActivityType.name_en,
+        "name_ru": ActivityType.name_ru,
+        "met_value": ActivityType.met_value,
+        "is_active": ActivityType.is_active,
+        "updated_at": ActivityType.updated_at,
+    }
+    column = columns[sort_by]
+    ascending = sort_dir == "asc"
+
+    if sort_by == "major_heading":
+        primary = (
+            nulls_last(column.asc()) if ascending else nulls_first(column.desc())
+        )
+    else:
+        primary = column.asc() if ascending else column.desc()
+
+    if sort_by == "compendium_code":
+        return (primary,)
+
+    return (primary, ActivityType.compendium_code.asc())
 
 
 class ActivityCompendiumService:
@@ -70,13 +126,20 @@ class ActivityCompendiumService:
         page_size: int = 100,
         query: str | None = None,
         major_heading: str | None = None,
+        is_active: bool | None = None,
+        sort_by: str | None = None,
+        sort_dir: str | None = None,
     ) -> tuple[list[ActivityType], int]:
         page = max(1, page)
         page_size = min(100, max(1, page_size))
+        resolved_sort_by, resolved_sort_dir = _resolve_sort(sort_by, sort_dir)
         filters = []
 
         if major_heading:
             filters.append(ActivityType.major_heading == major_heading)
+
+        if is_active is not None:
+            filters.append(ActivityType.is_active.is_(is_active))
 
         q = (query or "").strip()
         if q:
@@ -101,7 +164,7 @@ class ActivityCompendiumService:
         if filters:
             stmt = stmt.where(*filters)
         stmt = (
-            stmt.order_by(ActivityType.major_heading, ActivityType.compendium_code)
+            stmt.order_by(*_order_clauses(resolved_sort_by, resolved_sort_dir))
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
@@ -128,6 +191,19 @@ class ActivityCompendiumService:
 
         await self.db.flush()
         return row
+
+    async def delete_admin(self, activity_id: UUID) -> None:
+        row = await self._get_by_id(activity_id)
+        id_str = str(activity_id)
+
+        profiles = (await self.db.execute(select(AthleteProfile))).scalars().all()
+        for profile in profiles:
+            recent_ids = profile.recent_activity_type_ids or []
+            if id_str in recent_ids:
+                profile.recent_activity_type_ids = [value for value in recent_ids if value != id_str]
+
+        await self.db.delete(row)
+        await self.db.flush()
 
     async def import_rows(
         self,

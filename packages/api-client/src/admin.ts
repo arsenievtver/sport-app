@@ -120,6 +120,9 @@ export async function fetchAdminActivityCompendiumActivities(params?: {
   pageSize?: number;
   q?: string;
   majorHeading?: string;
+  isActive?: boolean;
+  sortBy?: import("@sport-app/shared").ActivityCompendiumSortField;
+  sortDir?: import("@sport-app/shared").ActivityCompendiumSortDir;
 }): Promise<import("@sport-app/shared").AdminActivityCompendiumList> {
   const search = new URLSearchParams();
   search.set("page", String(params?.page ?? 1));
@@ -129,6 +132,15 @@ export async function fetchAdminActivityCompendiumActivities(params?: {
   }
   if (params?.majorHeading?.trim()) {
     search.set("major_heading", params.majorHeading.trim());
+  }
+  if (params?.isActive !== undefined) {
+    search.set("is_active", params.isActive ? "true" : "false");
+  }
+  if (params?.sortBy) {
+    search.set("sort_by", params.sortBy);
+  }
+  if (params?.sortDir) {
+    search.set("sort_dir", params.sortDir);
   }
   const res = await authenticatedFetchOk(`/admin/activity-compendium/activities?${search.toString()}`);
   return res.json() as Promise<import("@sport-app/shared").AdminActivityCompendiumList>;
@@ -143,6 +155,10 @@ export async function updateAdminActivityCompendiumItem(
     body: JSON.stringify(payload),
   });
   return res.json() as Promise<import("@sport-app/shared").AdminActivityCompendiumItem>;
+}
+
+export async function deleteAdminActivityCompendiumItem(activityId: string): Promise<void> {
+  await authenticatedFetchOk(`/admin/activity-compendium/activities/${activityId}`, { method: "DELETE" });
 }
 
 export async function importAdminActivityCompendiumPdf(file: File): Promise<{ activity_count: number }> {

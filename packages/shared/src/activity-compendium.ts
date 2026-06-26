@@ -49,6 +49,29 @@ export interface AdminActivityCompendiumItemUpdatePayload {
   is_active?: boolean | null;
 }
 
+export type ActivityCompendiumSortField =
+  | "compendium_code"
+  | "major_heading"
+  | "name_en"
+  | "name_ru"
+  | "met_value"
+  | "is_active"
+  | "updated_at";
+
+export type ActivityCompendiumSortDir = "asc" | "desc";
+
+export const ACTIVITY_COMPENDIUM_DEFAULT_SORT_BY: ActivityCompendiumSortField = "major_heading";
+export const ACTIVITY_COMPENDIUM_DEFAULT_SORT_DIR: ActivityCompendiumSortDir = "asc";
+
+export function activityCompendiumSortIndicator(
+  field: ActivityCompendiumSortField,
+  activeField: ActivityCompendiumSortField,
+  direction: ActivityCompendiumSortDir,
+): string {
+  if (field !== activeField) return "";
+  return direction === "asc" ? " ↑" : " ↓";
+}
+
 export const ACTIVITY_COMPENDIUM_PAGE_SIZE = 100;
 
 export const ACTIVITY_MAJOR_HEADING_LABELS: Record<string, string> = {
