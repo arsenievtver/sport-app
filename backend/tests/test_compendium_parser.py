@@ -13,14 +13,21 @@ PDF_PATH = Path("/Users/alekseiarsenev/Downloads/1_2024-adult-compendium_1_2024 
 def test_parse_compendium_pdf_full_reference() -> None:
     rows = parse_compendium_pdf(PDF_PATH)
 
-    assert len(rows) == 1097
-    assert len({row.compendium_code for row in rows}) == 1097
+    assert len(rows) == 1111
+    assert len({row.compendium_code for row in rows}) == 1111
     assert len({row.major_heading for row in rows}) == 22
+    assert max(len(row.name_en) for row in rows) <= 512
 
     from app.services.compendium_parser import parse_compendium_pdf_bytes
 
     byte_rows = parse_compendium_pdf_bytes(PDF_PATH.read_bytes())
-    assert len(byte_rows) == 1097
+    assert len(byte_rows) == 1111
+
+    occupation = next(row for row in rows if row.compendium_code == "11600")
+    assert occupation.major_heading == "Occupation"
+    assert occupation.met_value == 1.8
+    assert "Standing tasks" in occupation.name_en
+    assert "11610" not in occupation.name_en
 
     walking = next(row for row in rows if row.compendium_code == "17151")
     assert walking.major_heading == "Walking"

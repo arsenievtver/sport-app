@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Float, Integer, String
+from sqlalchemy import Boolean, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -10,8 +10,8 @@ class ActivityType(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "activity_types"
 
     compendium_code: Mapped[str] = mapped_column(String(16), unique=True, nullable=False, index=True)
-    name_ru: Mapped[str] = mapped_column(String(512), nullable=False)
-    name_en: Mapped[str] = mapped_column(String(512), nullable=False)
+    name_ru: Mapped[str] = mapped_column(Text, nullable=False)
+    name_en: Mapped[str] = mapped_column(Text, nullable=False)
     major_heading: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     category: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     met_value: Mapped[float] = mapped_column(Float, nullable=False)

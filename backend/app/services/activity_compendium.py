@@ -222,6 +222,8 @@ class ActivityCompendiumService:
         for index, item in enumerate(rows, start=1):
             existing = existing_by_code.get(item.compendium_code)
             if existing is not None:
+                if existing.name_en != item.name_en:
+                    existing.name_ru = ""
                 existing.name_en = item.name_en
                 existing.met_value = item.met_value
                 existing.major_heading = item.major_heading
