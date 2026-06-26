@@ -6,6 +6,7 @@ import { Modal } from "./Modal";
 
 interface ActivityCreateModalProps {
   majorHeadings: string[];
+  headingLabels: Record<string, string>;
   onClose: () => void;
   onCreated: () => void;
 }
@@ -28,7 +29,12 @@ const EMPTY_FORM: FormState = {
   is_active: false,
 };
 
-export function ActivityCreateModal({ majorHeadings, onClose, onCreated }: ActivityCreateModalProps) {
+export function ActivityCreateModal({
+  majorHeadings,
+  headingLabels,
+  onClose,
+  onCreated,
+}: ActivityCreateModalProps) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +89,9 @@ export function ActivityCreateModal({ majorHeadings, onClose, onCreated }: Activ
           <MajorHeadingField
             id="create-activity-group"
             majorHeadings={majorHeadings}
+            headingLabels={headingLabels}
             value={form.major_heading}
+            allowCustom
             onChange={(major_heading) => setForm((current) => ({ ...current, major_heading }))}
           />
         </div>

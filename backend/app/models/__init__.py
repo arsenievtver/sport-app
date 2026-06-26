@@ -10,6 +10,7 @@ from app.models.progress import AnalyticsEvent, ProgressSnapshot
 from app.models.schedule import CoachScheduleSettings, ScheduleSlotCompletion, ScheduleTemplateSlot, ScheduleWeekException
 from app.models.user import AthleteProfile, CoachAthleteLink, CoachProfile, User
 from app.models.activity_compendium_import import ActivityCompendiumImport
+from app.models.activity_major_heading_label import ActivityMajorHeadingLabel
 from app.models.activity_type import ActivityType
 from app.models.athlete_weight import AthleteWeightEntry
 from app.models.food_name_translation import FoodNameTranslation
@@ -27,6 +28,7 @@ __all__ = [
     "CoachAthleteSessionEntry",
     "ActivityType",
     "ActivityCompendiumImport",
+    "ActivityMajorHeadingLabel",
     "AthleteWeightEntry",
     "AthleteMealEntry",
     "FoodNameTranslation",

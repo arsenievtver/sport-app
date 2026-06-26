@@ -17,6 +17,7 @@ from app.schemas.admin import (
     CoachAthleteLinkResponse,
 )
 from app.schemas.activity_compendium import (
+    AdminActivityCompendiumGroupLabelUpdate,
     AdminActivityCompendiumGroupRename,
     AdminActivityCompendiumItem,
     AdminActivityCompendiumItemCreate,
@@ -291,13 +292,13 @@ async def create_activity_compendium_item(
 
 
 @router.post("/activity-compendium/groups/rename")
-async def rename_activity_compendium_group(
+async def merge_activity_compendium_group(
     data: AdminActivityCompendiumGroupRename,
     _admin: AdminUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> dict[str, int | str]:
     try:
-        updated = await ActivityCompendiumService(db).rename_major_heading(
+        updated = await ActivityCompendiumService(db).merge_major_heading(
             data.from_heading,
             data.to_heading,
         )
@@ -307,6 +308,25 @@ async def rename_activity_compendium_group(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     await db.commit()
     return {"updated": updated, "to_heading": data.to_heading.strip()}
+
+
+@router.patch("/activity-compendium/groups/label")
+async def update_activity_compendium_group_label(
+    data: AdminActivityCompendiumGroupLabelUpdate,
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, str]:
+    try:
+        label_ru = await ActivityCompendiumService(db).set_major_heading_label(
+            data.heading,
+            data.label_ru,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Группа не найдена") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    await db.commit()
+    return {"heading": data.heading.strip(), "label_ru": label_ru}
 
 
 @router.delete("/activity-compendium/activities/{activity_id}", status_code=status.HTTP_204_NO_CONTENT)

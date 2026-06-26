@@ -23,6 +23,7 @@ class ActivityCompendiumStats(BaseModel):
     imported_at: datetime | None = None
     translator_enabled: bool = False
     major_headings: list[str] = Field(default_factory=list)
+    major_heading_labels: dict[str, str] = Field(default_factory=dict)
 
 
 class AdminActivityCompendiumStatusResponse(ActivityCompendiumStats):
@@ -69,3 +70,8 @@ class AdminActivityCompendiumItemCreate(BaseModel):
 class AdminActivityCompendiumGroupRename(BaseModel):
     from_heading: str
     to_heading: str
+
+
+class AdminActivityCompendiumGroupLabelUpdate(BaseModel):
+    heading: str
+    label_ru: str

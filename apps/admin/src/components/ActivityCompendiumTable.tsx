@@ -23,9 +23,7 @@ type AppFilter = "" | "active" | "inactive";
 
 interface EditFormState {
   major_heading: string;
-  name_en: string;
   name_ru: string;
-  met_value: string;
 }
 
 function formatCatalogDate(isoDateTime: string): string {
@@ -43,12 +41,14 @@ function formatCatalogDate(isoDateTime: string): string {
 interface ActivityCompendiumTableProps {
   refreshKey?: number;
   majorHeadings: string[];
+  headingLabels: Record<string, string>;
   onDataChanged?: () => void;
 }
 
 export function ActivityCompendiumTable({
   refreshKey = 0,
   majorHeadings,
+  headingLabels,
   onDataChanged,
 }: ActivityCompendiumTableProps) {
   const [items, setItems] = useState<AdminActivityCompendiumItem[]>([]);
@@ -63,9 +63,7 @@ export function ActivityCompendiumTable({
   const [editingItem, setEditingItem] = useState<AdminActivityCompendiumItem | null>(null);
   const [editForm, setEditForm] = useState<EditFormState>({
     major_heading: "",
-    name_en: "",
     name_ru: "",
-    met_value: "",
   });
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -140,26 +138,22 @@ export function ActivityCompendiumTable({
     setEditingItem(item);
     setEditForm({
       major_heading: item.major_heading ?? "",
-      name_en: item.name_en,
       name_ru: item.name_ru || "",
-      met_value: String(item.met_value),
     });
     setError(null);
   };
 
   const closeEdit = () => {
     setEditingItem(null);
-    setEditForm({ major_heading: "", name_en: "", name_ru: "", met_value: "" });
+    setEditForm({ major_heading: "", name_ru: "" });
   };
 
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!editingItem) return;
 
-    const metRaw = editForm.met_value.trim().replace(",", ".");
-    const met_value = Number(metRaw);
-    if (!Number.isFinite(met_value) || met_value <= 0) {
-      setError("Укажите корректное значение MET");
+    if (!editForm.major_heading.trim()) {
+      setError("Выберите группу");
       return;
     }
 
@@ -167,10 +161,8 @@ export function ActivityCompendiumTable({
     setError(null);
     try {
       await updateAdminActivityCompendiumItem(editingItem.id, {
-        major_heading: editForm.major_heading.trim() || null,
-        name_en: editForm.name_en.trim() || null,
+        major_heading: editForm.major_heading.trim(),
         name_ru: editForm.name_ru.trim() || null,
-        met_value,
       });
       closeEdit();
       await loadActivities();
@@ -257,7 +249,7 @@ export function ActivityCompendiumTable({
             <option value="">Все группы</option>
             {majorHeadings.map((heading) => (
               <option key={heading} value={heading}>
-                {formatActivityMajorHeading(heading)}
+                {formatActivityMajorHeading(heading, headingLabels)}
               </option>
             ))}
           </select>
@@ -300,7 +292,7 @@ export function ActivityCompendiumTable({
               {items.map((item) => (
                 <tr key={item.id}>
                   <td className="admin-table__mono">{item.compendium_code}</td>
-                  <td>{formatActivityMajorHeading(item.major_heading)}</td>
+                  <td>{formatActivityMajorHeading(item.major_heading, headingLabels)}</td>
                   <td>{item.name_en}</td>
                   <td>{item.name_ru ? item.name_ru : <span className="text-muted">—</span>}</td>
                   <td>{formatMetValue(item.met_value)}</td>
@@ -376,20 +368,26 @@ export function ActivityCompendiumTable({
               <MajorHeadingField
                 id="activity-group"
                 majorHeadings={majorHeadings}
+                headingLabels={headingLabels}
                 value={editForm.major_heading}
                 onChange={(major_heading) => setEditForm((current) => ({ ...current, major_heading }))}
               />
             </div>
             <div className="admin-field">
               <label htmlFor="activity-en">Название EN</label>
+              <input id="activity-en" type="text" className="admin-input" value={editingItem.name_en} disabled />
+              <p className="admin-field__hint text-secondary">Из Compendium — не редактируется</p>
+            </div>
+            <div className="admin-field">
+              <label htmlFor="activity-met">MET</label>
               <input
-                id="activity-en"
+                id="activity-met"
                 type="text"
                 className="admin-input"
-                required
-                value={editForm.name_en}
-                onChange={(event) => setEditForm((current) => ({ ...current, name_en: event.target.value }))}
+                value={formatMetValue(editingItem.met_value)}
+                disabled
               />
+              <p className="admin-field__hint text-secondary">Из Compendium — не редактируется</p>
             </div>
             <div className="admin-field">
               <label htmlFor="activity-ru">Название RU</label>
@@ -400,18 +398,6 @@ export function ActivityCompendiumTable({
                 value={editForm.name_ru}
                 placeholder="Русское название"
                 onChange={(event) => setEditForm((current) => ({ ...current, name_ru: event.target.value }))}
-              />
-            </div>
-            <div className="admin-field">
-              <label htmlFor="activity-met">MET</label>
-              <input
-                id="activity-met"
-                type="text"
-                inputMode="decimal"
-                className="admin-input"
-                required
-                value={editForm.met_value}
-                onChange={(event) => setEditForm((current) => ({ ...current, met_value: event.target.value }))}
               />
             </div>
             <div className="admin-form__actions">

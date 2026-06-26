@@ -118,7 +118,7 @@ export function ActivityCompendiumPage() {
               disabled={actionBusy || isRunning || status.major_headings.length === 0}
               onClick={() => setRenameGroupOpen(true)}
             >
-              Переименовать группу
+              Изменить группу
             </button>
             <button
               type="button"
@@ -156,6 +156,7 @@ export function ActivityCompendiumPage() {
           <ActivityCompendiumTable
             refreshKey={tableRefreshKey}
             majorHeadings={status.major_headings}
+            headingLabels={status.major_heading_labels ?? {}}
             onDataChanged={() => {
               void loadStatus();
             }}
@@ -164,6 +165,7 @@ export function ActivityCompendiumPage() {
           {createOpen ? (
             <ActivityCreateModal
               majorHeadings={status.major_headings}
+              headingLabels={status.major_heading_labels ?? {}}
               onClose={() => setCreateOpen(false)}
               onCreated={() => {
                 setCreateOpen(false);
@@ -176,8 +178,9 @@ export function ActivityCompendiumPage() {
           {renameGroupOpen ? (
             <ActivityGroupRenameModal
               majorHeadings={status.major_headings}
+              headingLabels={status.major_heading_labels ?? {}}
               onClose={() => setRenameGroupOpen(false)}
-              onRenamed={() => {
+              onChanged={() => {
                 setRenameGroupOpen(false);
                 void loadStatus();
                 setTableRefreshKey((current) => current + 1);

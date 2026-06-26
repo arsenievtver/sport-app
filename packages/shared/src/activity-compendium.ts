@@ -20,6 +20,7 @@ export interface ActivityCompendiumStats {
   imported_at?: string | null;
   translator_enabled: boolean;
   major_headings: string[];
+  major_heading_labels: Record<string, string>;
 }
 
 export interface AdminActivityCompendiumStatus extends ActivityCompendiumStats {
@@ -64,6 +65,11 @@ export interface AdminActivityCompendiumItemCreatePayload {
 export interface AdminActivityCompendiumGroupRenamePayload {
   from_heading: string;
   to_heading: string;
+}
+
+export interface AdminActivityCompendiumGroupLabelUpdatePayload {
+  heading: string;
+  label_ru: string;
 }
 
 export type ActivityCompendiumSortField =
@@ -116,9 +122,20 @@ export const ACTIVITY_MAJOR_HEADING_LABELS: Record<string, string> = {
   "Winter Activities": "Зимние активности",
 };
 
-export function formatActivityMajorHeading(heading?: string | null): string {
+export function formatActivityMajorHeading(
+  heading?: string | null,
+  labels?: Record<string, string>,
+): string {
   if (!heading) return "—";
+  if (labels && heading in labels) {
+    return labels[heading];
+  }
   return ACTIVITY_MAJOR_HEADING_LABELS[heading] ?? heading;
+}
+
+export function defaultActivityMajorHeadingLabel(heading?: string | null): string | undefined {
+  if (!heading) return undefined;
+  return ACTIVITY_MAJOR_HEADING_LABELS[heading];
 }
 
 export function formatActivityCompendiumImportedAt(isoDateTime?: string | null): string {

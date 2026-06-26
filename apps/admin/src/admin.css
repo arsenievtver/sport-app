@@ -394,7 +394,8 @@
 .admin-field input[type="text"],
 .admin-field input[type="date"],
 .admin-field textarea,
-.admin-field select {
+.admin-field select,
+.admin-input.admin-select {
   width: 100%;
   padding: var(--space-3);
   font-family: var(--font-sans);
@@ -403,6 +404,76 @@
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
+}
+
+.admin-select {
+  appearance: none;
+  padding-right: 2.25rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23a3a3a3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  cursor: pointer;
+}
+
+.admin-field input[disabled],
+.admin-input[disabled] {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.admin-field__hint {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
+}
+
+.admin-field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.admin-link-button {
+  align-self: flex-start;
+  padding: 0;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.admin-link-button:hover {
+  text-decoration: underline;
+}
+
+.admin-fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.admin-fieldset legend {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.admin-radio {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  cursor: pointer;
+}
+
+.admin-radio:last-child {
+  margin-bottom: 0;
+}
+
+.admin-radio input {
+  margin: 0;
+  accent-color: var(--color-accent);
 }
 
 .admin-field textarea {

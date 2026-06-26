@@ -167,7 +167,7 @@ export async function createAdminActivityCompendiumItem(
   return res.json() as Promise<import("@sport-app/shared").AdminActivityCompendiumItem>;
 }
 
-export async function renameAdminActivityCompendiumGroup(
+export async function mergeAdminActivityCompendiumGroup(
   payload: import("@sport-app/shared").AdminActivityCompendiumGroupRenamePayload,
 ): Promise<{ updated: number; to_heading: string }> {
   const res = await authenticatedFetchOk("/admin/activity-compendium/groups/rename", {
@@ -175,6 +175,19 @@ export async function renameAdminActivityCompendiumGroup(
     body: JSON.stringify(payload),
   });
   return res.json() as Promise<{ updated: number; to_heading: string }>;
+}
+
+/** @deprecated use mergeAdminActivityCompendiumGroup */
+export const renameAdminActivityCompendiumGroup = mergeAdminActivityCompendiumGroup;
+
+export async function updateAdminActivityCompendiumGroupLabel(
+  payload: import("@sport-app/shared").AdminActivityCompendiumGroupLabelUpdatePayload,
+): Promise<{ heading: string; label_ru: string }> {
+  const res = await authenticatedFetchOk("/admin/activity-compendium/groups/label", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<{ heading: string; label_ru: string }>;
 }
 
 export async function deleteAdminActivityCompendiumItem(activityId: string): Promise<void> {

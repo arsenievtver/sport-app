@@ -10,7 +10,9 @@ from uuid import UUID
 from sqlalchemy import func, nulls_first, nulls_last, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.constants.activity_compendium import DEFAULT_MAJOR_HEADING_LABELS
 from app.models.activity_compendium_import import ActivityCompendiumImport
+from app.models.activity_major_heading_label import ActivityMajorHeadingLabel
 from app.models.activity_type import ActivityType
 from app.models.enums import ActivityCategory
 from app.models.user import AthleteProfile
@@ -110,6 +112,7 @@ class ActivityCompendiumService:
         translated = await self._count_translated()
         imported_at = await self._get_imported_at()
         headings = await self._list_major_headings()
+        labels = await self.get_major_heading_labels()
         return ActivityCompendiumStats(
             activity_count=total,
             translated_count=translated,
@@ -117,6 +120,7 @@ class ActivityCompendiumService:
             imported_at=imported_at,
             translator_enabled=translator.is_enabled(),
             major_headings=headings,
+            major_heading_labels=labels,
         )
 
     async def list_admin(
@@ -270,6 +274,44 @@ class ActivityCompendiumService:
             )
 
         return row
+
+    async def get_major_heading_labels(self) -> dict[str, str]:
+        overrides = await self._load_major_heading_label_overrides()
+        merged = {**DEFAULT_MAJOR_HEADING_LABELS, **overrides}
+        headings = await self._list_major_headings()
+        return {heading: merged.get(heading, heading) for heading in headings}
+
+    async def set_major_heading_label(self, heading: str, label_ru: str) -> str:
+        source = heading.strip()
+        label = label_ru.strip()
+        if not source:
+            raise ValueError("Укажите группу")
+        if not label:
+            raise ValueError("Укажите русское название")
+
+        headings = await self._list_major_headings()
+        if source not in headings:
+            raise LookupError("Группа не найдена")
+
+        default_label = DEFAULT_MAJOR_HEADING_LABELS.get(source)
+        if default_label == label:
+            await self._delete_major_heading_label_override(source)
+            return label
+
+        result = await self.db.execute(
+            select(ActivityMajorHeadingLabel).where(ActivityMajorHeadingLabel.heading == source),
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            self.db.add(ActivityMajorHeadingLabel(heading=source, label_ru=label))
+        else:
+            row.label_ru = label
+
+        await self.db.flush()
+        return label
+
+    async def merge_major_heading(self, from_heading: str, to_heading: str) -> int:
+        return await self.rename_major_heading(from_heading, to_heading)
 
     async def rename_major_heading(self, from_heading: str, to_heading: str) -> int:
         source = from_heading.strip()
@@ -528,6 +570,18 @@ class ActivityCompendiumService:
             .order_by(ActivityType.major_heading),
         )
         return [value for value in result.scalars().all() if value]
+
+    async def _load_major_heading_label_overrides(self) -> dict[str, str]:
+        result = await self.db.execute(select(ActivityMajorHeadingLabel))
+        return {row.heading: row.label_ru for row in result.scalars().all()}
+
+    async def _delete_major_heading_label_override(self, heading: str) -> None:
+        result = await self.db.execute(
+            select(ActivityMajorHeadingLabel).where(ActivityMajorHeadingLabel.heading == heading),
+        )
+        row = result.scalar_one_or_none()
+        if row is not None:
+            await self.db.delete(row)
 
     async def _touch_import_metadata(self, activity_count: int) -> None:
         now = datetime.now(UTC)
