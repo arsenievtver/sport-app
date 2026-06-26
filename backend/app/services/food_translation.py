@@ -16,6 +16,7 @@ from app.schemas.athlete_meals import MealAnalysisResponse, MealDishPreview
 logger = logging.getLogger(__name__)
 
 LOGMEAL_SOURCE = "logmeal"
+COMPENDIUM_SOURCE = "compendium"
 YANDEX_TRANSLATE_URL = "https://translate.api.cloud.yandex.net/translate/v2/translate"
 
 
@@ -212,20 +213,26 @@ class FoodTranslationService:
         )
         return result.scalar_one_or_none()
 
+    async def translate_texts(self, texts: list[str]) -> list[str]:
+        return await self._translate_ephemeral(texts)
+
     async def save_verified_translation(
         self,
         *,
         external_id: int,
         source_name: str,
         translated_name: str,
+        source: str = LOGMEAL_SOURCE,
+        provider: str = "admin",
+        verified: bool = True,
     ) -> None:
         await self._upsert_translation(
-            source=LOGMEAL_SOURCE,
+            source=source,
             external_id=external_id,
             source_name=source_name,
             translated_name=translated_name,
-            provider="admin",
-            verified=True,
+            provider=provider,
+            verified=verified,
         )
 
     async def delete_translation(self, external_id: int) -> None:

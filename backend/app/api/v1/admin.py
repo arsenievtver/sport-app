@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -16,12 +16,24 @@ from app.schemas.admin import (
     CoachAthleteLinkCreate,
     CoachAthleteLinkResponse,
 )
+from app.schemas.activity_compendium import (
+    AdminActivityCompendiumItem,
+    AdminActivityCompendiumItemUpdate,
+    AdminActivityCompendiumListResponse,
+    AdminActivityCompendiumStatusResponse,
+)
 from app.schemas.meal_catalog import (
     AdminMealCatalogDish,
     AdminMealCatalogDishListResponse,
     AdminMealCatalogDishUpdate,
     AdminMealCatalogStatusResponse,
 )
+from app.services.activity_compendium import ActivityCompendiumService
+from app.services.activity_compendium_job import (
+    ActivityCompendiumJobAlreadyRunningError,
+    activity_compendium_job_runner,
+)
+from app.services.compendium_parser import parse_compendium_pdf_bytes
 from app.services.admin import AdminService
 from app.services.logmeal_catalog import LogMealCatalogService
 from app.services.logmeal_catalog_job import CatalogJobAlreadyRunningError, catalog_job_runner
@@ -183,4 +195,92 @@ async def start_meal_catalog_translate(_admin: AdminUser) -> dict[str, str]:
 @router.post("/meal-catalog/refresh", status_code=status.HTTP_202_ACCEPTED)
 async def start_meal_catalog_refresh(_admin: AdminUser) -> dict[str, str]:
     await _start_catalog_job("full")
+    return {"status": "accepted"}
+
+
+@router.get("/activity-compendium/status", response_model=AdminActivityCompendiumStatusResponse)
+async def get_activity_compendium_status(
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AdminActivityCompendiumStatusResponse:
+    stats = await ActivityCompendiumService(db).get_stats()
+    return AdminActivityCompendiumStatusResponse(job=activity_compendium_job_runner.snapshot(), **stats.model_dump())
+
+
+@router.get("/activity-compendium/activities", response_model=AdminActivityCompendiumListResponse)
+async def list_activity_compendium(
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    page: int = 1,
+    page_size: int = 100,
+    q: str | None = None,
+    major_heading: str | None = None,
+) -> AdminActivityCompendiumListResponse:
+    rows, total = await ActivityCompendiumService(db).list_admin(
+        page=page,
+        page_size=page_size,
+        query=q,
+        major_heading=major_heading,
+    )
+    return AdminActivityCompendiumListResponse(
+        items=[AdminActivityCompendiumItem.model_validate(row) for row in rows],
+        total=total,
+        page=max(1, page),
+        page_size=min(100, max(1, page_size)),
+    )
+
+
+@router.patch("/activity-compendium/activities/{activity_id}", response_model=AdminActivityCompendiumItem)
+async def update_activity_compendium_item(
+    activity_id: UUID,
+    data: AdminActivityCompendiumItemUpdate,
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AdminActivityCompendiumItem:
+    payload = data.model_dump(exclude_unset=True)
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нет полей для обновления")
+    try:
+        row = await ActivityCompendiumService(db).update_admin(
+            activity_id,
+            name_ru=data.name_ru,
+            is_active=data.is_active,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Активность не найдена") from exc
+    await db.commit()
+    return AdminActivityCompendiumItem.model_validate(row)
+
+
+@router.post("/activity-compendium/import", status_code=status.HTTP_202_ACCEPTED)
+async def import_activity_compendium_pdf(
+    _admin: AdminUser,
+    file: Annotated[UploadFile, File(description="2024 Adult Compendium PDF")],
+) -> dict[str, str | int]:
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нужен PDF-файл справочника")
+
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Файл пуст")
+
+    try:
+        rows = parse_compendium_pdf_bytes(raw)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    try:
+        await activity_compendium_job_runner.start_import(rows, job_type="full")
+    except ActivityCompendiumJobAlreadyRunningError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Задача уже выполняется") from exc
+
+    return {"status": "accepted", "activity_count": len(rows)}
+
+
+@router.post("/activity-compendium/translate", status_code=status.HTTP_202_ACCEPTED)
+async def translate_activity_compendium(_admin: AdminUser) -> dict[str, str]:
+    try:
+        await activity_compendium_job_runner.start_translate()
+    except ActivityCompendiumJobAlreadyRunningError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Задача уже выполняется") from exc
     return {"status": "accepted"}

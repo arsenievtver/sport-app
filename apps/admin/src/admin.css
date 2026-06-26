@@ -490,6 +490,18 @@
   max-width: 360px;
 }
 
+.admin-catalog__table-filters {
+  display: flex;
+  gap: 0.75rem;
+  max-width: none;
+  flex: 1 1 420px;
+}
+
+.admin-catalog__table-filters .admin-input {
+  flex: 1;
+  min-width: 160px;
+}
+
 .admin-catalog__table-meta {
   margin: 0;
   font-size: var(--text-sm);

@@ -107,3 +107,54 @@ export async function updateAdminMealCatalogDish(
 export async function deleteAdminMealCatalogDish(logmealId: number): Promise<void> {
   await authenticatedFetchOk(`/admin/meal-catalog/dishes/${logmealId}`, { method: "DELETE" });
 }
+
+export async function fetchAdminActivityCompendiumStatus(): Promise<
+  import("@sport-app/shared").AdminActivityCompendiumStatus
+> {
+  const res = await authenticatedFetchOk("/admin/activity-compendium/status");
+  return res.json() as Promise<import("@sport-app/shared").AdminActivityCompendiumStatus>;
+}
+
+export async function fetchAdminActivityCompendiumActivities(params?: {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  majorHeading?: string;
+}): Promise<import("@sport-app/shared").AdminActivityCompendiumList> {
+  const search = new URLSearchParams();
+  search.set("page", String(params?.page ?? 1));
+  search.set("page_size", String(params?.pageSize ?? 100));
+  if (params?.q?.trim()) {
+    search.set("q", params.q.trim());
+  }
+  if (params?.majorHeading?.trim()) {
+    search.set("major_heading", params.majorHeading.trim());
+  }
+  const res = await authenticatedFetchOk(`/admin/activity-compendium/activities?${search.toString()}`);
+  return res.json() as Promise<import("@sport-app/shared").AdminActivityCompendiumList>;
+}
+
+export async function updateAdminActivityCompendiumItem(
+  activityId: string,
+  payload: import("@sport-app/shared").AdminActivityCompendiumItemUpdatePayload,
+): Promise<import("@sport-app/shared").AdminActivityCompendiumItem> {
+  const res = await authenticatedFetchOk(`/admin/activity-compendium/activities/${activityId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<import("@sport-app/shared").AdminActivityCompendiumItem>;
+}
+
+export async function importAdminActivityCompendiumPdf(file: File): Promise<{ activity_count: number }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await authenticatedFetchOk("/admin/activity-compendium/import", {
+    method: "POST",
+    body: formData,
+  });
+  return res.json() as Promise<{ activity_count: number }>;
+}
+
+export async function startAdminActivityCompendiumTranslate(): Promise<void> {
+  await authenticatedFetchOk("/admin/activity-compendium/translate", { method: "POST" });
+}

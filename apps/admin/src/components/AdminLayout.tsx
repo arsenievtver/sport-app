@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type AdminPage = "users" | "meal-catalog";
+export type AdminPage = "users" | "meal-catalog" | "activities";
 
 interface AdminLayoutProps {
   page: AdminPage;
@@ -15,6 +15,7 @@ interface AdminLayoutProps {
 const NAV_ITEMS: { id: AdminPage; label: string }[] = [
   { id: "users", label: "Пользователи" },
   { id: "meal-catalog", label: "Каталог блюд" },
+  { id: "activities", label: "Активности" },
 ];
 
 export function AdminLayout({

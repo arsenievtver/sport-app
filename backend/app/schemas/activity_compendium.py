@@ -1,0 +1,54 @@
+from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel, Field
+
+
+class ActivityCompendiumJobState(BaseModel):
+    status: str = "idle"
+    job_type: str = "none"
+    phase: str = ""
+    current: int = 0
+    total: int = 0
+    message: str = ""
+    error: str | None = None
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+
+
+class ActivityCompendiumStats(BaseModel):
+    activity_count: int = 0
+    translated_count: int = 0
+    untranslated_count: int = 0
+    imported_at: datetime | None = None
+    translator_enabled: bool = False
+    major_headings: list[str] = Field(default_factory=list)
+
+
+class AdminActivityCompendiumStatusResponse(ActivityCompendiumStats):
+    job: ActivityCompendiumJobState
+
+
+class AdminActivityCompendiumItem(BaseModel):
+    id: UUID
+    compendium_code: str
+    name_en: str
+    name_ru: str
+    major_heading: str | None
+    met_value: float
+    is_active: bool
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AdminActivityCompendiumListResponse(BaseModel):
+    items: list[AdminActivityCompendiumItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class AdminActivityCompendiumItemUpdate(BaseModel):
+    name_ru: str | None = None
+    is_active: bool | None = None

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ROLE_LABELS } from "@sport-app/shared";
 import { AuthScreen, useAuthSession } from "@sport-app/ui";
 
+import { ActivityCompendiumPage } from "./components/ActivityCompendiumPage";
 import { AdminLayout, type AdminPage } from "./components/AdminLayout";
 import { MealCatalogPage } from "./components/MealCatalogPage";
 import { UsersPage } from "./components/UsersPage";
@@ -42,10 +43,15 @@ export default function App() {
           title: "Каталог блюд",
           subtitle: "Синхронизация LogMeal, перевод и готовность поиска для атлетов",
         }
-      : {
-          title: "Пользователи",
-          subtitle: "Тренеры, атлеты и связи между ними",
-        };
+      : page === "activities"
+        ? {
+            title: "Справочник активностей",
+            subtitle: "2024 Adult Compendium — MET, группы и перевод названий",
+          }
+        : {
+            title: "Пользователи",
+            subtitle: "Тренеры, атлеты и связи между ними",
+          };
 
   return (
     <AdminLayout
@@ -58,6 +64,7 @@ export default function App() {
     >
       {page === "users" && <UsersPage />}
       {page === "meal-catalog" && <MealCatalogPage />}
+      {page === "activities" && <ActivityCompendiumPage />}
     </AdminLayout>
   );
 }
