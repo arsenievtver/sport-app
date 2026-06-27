@@ -57,6 +57,8 @@ class CoachAthleteSessionHistoryEntry(BaseModel):
     sessions_count: int
     entry_date: date
 
+    model_config = {"from_attributes": True}
+
 
 class CoachAthleteWeightMeasurementResponse(BaseModel):
     athlete_id: UUID
