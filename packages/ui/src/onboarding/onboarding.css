@@ -458,15 +458,43 @@
 }
 
 .coach-athlete-history {
+  display: grid;
+  gap: var(--space-3);
   margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
+  padding: var(--space-4);
+}
+
+.coach-athlete-history__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
 .coach-athlete-history__title {
-  margin: 0 0 var(--space-3);
+  margin: 0;
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
+}
+
+.coach-athlete-history__balance {
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.coach-athlete-history__balance strong {
+  color: var(--color-text);
+  font-weight: var(--font-semibold);
+}
+
+.coach-athlete-history__month-nav {
+  margin: 0;
+}
+
+.coach-athlete-history__month-label {
+  text-transform: capitalize;
 }
 
 .coach-athlete-history__hint {
@@ -487,7 +515,7 @@
 
 .coach-athlete-history__table th,
 .coach-athlete-history__table td {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-2);
   text-align: left;
   border-bottom: 1px solid var(--color-border-subtle, var(--color-border));
 }
@@ -498,12 +526,16 @@
   white-space: nowrap;
 }
 
-.coach-athlete-history__table td:last-child,
-.coach-athlete-history__table th:last-child,
+.coach-athlete-history__date {
+  white-space: nowrap;
+}
+
 .coach-athlete-history__table td:nth-child(2),
-.coach-athlete-history__table th:nth-child(2) {
+.coach-athlete-history__table td:nth-child(3),
+.coach-athlete-history__table th:nth-child(2),
+.coach-athlete-history__table th:nth-child(3) {
+  width: 2.75rem;
   text-align: center;
-  width: 5.5rem;
 }
 
 .coach-athlete-history__table tbody tr:last-child td {

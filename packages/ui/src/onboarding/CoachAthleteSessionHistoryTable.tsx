@@ -8,6 +8,32 @@ interface SessionHistoryDayRow {
   debited: number;
 }
 
+interface MonthRef {
+  year: number;
+  month: number;
+}
+
+function getCurrentMonth(): MonthRef {
+  const now = new Date();
+  return { year: now.getFullYear(), month: now.getMonth() + 1 };
+}
+
+function shiftMonth({ year, month }: MonthRef, delta: number): MonthRef {
+  const next = new Date(year, month - 1 + delta, 1);
+  return { year: next.getFullYear(), month: next.getMonth() + 1 };
+}
+
+function isSameMonth(left: MonthRef, right: MonthRef): boolean {
+  return left.year === right.year && left.month === right.month;
+}
+
+function formatMonthLabel({ year, month }: MonthRef): string {
+  return new Date(year, month - 1, 1).toLocaleDateString("ru-RU", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
 function groupSessionHistoryByDate(entries: CoachAthleteSessionHistoryEntry[]): SessionHistoryDayRow[] {
   const byDate = new Map<string, SessionHistoryDayRow>();
 
@@ -34,8 +60,7 @@ function formatHistoryDate(value: string): string {
   try {
     return new Date(`${value}T12:00:00`).toLocaleDateString("ru-RU", {
       day: "numeric",
-      month: "short",
-      year: "numeric",
+      month: "long",
     });
   } catch {
     return value;
@@ -48,19 +73,25 @@ function formatCount(value: number): string {
 
 interface CoachAthleteSessionHistoryTableProps {
   athleteId: string;
+  balance: number;
 }
 
-export function CoachAthleteSessionHistoryTable({ athleteId }: CoachAthleteSessionHistoryTableProps) {
+export function CoachAthleteSessionHistoryTable({ athleteId, balance }: CoachAthleteSessionHistoryTableProps) {
+  const [visibleMonth, setVisibleMonth] = useState<MonthRef>(() => getCurrentMonth());
   const [entries, setEntries] = useState<CoachAthleteSessionHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const currentMonth = useMemo(() => getCurrentMonth(), []);
+  const isCurrentMonth = isSameMonth(visibleMonth, currentMonth);
+  const monthLabel = formatMonthLabel(visibleMonth);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    void fetchCoachAthleteSessionHistory(athleteId)
+    void fetchCoachAthleteSessionHistory(athleteId, visibleMonth.year, visibleMonth.month)
       .then((items) => {
         if (!cancelled) setEntries(items);
       })
@@ -76,23 +107,51 @@ export function CoachAthleteSessionHistoryTable({ athleteId }: CoachAthleteSessi
     return () => {
       cancelled = true;
     };
-  }, [athleteId]);
+  }, [athleteId, visibleMonth]);
 
   const rows = useMemo(() => groupSessionHistoryByDate(entries), [entries]);
 
   return (
-    <section className="coach-athlete-history" aria-labelledby={`coach-athlete-history-${athleteId}`}>
-      <h4 id={`coach-athlete-history-${athleteId}`} className="coach-athlete-history__title">
-        История начислений и списаний
-      </h4>
+    <section
+      className="coach-athlete-history glass glass--panel"
+      aria-labelledby={`coach-athlete-history-${athleteId}`}
+    >
+      <header className="coach-athlete-history__header">
+        <h4 id={`coach-athlete-history-${athleteId}`} className="coach-athlete-history__title">
+          Начисления и списания
+        </h4>
+        <span className="coach-athlete-history__balance">
+          Баланс: <strong>{balance}</strong>
+        </span>
+      </header>
+
+      <div className="coach-athlete-history__month-nav schedule-week-nav">
+        <button
+          type="button"
+          className="schedule-week-nav__btn"
+          aria-label="Предыдущий месяц"
+          disabled={loading}
+          onClick={() => setVisibleMonth((current) => shiftMonth(current, -1))}
+        >
+          ←
+        </button>
+        <div className="schedule-week-nav__label coach-athlete-history__month-label">{monthLabel}</div>
+        <button
+          type="button"
+          className="schedule-week-nav__btn"
+          aria-label="Следующий месяц"
+          disabled={loading || isCurrentMonth}
+          onClick={() => setVisibleMonth((current) => shiftMonth(current, 1))}
+        >
+          →
+        </button>
+      </div>
 
       {loading ? <p className="coach-athlete-history__hint text-muted">Загрузка истории…</p> : null}
       {error ? <p className="auth-error coach-athlete-history__hint">{error}</p> : null}
 
       {!loading && !error && rows.length === 0 ? (
-        <p className="coach-athlete-history__hint text-secondary">
-          Пока нет операций с балансом тренировок.
-        </p>
+        <p className="coach-athlete-history__hint text-secondary">За этот месяц операций нет.</p>
       ) : null}
 
       {!loading && !error && rows.length > 0 ? (
@@ -101,14 +160,18 @@ export function CoachAthleteSessionHistoryTable({ athleteId }: CoachAthleteSessi
             <thead>
               <tr>
                 <th scope="col">Дата</th>
-                <th scope="col">Начислено</th>
-                <th scope="col">Списано</th>
+                <th scope="col" aria-label="Начислено">
+                  +
+                </th>
+                <th scope="col" aria-label="Списано">
+                  −
+                </th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.entry_date}>
-                  <td>{formatHistoryDate(row.entry_date)}</td>
+                  <td className="coach-athlete-history__date">{formatHistoryDate(row.entry_date)}</td>
                   <td className="coach-athlete-history__credit">{formatCount(row.credited)}</td>
                   <td className="coach-athlete-history__debit">{formatCount(row.debited)}</td>
                 </tr>

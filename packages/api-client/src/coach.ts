@@ -76,7 +76,13 @@ export async function fetchCoachAthleteWeightDynamics(athleteId: string): Promis
 
 export async function fetchCoachAthleteSessionHistory(
   athleteId: string,
+  year: number,
+  month: number,
 ): Promise<CoachAthleteSessionHistoryEntry[]> {
-  const res = await authenticatedFetchOk(`/coach/athletes/${athleteId}/sessions/history`);
+  const params = new URLSearchParams({
+    year: String(year),
+    month: String(month),
+  });
+  const res = await authenticatedFetchOk(`/coach/athletes/${athleteId}/sessions/history?${params}`);
   return res.json() as Promise<CoachAthleteSessionHistoryEntry[]>;
 }

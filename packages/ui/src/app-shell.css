@@ -69,17 +69,17 @@
   min-width: 0;
   background: transparent;
   padding:
-    calc(var(--space-5) + var(--shell-header-float-offset))
-    max(var(--space-5), var(--safe-right))
-    max(var(--space-5), var(--safe-bottom))
-    max(var(--space-5), var(--safe-left));
+    calc(var(--content-padding) + var(--shell-header-float-offset))
+    max(var(--content-padding), var(--safe-right))
+    max(var(--content-padding), var(--safe-bottom))
+    max(var(--content-padding), var(--safe-left));
   max-width: var(--content-max-width);
   width: 100%;
   margin: 0 auto;
 }
 
 .app-shell--with-bottom-nav .app-shell__main {
-  padding-bottom: calc(var(--space-5) + var(--bottom-nav-float-offset));
+  padding-bottom: calc(var(--content-padding) + var(--bottom-nav-float-offset));
 }
 
 .app-shell--with-subtitle {

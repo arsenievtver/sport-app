@@ -90,8 +90,21 @@ async def list_athlete_session_history(
     athlete_id: UUID,
     coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    year: Annotated[int | None, Query(ge=2000, le=2100)] = None,
+    month: Annotated[int | None, Query(ge=1, le=12)] = None,
 ) -> list[CoachAthleteSessionHistoryEntry]:
-    return await CoachService(db).list_session_history(coach_profile, athlete_id)
+    today = date.today()
+    resolved_year = year if year is not None else today.year
+    resolved_month = month if month is not None else today.month
+    try:
+        return await CoachService(db).list_session_history(
+            coach_profile,
+            athlete_id,
+            year=resolved_year,
+            month=resolved_month,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @router.post(

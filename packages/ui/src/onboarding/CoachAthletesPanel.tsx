@@ -184,9 +184,9 @@ function CoachAthleteProfile({ athlete, onBack }: CoachAthleteProfileProps) {
         </p>
 
         <AthleteDetails athlete={athlete} />
-
-        <CoachAthleteSessionHistoryTable athleteId={athlete.athlete_id} />
       </article>
+
+      <CoachAthleteSessionHistoryTable athleteId={athlete.athlete_id} balance={athlete.sessions_balance} />
     </div>
   );
 }

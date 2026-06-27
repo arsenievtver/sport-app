@@ -1,5 +1,7 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from uuid import UUID
+
+import calendar
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
@@ -124,11 +126,23 @@ class CoachService:
         self,
         coach_profile: CoachProfile,
         athlete_id: UUID,
+        *,
+        year: int,
+        month: int,
     ) -> list[CoachAthleteSessionHistoryEntry]:
+        if month < 1 or month > 12:
+            raise ValueError("Некорректный месяц")
+
         link = await self._get_link(coach_profile, athlete_id)
+        month_start = date(year, month, 1)
+        month_end = date(year, month, calendar.monthrange(year, month)[1])
         result = await self.db.execute(
             select(CoachAthleteSessionEntry)
-            .where(CoachAthleteSessionEntry.link_id == link.id)
+            .where(
+                CoachAthleteSessionEntry.link_id == link.id,
+                CoachAthleteSessionEntry.entry_date >= month_start,
+                CoachAthleteSessionEntry.entry_date <= month_end,
+            )
             .order_by(
                 CoachAthleteSessionEntry.entry_date.desc(),
                 CoachAthleteSessionEntry.created_at.desc(),
