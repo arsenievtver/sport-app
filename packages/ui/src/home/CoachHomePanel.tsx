@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  addCoachAthleteWeightMeasurement,
   completeCoachScheduleSlot,
   fetchCoachActivityTypes,
   fetchCoachAthleteWeightDynamics,
@@ -22,14 +21,10 @@ import {
   formatCaloriesKcal,
   formatCoachDayNavLabel,
   formatWeightKg,
-  formatWeightMeasurementDate,
   getActivityEffortLabel,
-  isValidWeightKg,
-  parseWeightInput,
   scheduleSessionKey,
   toIsoDate,
   type ActivityType,
-  type AthleteWeightDynamics,
   type ScheduleGridResponse,
   type ScheduleSlotCell,
   type ScheduleSlotCompletion,
@@ -37,6 +32,7 @@ import {
 import { useLiveDataRefresh } from "../hooks/useLiveDataRefresh";
 import { SessionsBalanceBadge } from "../sessions/SessionsBalanceBadge";
 import { ScheduleActivityTypeField } from "../schedule/ScheduleActivityTypeField";
+import { CoachAthleteWeightModal } from "../weight/CoachAthleteWeightModal";
 
 interface CoachHomePanelProps {
   onOpenAthlete?: (athleteId: string) => void;
@@ -140,10 +136,6 @@ export function CoachHomePanel({ onOpenAthlete }: CoachHomePanelProps) {
   const [completeBusy, setCompleteBusy] = useState(false);
   const [completeAthleteWeightKg, setCompleteAthleteWeightKg] = useState<number | null>(null);
   const [completeWeightLoading, setCompleteWeightLoading] = useState(false);
-  const [weightDynamics, setWeightDynamics] = useState<AthleteWeightDynamics | null>(null);
-  const [weightDynamicsLoading, setWeightDynamicsLoading] = useState(false);
-  const [weightInput, setWeightInput] = useState("");
-  const [weightBusy, setWeightBusy] = useState(false);
   const [weightNotice, setWeightNotice] = useState<string | null>(null);
 
   const selectedIso = toIsoDate(selectedDate);
@@ -348,80 +340,9 @@ export function CoachHomePanel({ onOpenAthlete }: CoachHomePanelProps) {
 
   const openWeightModal = (session: DaySession) => {
     setWeightModal({ athleteId: session.athleteId, athleteName: session.athleteName });
-    setWeightDynamics(null);
-    setWeightInput("");
     setWeightNotice(null);
     setActionError(null);
   };
-
-  useEffect(() => {
-    if (!weightModal) return;
-
-    let cancelled = false;
-    setWeightDynamicsLoading(true);
-
-    void fetchCoachAthleteWeightDynamics(weightModal.athleteId)
-      .then((data) => {
-        if (!cancelled) {
-          setWeightDynamics(data);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setActionError(err instanceof Error ? err.message : "Не удалось загрузить данные о весе");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setWeightDynamicsLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [weightModal]);
-
-  const closeWeightModal = () => {
-    if (weightBusy) return;
-    setWeightModal(null);
-    setWeightDynamics(null);
-    setWeightInput("");
-  };
-
-  const handleSaveWeight = async () => {
-    if (!weightModal) return;
-    const parsed = parseWeightInput(weightInput);
-    if (parsed == null) {
-      setActionError("Введите вес в килограммах");
-      return;
-    }
-    if (!isValidWeightKg(parsed)) {
-      setActionError("Вес должен быть от 20 до 300 кг");
-      return;
-    }
-
-    setWeightBusy(true);
-    setActionError(null);
-    try {
-      const saved = await addCoachAthleteWeightMeasurement({
-        athlete_id: weightModal.athleteId,
-        weight_kg: parsed,
-      });
-      setWeightNotice(`Вес ${saved.weight_kg} кг сохранён для ${weightModal.athleteName}`);
-      setWeightModal(null);
-      setWeightInput("");
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Не удалось сохранить измерение");
-    } finally {
-      setWeightBusy(false);
-    }
-  };
-
-  const lastWeightEntry =
-    weightDynamics && weightDynamics.entries.length > 0
-      ? weightDynamics.entries[weightDynamics.entries.length - 1]
-      : null;
 
   return (
     <div className="coach-home">
@@ -656,85 +577,16 @@ export function CoachHomePanel({ onOpenAthlete }: CoachHomePanelProps) {
       ) : null}
 
       {weightModal ? (
-        <div
-          className="schedule-sheet-backdrop coach-home-weight-backdrop"
-          role="presentation"
-          onClick={closeWeightModal}
-        >
-          <div
-            className="schedule-sheet coach-home-weight-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="coach-home-weight-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="schedule-sheet__body">
-              <div className="schedule-sheet__header">
-                <div className="schedule-sheet__heading">
-                  <h2 className="schedule-sheet__title" id="coach-home-weight-title">
-                    Измерение веса
-                  </h2>
-                  <p className="schedule-sheet__subtitle">{weightModal.athleteName}</p>
-                </div>
-                <button
-                  type="button"
-                  className="schedule-sheet__close"
-                  aria-label="Закрыть"
-                  disabled={weightBusy}
-                  onClick={closeWeightModal}
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="coach-home-weight-sheet__summary">
-                {weightDynamicsLoading ? (
-                  <p className="text-muted">Загрузка данных о весе…</p>
-                ) : (
-                  <>
-                    <p className="coach-home-weight-sheet__current">
-                      Текущий вес:{" "}
-                      <strong>
-                        {weightDynamics?.current_weight_kg != null
-                          ? `${formatWeightKg(weightDynamics.current_weight_kg)} кг`
-                          : "—"}
-                      </strong>
-                    </p>
-                    <p className="coach-home-weight-sheet__date text-secondary">
-                      Дата измерения:{" "}
-                      {lastWeightEntry ? formatWeightMeasurementDate(lastWeightEntry.entry_date) : "нет данных"}
-                    </p>
-                  </>
-                )}
-              </div>
-
-              <label className="schedule-sheet__field">
-                <span className="schedule-sheet__field-label">Вес, кг</span>
-                <input
-                  className="glass-input schedule-sheet__select"
-                  type="number"
-                  inputMode="decimal"
-                  min={20}
-                  max={300}
-                  step={0.1}
-                  value={weightInput}
-                  disabled={weightBusy}
-                  placeholder="Например, 72.5"
-                  onChange={(event) => setWeightInput(event.target.value)}
-                />
-              </label>
-
-              <button
-                type="button"
-                className="coach-btn coach-btn--primary schedule-sheet__submit"
-                disabled={weightBusy}
-                onClick={() => void handleSaveWeight()}
-              >
-                {weightBusy ? "Сохраняем…" : "Сохранить"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <CoachAthleteWeightModal
+          athleteId={weightModal.athleteId}
+          athleteName={weightModal.athleteName}
+          onClose={() => setWeightModal(null)}
+          onSaved={(saved) => {
+            setWeightNotice(
+              `Вес ${formatWeightKg(saved.weight_kg)} кг сохранён для ${weightModal.athleteName}`,
+            );
+          }}
+        />
       ) : null}
     </div>
   );

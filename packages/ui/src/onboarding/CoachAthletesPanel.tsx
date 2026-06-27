@@ -13,6 +13,7 @@ import {
   type TrainingTrait,
 } from "@sport-app/shared";
 import { SessionsBalanceCircle } from "../sessions/SessionsBalanceBadge";
+import { CoachAthleteSessionHistoryTable } from "./CoachAthleteSessionHistoryTable";
 
 const DEFAULT_ADD_COUNT = "10";
 
@@ -183,6 +184,8 @@ function CoachAthleteProfile({ athlete, onBack }: CoachAthleteProfileProps) {
         </p>
 
         <AthleteDetails athlete={athlete} />
+
+        <CoachAthleteSessionHistoryTable athleteId={athlete.athlete_id} />
       </article>
     </div>
   );

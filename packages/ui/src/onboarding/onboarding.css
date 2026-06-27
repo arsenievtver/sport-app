@@ -457,6 +457,69 @@
   padding-left: var(--space-3) !important;
 }
 
+.coach-athlete-history {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.coach-athlete-history__title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+
+.coach-athlete-history__hint {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.coach-athlete-history__table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.coach-athlete-history__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.coach-athlete-history__table th,
+.coach-athlete-history__table td {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border-subtle, var(--color-border));
+}
+
+.coach-athlete-history__table th {
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.coach-athlete-history__table td:last-child,
+.coach-athlete-history__table th:last-child,
+.coach-athlete-history__table td:nth-child(2),
+.coach-athlete-history__table th:nth-child(2) {
+  text-align: center;
+  width: 5.5rem;
+}
+
+.coach-athlete-history__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.coach-athlete-history__credit {
+  color: var(--color-success, #34d399);
+  font-weight: var(--font-semibold);
+}
+
+.coach-athlete-history__debit {
+  color: var(--color-warning, #fbbf24);
+  font-weight: var(--font-semibold);
+}
+
 .coach-athletes__header {
   display: flex;
   align-items: flex-start;

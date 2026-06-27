@@ -49,3 +49,6 @@ export { CoachScheduleSettingsForm } from "./schedule/CoachScheduleSettingsForm"
 export { ActivityTypePicker } from "./activity/ActivityTypePicker";
 export { SelectPicker } from "./select/SelectPicker";
 export type { SelectPickerGroup, SelectPickerOption, SelectPickerProps } from "./select/SelectPicker";
+export { WeightChart } from "./weight/WeightChart";
+export type { WeightChartProps } from "./weight/WeightChart";
+export { CoachAthleteWeightModal } from "./weight/CoachAthleteWeightModal";
