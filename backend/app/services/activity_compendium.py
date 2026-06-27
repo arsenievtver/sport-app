@@ -10,7 +10,12 @@ from uuid import UUID
 from sqlalchemy import func, nulls_first, nulls_last, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.constants.activity_compendium import DEFAULT_MAJOR_HEADING_LABELS
+from app.constants.activity_compendium import (
+    DEFAULT_MAJOR_HEADING_LABELS,
+    MANUAL_COMPENDIUM_CODE_MAX_SEQ,
+    MANUAL_COMPENDIUM_CODE_PREFIX,
+    MANUAL_COMPENDIUM_CODE_SEQ_WIDTH,
+)
 from app.models.activity_compendium_import import ActivityCompendiumImport
 from app.models.activity_major_heading_label import ActivityMajorHeadingLabel
 from app.models.activity_type import ActivityType
@@ -227,14 +232,13 @@ class ActivityCompendiumService:
     async def create_admin(
         self,
         *,
-        compendium_code: str,
         major_heading: str,
         name_en: str,
         name_ru: str | None,
         met_value: float,
         is_active: bool,
     ) -> ActivityType:
-        code = self._normalize_compendium_code(compendium_code)
+        code = await self._allocate_manual_compendium_code()
         heading = major_heading.strip()
         english = name_en.strip()
         if not heading:
@@ -343,6 +347,31 @@ class ActivityCompendiumService:
         if len(code) > 5:
             raise ValueError("Код Compendium — не более 5 цифр")
         return code.zfill(5)
+
+    @staticmethod
+    def format_manual_compendium_code(sequence: int) -> str:
+        if sequence < 1 or sequence > MANUAL_COMPENDIUM_CODE_MAX_SEQ:
+            raise ValueError("Недопустимый номер ручной активности")
+        return f"{MANUAL_COMPENDIUM_CODE_PREFIX}{sequence:0{MANUAL_COMPENDIUM_CODE_SEQ_WIDTH}d}"
+
+    async def _allocate_manual_compendium_code(self) -> str:
+        prefix = MANUAL_COMPENDIUM_CODE_PREFIX
+        prefix_len = len(prefix)
+        result = await self.db.execute(
+            select(ActivityType.compendium_code).where(
+                ActivityType.compendium_code.like(f"{prefix}%"),
+            )
+        )
+        max_sequence = 0
+        for code in result.scalars().all():
+            suffix = code[prefix_len:]
+            if suffix.isdigit():
+                max_sequence = max(max_sequence, int(suffix))
+
+        next_sequence = max_sequence + 1
+        if next_sequence > MANUAL_COMPENDIUM_CODE_MAX_SEQ:
+            raise ValueError("Исчерпан диапазон кодов для ручных активностей")
+        return self.format_manual_compendium_code(next_sequence)
 
     async def delete_admin(self, activity_id: UUID) -> None:
         row = await self._get_by_id(activity_id)

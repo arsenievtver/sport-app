@@ -54,7 +54,6 @@ export interface AdminActivityCompendiumItemUpdatePayload {
 }
 
 export interface AdminActivityCompendiumItemCreatePayload {
-  compendium_code: string;
   major_heading: string;
   name_en: string;
   name_ru?: string | null;
@@ -96,6 +95,25 @@ export function activityCompendiumSortIndicator(
 }
 
 export const ACTIVITY_COMPENDIUM_PAGE_SIZE = 100;
+
+/** Префикс автокодов для активностей, добавленных вручную в админке (формат 02xxxx). */
+export const MANUAL_COMPENDIUM_CODE_PREFIX = "02";
+export const MANUAL_COMPENDIUM_CODE_SEQ_WIDTH = 4;
+
+export function formatManualCompendiumCode(sequence: number): string {
+  const max = 10 ** MANUAL_COMPENDIUM_CODE_SEQ_WIDTH - 1;
+  if (sequence < 1 || sequence > max) {
+    throw new Error("Invalid manual compendium sequence");
+  }
+  return `${MANUAL_COMPENDIUM_CODE_PREFIX}${String(sequence).padStart(MANUAL_COMPENDIUM_CODE_SEQ_WIDTH, "0")}`;
+}
+
+export function isManualCompendiumCode(code: string): boolean {
+  const prefix = MANUAL_COMPENDIUM_CODE_PREFIX;
+  if (!code.startsWith(prefix)) return false;
+  const suffix = code.slice(prefix.length);
+  return suffix.length === MANUAL_COMPENDIUM_CODE_SEQ_WIDTH && /^\d+$/.test(suffix);
+}
 
 export const ACTIVITY_MAJOR_HEADING_LABELS: Record<string, string> = {
   Bicycling: "Велосипед",

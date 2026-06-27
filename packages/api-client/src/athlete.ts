@@ -71,8 +71,8 @@ export async function removeAthleteCoach(linkId: string): Promise<void> {
   await authenticatedFetchOk(`/athlete/coaches/${linkId}`, { method: "DELETE" });
 }
 
-export async function fetchAthleteUpcomingSessions(limit = 4): Promise<AthleteUpcomingSession[]> {
-  const res = await authenticatedFetchOk(`/athlete/schedule/upcoming?limit=${limit}`);
+export async function fetchAthleteUpcomingSessions(days = 1): Promise<AthleteUpcomingSession[]> {
+  const res = await authenticatedFetchOk(`/athlete/schedule/upcoming?days=${days}`);
   return res.json() as Promise<AthleteUpcomingSession[]>;
 }
 

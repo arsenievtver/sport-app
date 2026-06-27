@@ -93,14 +93,17 @@ export interface AthleteUpcomingSession {
   activity_name?: string | null;
 }
 
-export function formatAthleteUpcomingSession(session: AthleteUpcomingSession): string {
+export function formatAthleteUpcomingSessionDay(session: AthleteUpcomingSession): string {
   const parsed = new Date(`${session.occurrence_date}T12:00:00`);
-  const dateLabel = parsed.toLocaleDateString("ru-RU", {
+  return parsed.toLocaleDateString("ru-RU", {
     weekday: "short",
     day: "numeric",
     month: "long",
   });
-  return `${dateLabel} · ${session.start_time}`;
+}
+
+export function formatAthleteUpcomingSession(session: AthleteUpcomingSession): string {
+  return `${formatAthleteUpcomingSessionDay(session)} · ${session.start_time}`;
 }
 
 export function toIsoDate(value: Date): string {

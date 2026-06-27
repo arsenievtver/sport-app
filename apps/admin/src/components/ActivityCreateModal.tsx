@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createAdminActivityCompendiumItem } from "@sport-app/api-client";
+import { MANUAL_COMPENDIUM_CODE_PREFIX } from "@sport-app/shared";
 
 import { MajorHeadingField } from "./MajorHeadingField";
 import { Modal } from "./Modal";
@@ -12,7 +13,6 @@ interface ActivityCreateModalProps {
 }
 
 interface FormState {
-  compendium_code: string;
   major_heading: string;
   name_en: string;
   name_ru: string;
@@ -21,7 +21,6 @@ interface FormState {
 }
 
 const EMPTY_FORM: FormState = {
-  compendium_code: "",
   major_heading: "",
   name_en: "",
   name_ru: "",
@@ -52,7 +51,6 @@ export function ActivityCreateModal({
     setError(null);
     try {
       await createAdminActivityCompendiumItem({
-        compendium_code: form.compendium_code.trim(),
         major_heading: form.major_heading.trim(),
         name_en: form.name_en.trim(),
         name_ru: form.name_ru.trim() || null,
@@ -70,20 +68,10 @@ export function ActivityCreateModal({
   return (
     <Modal title="Добавить активность" onClose={onClose}>
       <form className="admin-form" onSubmit={(event) => void handleSubmit(event)}>
-        <div className="admin-field">
-          <label htmlFor="create-activity-code">Код Compendium</label>
-          <input
-            id="create-activity-code"
-            type="text"
-            inputMode="numeric"
-            className="admin-input"
-            required
-            maxLength={5}
-            placeholder="например: 15675"
-            value={form.compendium_code}
-            onChange={(event) => setForm((current) => ({ ...current, compendium_code: event.target.value }))}
-          />
-        </div>
+        <p className="admin-form__hint text-secondary">
+          Код Compendium присвоится автоматически (серия {MANUAL_COMPENDIUM_CODE_PREFIX}xxxx) — так ручные
+          записи видно в таблице отдельно от импорта.
+        </p>
         <div className="admin-field">
           <label htmlFor="create-activity-group">Группа</label>
           <MajorHeadingField

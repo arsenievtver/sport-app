@@ -293,7 +293,7 @@ class ScheduleService:
     async def list_upcoming_for_athlete(
         self,
         athlete_profile: AthleteProfile,
-        limit: int = 4,
+        days: int = 1,
         horizon_days: int = 56,
     ) -> list[AthleteUpcomingSessionResponse]:
         result = await self.db.execute(
@@ -365,7 +365,16 @@ class ScheduleService:
                 current += timedelta(days=1)
 
         candidates.sort(key=lambda item: item[0])
-        return [session for _, session in candidates[:limit]]
+        if not candidates:
+            return []
+
+        first_date = candidates[0][1].occurrence_date
+        last_date = first_date + timedelta(days=max(days, 1) - 1)
+        return [
+            session
+            for _, session in candidates
+            if first_date <= session.occurrence_date <= last_date
+        ]
 
     async def _load_settings(self, coach_profile: CoachProfile) -> CoachScheduleSettings | None:
         result = await self.db.execute(

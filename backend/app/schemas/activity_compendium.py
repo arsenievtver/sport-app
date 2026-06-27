@@ -59,7 +59,6 @@ class AdminActivityCompendiumItemUpdate(BaseModel):
 
 
 class AdminActivityCompendiumItemCreate(BaseModel):
-    compendium_code: str
     major_heading: str
     name_en: str
     name_ru: str | None = None

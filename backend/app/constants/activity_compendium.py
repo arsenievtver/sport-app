@@ -24,3 +24,7 @@ DEFAULT_MAJOR_HEADING_LABELS: dict[str, str] = {
     "Water Activities": "Водные активности",
     "Winter Activities": "Зимние активности",
 }
+
+MANUAL_COMPENDIUM_CODE_PREFIX = "02"
+MANUAL_COMPENDIUM_CODE_SEQ_WIDTH = 4
+MANUAL_COMPENDIUM_CODE_MAX_SEQ = 10**MANUAL_COMPENDIUM_CODE_SEQ_WIDTH - 1

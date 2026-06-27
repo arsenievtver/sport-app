@@ -278,7 +278,6 @@ async def create_activity_compendium_item(
 ) -> AdminActivityCompendiumItem:
     try:
         row = await ActivityCompendiumService(db).create_admin(
-            compendium_code=data.compendium_code,
             major_heading=data.major_heading,
             name_en=data.name_en,
             name_ru=data.name_ru,

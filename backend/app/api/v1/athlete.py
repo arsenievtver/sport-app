@@ -319,12 +319,12 @@ async def create_meal_entry(
 async def list_upcoming_sessions(
     user: AthleteUser,
     db: Annotated[AsyncSession, Depends(get_db)],
-    limit: Annotated[int, Query(ge=1, le=8)] = 4,
+    days: Annotated[int, Query(ge=1, le=7)] = 1,
 ) -> list[AthleteUpcomingSessionResponse]:
     if user.athlete_profile is None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
 
-    return await ScheduleService(db).list_upcoming_for_athlete(user.athlete_profile, limit=limit)
+    return await ScheduleService(db).list_upcoming_for_athlete(user.athlete_profile, days=days)
 
 
 @router.get("/plan", response_model=AthletePlanResponse)
