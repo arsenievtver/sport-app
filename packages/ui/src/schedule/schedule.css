@@ -2,7 +2,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0;
+  min-width: 0;
+  max-width: 100%;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -89,6 +90,8 @@
 .schedule-grid-wrap {
   overflow: hidden;
   border-radius: var(--radius-lg);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .schedule-grid-scroll {
@@ -96,6 +99,8 @@
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .schedule-grid {
@@ -533,13 +538,15 @@
   cursor: pointer;
 }
 
-@media (orientation: landscape) {
-  .app-shell--schedule-landscape .app-shell__main {
-    max-width: none;
-    padding-left: max(var(--space-3), var(--safe-left));
-    padding-right: max(var(--space-3), var(--safe-right));
-  }
+.app-shell--schedule-landscape .app-shell__main {
+  max-width: none;
+  width: 100%;
+  padding-left: max(var(--space-2), var(--safe-left));
+  padding-right: max(var(--space-2), var(--safe-right));
+  overflow-x: clip;
+}
 
+@media (orientation: landscape) {
   .schedule-grid {
     grid-template-columns: 56px repeat(var(--schedule-day-count), minmax(0, 1fr));
     min-width: 100%;

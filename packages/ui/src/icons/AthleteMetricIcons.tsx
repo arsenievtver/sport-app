@@ -1,14 +1,12 @@
+import { ICON_VIEW_BOX, iconStrokeProps } from "./iconProps";
+
 interface AthleteIconProps {
   className?: string;
 }
 
 const ICON_PROPS = {
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.75,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
+  viewBox: ICON_VIEW_BOX,
+  ...iconStrokeProps,
   "aria-hidden": true,
 };
 

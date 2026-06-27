@@ -12,7 +12,6 @@ import "./athlete-plan.css";
 
 interface AthleteWorkoutsPanelProps {
   refreshKey?: string | number;
-  onBack: () => void;
 }
 
 function formatWeightKg(value: number | null | undefined): string {
@@ -65,7 +64,7 @@ function WorkoutHistoryCard({ item }: { item: AthleteSessionHistoryItem }) {
   );
 }
 
-export function AthleteWorkoutsPanel({ refreshKey, onBack }: AthleteWorkoutsPanelProps) {
+export function AthleteWorkoutsPanel({ refreshKey }: AthleteWorkoutsPanelProps) {
   const [items, setItems] = useState<AthleteSessionHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,16 +98,6 @@ export function AthleteWorkoutsPanel({ refreshKey, onBack }: AthleteWorkoutsPane
 
   return (
     <div className="athlete-overlay-screen">
-      <header className="athlete-overlay-screen__header">
-        <button type="button" className="athlete-overlay-screen__back" onClick={onBack}>
-          ← Назад
-        </button>
-        <h1 className="athlete-overlay-screen__title">Тренировки</h1>
-        <p className="athlete-workouts__subtitle text-muted">
-          За последние {SESSION_HISTORY_DAYS} дней
-        </p>
-      </header>
-
       {loading ? (
         <p className="text-muted">Загрузка…</p>
       ) : error ? (

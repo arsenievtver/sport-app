@@ -4,6 +4,7 @@ import {
   isAthleteOnboardingComplete,
   readPendingInviteCode,
   ROLE_LABELS,
+  SESSION_HISTORY_DAYS,
 } from "@sport-app/shared";
 import {
   AppShell,
@@ -40,6 +41,12 @@ import "./components/whoop.css";
 
 type AthleteTab = "home" | "data" | "settings";
 type HomeOverlay = AthleteQuickActionId | null;
+
+const HOME_OVERLAY_TITLES: Record<Exclude<HomeOverlay, null>, string> = {
+  "my-plan": "Мой план",
+  nutrition: "Питание",
+  workouts: "Тренировки",
+};
 
 const TAB_TITLES: Record<AthleteTab, string | ((name: string) => string)> = {
   home: (name) => `Привет, ${name}!`,
@@ -133,14 +140,25 @@ export default function App() {
     ];
 
     const titleEntry = TAB_TITLES[tab];
-    const title = typeof titleEntry === "function" ? titleEntry(displayName) : titleEntry;
+    const title =
+      tab === "home" && homeOverlay
+        ? HOME_OVERLAY_TITLES[homeOverlay]
+        : typeof titleEntry === "function"
+          ? titleEntry(displayName)
+          : titleEntry;
+    const shellSubtitle =
+      tab === "home" && homeOverlay === "workouts"
+        ? `*последние ${SESSION_HISTORY_DAYS} дн`
+        : undefined;
 
     content = (
       <>
         <WhoopOAuthListener />
         <AppShell
           title={title}
-          contentKey={tab}
+          subtitle={shellSubtitle}
+          onBack={tab === "home" && homeOverlay ? () => setHomeOverlay(null) : undefined}
+          contentKey={homeOverlay ? `home-${homeOverlay}` : tab}
           headerEnd={
             <WorkoutsCompletedBadge count={sessionsCompleted} animate={!sessionsStatsLoading} />
           }
@@ -149,7 +167,13 @@ export default function App() {
               items={navItems}
               activeId={tab}
               showLabels
-              onChange={(id) => setTab(id as AthleteTab)}
+              onChange={(id) => {
+                const next = id as AthleteTab;
+                if (next === "home") {
+                  setHomeOverlay(null);
+                }
+                setTab(next);
+              }}
               action={{
                 id: "add-activity",
                 label: "Добавить активность",
@@ -167,12 +191,9 @@ export default function App() {
                 onSaved={() => setWeekProgressRefreshKey((value) => value + 1)}
               />
             ) : homeOverlay === "nutrition" ? (
-              <AthleteNutritionPanel onBack={() => setHomeOverlay(null)} />
+              <AthleteNutritionPanel />
             ) : homeOverlay === "workouts" ? (
-              <AthleteWorkoutsPanel
-                refreshKey={sessionsCompleted}
-                onBack={() => setHomeOverlay(null)}
-              />
+              <AthleteWorkoutsPanel refreshKey={sessionsCompleted} />
             ) : (
               <PullToRefresh
                 onRefresh={async () => {

@@ -1,4 +1,5 @@
 import type { WhoopSyncPayload } from "@sport-app/shared";
+import { ICON_VIEW_BOX, iconStrokeProps } from "@sport-app/ui";
 
 import {
   formatDateTime,
@@ -106,11 +107,9 @@ function WhoopRefreshIcon({ spinning }: { spinning?: boolean }) {
   return (
     <svg
       className={`whoop-refresh-icon${spinning ? " whoop-refresh-icon--spinning" : ""}`}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
+      viewBox={ICON_VIEW_BOX}
       aria-hidden
+      {...iconStrokeProps}
     >
       <path d="M21 12a9 9 0 1 1-2.64-6.36" />
       <path d="M21 3v6h-6" />

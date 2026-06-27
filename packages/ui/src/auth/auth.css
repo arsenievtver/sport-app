@@ -25,7 +25,7 @@
   height: min(420px, 90vw);
   top: -12%;
   right: -20%;
-  background: radial-gradient(circle, var(--orb-primary, rgba(45, 212, 191, 0.35)) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(0, 191, 192, 0.12) 0%, transparent 70%);
 }
 
 .auth-screen__orb--accent {
@@ -33,7 +33,7 @@
   height: min(320px, 70vw);
   bottom: 5%;
   left: -15%;
-  background: radial-gradient(circle, var(--orb-accent, rgba(251, 146, 60, 0.22)) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(0, 191, 192, 0.06) 0%, transparent 70%);
   animation-delay: -4s;
 }
 

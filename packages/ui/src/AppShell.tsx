@@ -61,6 +61,7 @@ function useScrollHeaderAutoHide(enabled: boolean, contentKey?: string | number)
 interface AppShellProps {
   title: string;
   subtitle?: string;
+  onBack?: () => void;
   headerEnd?: ReactNode;
   children?: ReactNode;
   bottomNav?: ReactNode;
@@ -72,6 +73,7 @@ interface AppShellProps {
 export function AppShell({
   title,
   subtitle,
+  onBack,
   headerEnd,
   children,
   bottomNav,
@@ -84,11 +86,16 @@ export function AppShell({
   return (
     <div
       ref={shellRef}
-      className={`app-shell${bottomNav ? " app-shell--with-bottom-nav" : ""}${subtitle ? " app-shell--with-subtitle" : ""}${className ? ` ${className}` : ""}`}
+      className={`app-shell${bottomNav ? " app-shell--with-bottom-nav" : ""}${subtitle ? " app-shell--with-subtitle" : ""}${onBack ? " app-shell--with-back" : ""}${className ? ` ${className}` : ""}`}
     >
       <header className="app-shell__header">
         <div className="app-shell__header-bar glass glass--floating-bar">
           <div className="app-shell__header-inner">
+            {onBack ? (
+              <button type="button" className="app-shell__back" onClick={onBack} aria-label="Назад">
+                ←
+              </button>
+            ) : null}
             <div className="app-shell__header-text">
               <h1 className="app-shell__title">{title}</h1>
               {subtitle && <p className="app-shell__subtitle">{subtitle}</p>}

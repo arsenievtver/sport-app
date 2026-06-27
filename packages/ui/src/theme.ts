@@ -63,6 +63,11 @@ export const theme = {
     touch: "48px",
   },
 
+  /** SVG stroke in 24×24 viewBox; aligns visually with --border-width (1px). */
+  icon: {
+    strokeWidth: 1.5,
+  },
+
   shadow: {
     glowPrimary: "0 0 24px rgba(45, 212, 191, 0.25)",
     glowAccent: "0 0 20px rgba(251, 146, 60, 0.2)",

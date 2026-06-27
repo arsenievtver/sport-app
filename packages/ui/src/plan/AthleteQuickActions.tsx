@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactElement } from "react";
 import { IconDumbbell } from "../icons/AthleteMetricIcons";
+import { ICON_VIEW_BOX, iconStrokeProps } from "../icons/iconProps";
 import "./athlete-plan.css";
 
 export type AthleteQuickActionId = "my-plan" | "nutrition" | "workouts";
@@ -10,24 +11,16 @@ interface AthleteQuickActionsProps {
 
 function IconMyPlan() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+    <svg viewBox={ICON_VIEW_BOX} aria-hidden="true" {...iconStrokeProps}>
       <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
     </svg>
   );
 }
 
 function IconNutrition() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
+    <svg viewBox={ICON_VIEW_BOX} aria-hidden="true" {...iconStrokeProps}>
       <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
       <path d="M7 2v20" />
       <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />

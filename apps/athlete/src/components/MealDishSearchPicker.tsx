@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { searchAthleteMealDishes } from "@sport-app/api-client";
 import type { MealDishSearchItem } from "@sport-app/shared";
+import { iconStrokeProps, iconStrokeWidthForViewBox } from "@sport-app/ui";
 
 type ResultsMode = "inline" | "floating";
 
@@ -21,10 +22,16 @@ interface MealDishSearchPickerProps {
 }
 
 function SearchIcon() {
+  const strokeWidth = iconStrokeWidthForViewBox(20);
   return (
     <svg className="meal-dish-search__icon-svg" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <circle cx="8.75" cy="8.75" r="5.75" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M13 13L17 17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="8.75" cy="8.75" r="5.75" stroke="currentColor" strokeWidth={strokeWidth} />
+      <path
+        d="M13 13L17 17"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        strokeLinecap={iconStrokeProps.strokeLinecap}
+      />
     </svg>
   );
 }

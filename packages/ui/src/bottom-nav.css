@@ -21,7 +21,7 @@
 .bottom-nav__bar {
   pointer-events: auto;
   width: 100%;
-  padding: var(--bottom-nav-bar-padding-y) var(--space-4);
+  padding: var(--bottom-nav-bar-padding-y) var(--space-2);
 }
 
 .bottom-nav--split .bottom-nav__bar {
@@ -131,8 +131,6 @@
 }
 
 .bottom-nav__items--compact {
-  --bottom-nav-slot-size: 46px;
-  --bottom-nav-icon-size: 26px;
   display: grid;
   grid-template-columns: repeat(var(--bottom-nav-item-count, 4), minmax(0, 1fr));
   gap: 0;
@@ -276,10 +274,6 @@
 /* Home glyph has more whitespace in the viewBox — optically match settings */
 .bottom-nav__icon--home {
   transform: scale(1.16);
-}
-
-.bottom-nav__icon--data {
-  transform: scale(0.92);
 }
 
 .bottom-nav__icon--add {

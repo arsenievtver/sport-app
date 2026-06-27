@@ -10,13 +10,14 @@ import { useLiveDataRefresh } from "../hooks/useLiveDataRefresh";
 import { usePullToRefresh } from "../pull-to-refresh/PullToRefresh";
 import { CircularProgressRing } from "./CircularProgressRing";
 import { IconDumbbell, IconFlame } from "../icons/AthleteMetricIcons";
+import { ICON_VIEW_BOX, iconStrokeProps } from "../icons/iconProps";
 import "./athlete-plan.css";
 
 function IconActivity() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+    <svg viewBox={ICON_VIEW_BOX} aria-hidden="true" {...iconStrokeProps}>
       <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 7v5l3 2" />
     </svg>
   );
 }

@@ -1,6 +1,6 @@
 /**
  * Статичный фон — один fixed-слой на #root.
- * Градиент — круг primary из центра экрана.
+ * Градиент fitbox (--app-bg-gradient), сетка поверх.
  */
 
 #root {
@@ -14,13 +14,7 @@
   position: fixed;
   z-index: -1;
   inset: 0;
-  background-color: var(--color-bg);
-  background-image: radial-gradient(
-    circle at 50% 50%,
-    color-mix(in srgb, var(--orb-primary, var(--color-primary)) 36%, transparent) 0%,
-    color-mix(in srgb, var(--orb-primary, var(--color-primary)) 14%, transparent) 38%,
-    transparent 72%
-  );
+  background: var(--app-bg-gradient);
   pointer-events: none;
 }
 
@@ -40,7 +34,7 @@
 
 @media (prefers-reduced-transparency: reduce) {
   #root::before {
-    background-image: none;
+    background: var(--app-bg-solid);
   }
 
   #root::after {

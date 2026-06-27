@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { ICON_VIEW_BOX, iconStrokeProps } from "../icons/iconProps";
 
 const THRESHOLD = 72;
 const MAX_PULL = 128;
@@ -216,9 +217,9 @@ export function PullToRefresh({ children, onRefresh, disabled = false }: PullToR
           {phase === "refreshing" ? (
             <div className="pull-to-refresh__spinner" />
           ) : (
-            <svg className="pull-to-refresh__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 5v14" strokeLinecap="round" />
-              <path d="m6 11 6-6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+            <svg className="pull-to-refresh__arrow" viewBox={ICON_VIEW_BOX} aria-hidden="true" {...iconStrokeProps}>
+              <path d="M12 5v14" />
+              <path d="m6 11 6-6 6 6" />
             </svg>
           )}
         </div>

@@ -17,6 +17,11 @@ export { WheelNumberPicker } from "./wheel/WheelNumberPicker";
 export type { WheelNumberPickerProps } from "./wheel/WheelNumberPicker";
 export { theme } from "./theme";
 export type { Theme } from "./theme";
+export {
+  ICON_VIEW_BOX,
+  iconStrokeProps,
+  iconStrokeWidthForViewBox,
+} from "./icons/iconProps";
 export { AuthScreen } from "./auth/AuthScreen";
 export type { AuthScreenConfig } from "./auth/AuthScreen";
 export { useAuthSession, setSessionRefreshPaused } from "./auth/useAuthSession";

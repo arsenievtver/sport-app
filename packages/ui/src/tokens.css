@@ -65,6 +65,20 @@
   --color-workout-chart: #ff3355;
   --color-activity-chart: #38bdf8;
 
+  /* Обводка outline-кнопок, glass-панелей и stroke-иконок (24×24 viewBox) */
+  --border-width: 1px;
+  --icon-stroke-width: 1.5;
+
+  /* Fitbox app background — фиксированный teal glow, не от primary темы */
+  --app-bg-gradient: radial-gradient(
+    circle at center,
+    rgba(0, 191, 192, 0.12) 0%,
+    rgba(0, 191, 192, 0.06) 25%,
+    rgba(11, 15, 20, 1) 55%,
+    rgba(15, 20, 27, 1) 100%
+  );
+  --app-bg-solid: #0f141b;
+
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;

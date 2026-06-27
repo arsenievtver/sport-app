@@ -31,11 +31,6 @@
   --color-danger-muted: rgba(248, 113, 113, 0.14);
   --color-info: #60a5fa;
 
-  --gradient-app-bg:
-    radial-gradient(ellipse 90% 60% at 50% -30%, var(--color-primary-subtle), transparent 70%),
-    radial-gradient(ellipse 50% 40% at 100% 0%, rgba(251, 146, 60, 0.05), transparent 60%),
-    var(--color-bg);
-
   --gradient-card-shine: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 50%);
   --gradient-primary: linear-gradient(135deg, #2dd4bf 0%, #34d399 100%);
   --gradient-progress: linear-gradient(90deg, #2dd4bf 0%, #34d399 100%);
@@ -44,9 +39,6 @@
   --shadow-glow-primary: 0 0 24px rgba(45, 212, 191, 0.25);
   --shadow-glow-accent: 0 0 20px rgba(251, 146, 60, 0.2);
   --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.35);
-
-  --orb-primary: rgba(45, 212, 191, 0.35);
-  --orb-accent: rgba(251, 146, 60, 0.22);
 
   --glass-tint: rgba(45, 212, 191, 0.055);
 }
@@ -83,11 +75,6 @@
   --color-danger-muted: rgba(248, 113, 113, 0.14);
   --color-info: #60a5fa;
 
-  --gradient-app-bg:
-    radial-gradient(ellipse 85% 55% at 50% -25%, var(--color-primary-subtle), transparent 70%),
-    radial-gradient(ellipse 45% 35% at 100% 10%, rgba(244, 63, 94, 0.07), transparent 60%),
-    var(--color-bg);
-
   --gradient-card-shine: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
   --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
   --gradient-progress: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
@@ -96,9 +83,6 @@
   --shadow-glow-primary: 0 0 28px rgba(59, 130, 246, 0.35);
   --shadow-glow-accent: 0 0 22px rgba(244, 63, 94, 0.25);
   --shadow-card: 0 4px 28px rgba(0, 0, 0, 0.4);
-
-  --orb-primary: rgba(59, 130, 246, 0.4);
-  --orb-accent: rgba(244, 63, 94, 0.28);
 
   --glass-tint: rgba(59, 130, 246, 0.08);
 }
@@ -135,11 +119,6 @@
   --color-danger-muted: rgba(248, 113, 113, 0.14);
   --color-info: #60a5fa;
 
-  --gradient-app-bg:
-    radial-gradient(ellipse 90% 60% at 50% -30%, var(--color-primary-subtle), transparent 70%),
-    radial-gradient(ellipse 50% 40% at 0% 20%, rgba(139, 92, 246, 0.06), transparent 60%),
-    var(--color-bg);
-
   --gradient-card-shine: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 50%);
   --gradient-primary: linear-gradient(135deg, #10b981 0%, #34d399 100%);
   --gradient-progress: linear-gradient(90deg, #10b981 0%, #6ee7b7 100%);
@@ -148,9 +127,6 @@
   --shadow-glow-primary: 0 0 24px rgba(16, 185, 129, 0.3);
   --shadow-glow-accent: 0 0 20px rgba(139, 92, 246, 0.25);
   --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.35);
-
-  --orb-primary: rgba(16, 185, 129, 0.32);
-  --orb-accent: rgba(139, 92, 246, 0.22);
 
   --glass-tint: rgba(16, 185, 129, 0.07);
 }
@@ -188,12 +164,6 @@
   --color-danger-muted: rgba(255, 68, 102, 0.15);
   --color-info: #00e5ff;
 
-  --gradient-app-bg:
-    radial-gradient(ellipse 70% 50% at 80% 0%, rgba(0, 255, 170, 0.12), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 10% 90%, rgba(255, 45, 149, 0.1), transparent 50%),
-    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(0, 229, 255, 0.04), transparent 60%),
-    var(--color-bg);
-
   --gradient-card-shine: linear-gradient(
     160deg,
     rgba(0, 255, 170, 0.08) 0%,
@@ -208,10 +178,6 @@
   --shadow-glow-primary: 0 0 20px rgba(0, 255, 170, 0.5), 0 0 50px rgba(0, 255, 170, 0.2);
   --shadow-glow-accent: 0 0 20px rgba(255, 45, 149, 0.45), 0 0 40px rgba(255, 45, 149, 0.15);
   --shadow-card: 0 8px 40px rgba(0, 0, 0, 0.6), 0 0 1px rgba(0, 255, 170, 0.3);
-
-  --orb-primary: rgba(0, 255, 170, 0.55);
-  --orb-accent: rgba(255, 45, 149, 0.45);
-  --orb-tertiary: rgba(0, 229, 255, 0.35);
 
   --logo-glow: drop-shadow(0 0 16px rgba(0, 255, 170, 0.9)) drop-shadow(0 0 32px rgba(0, 229, 255, 0.45));
   --rim-light: inset 0 1px 0 rgba(255, 255, 255, 0.12);
@@ -265,12 +231,6 @@
   --color-danger-muted: rgba(255, 17, 68, 0.15);
   --color-info: #ff6688;
 
-  --gradient-app-bg:
-    radial-gradient(ellipse 70% 50% at 80% 0%, rgba(255, 51, 85, 0.14), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 10% 90%, rgba(255, 136, 0, 0.1), transparent 50%),
-    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(255, 45, 149, 0.05), transparent 60%),
-    var(--color-bg);
-
   --gradient-card-shine: linear-gradient(
     160deg,
     rgba(255, 51, 85, 0.1) 0%,
@@ -285,10 +245,6 @@
   --shadow-glow-primary: 0 0 20px rgba(255, 51, 85, 0.55), 0 0 50px rgba(255, 51, 85, 0.22);
   --shadow-glow-accent: 0 0 20px rgba(255, 136, 0, 0.45), 0 0 40px rgba(255, 136, 0, 0.15);
   --shadow-card: 0 8px 40px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 51, 85, 0.35);
-
-  --orb-primary: rgba(255, 51, 85, 0.55);
-  --orb-accent: rgba(255, 136, 0, 0.45);
-  --orb-tertiary: rgba(255, 45, 149, 0.32);
 
   --logo-glow: drop-shadow(0 0 16px rgba(255, 51, 85, 0.9)) drop-shadow(0 0 32px rgba(255, 136, 0, 0.45));
   --rim-light: inset 0 1px 0 rgba(255, 255, 255, 0.12);

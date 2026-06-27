@@ -247,16 +247,21 @@
   font: inherit;
 }
 
+.athlete-my-plan__section--plain {
+  padding: 0;
+}
+
 .athlete-my-plan__footer {
   display: grid;
   gap: var(--space-2);
   position: sticky;
-  bottom: 0;
+  z-index: 10;
+  bottom: var(--bottom-nav-float-offset);
   padding: var(--space-4) 0 var(--space-2);
   background: linear-gradient(
     to top,
-    var(--color-bg) 70%,
-    color-mix(in srgb, var(--color-bg) 0%, transparent)
+    var(--app-bg-solid, var(--color-bg)) 65%,
+    color-mix(in srgb, var(--app-bg-solid, var(--color-bg)) 0%, transparent)
   );
 }
 

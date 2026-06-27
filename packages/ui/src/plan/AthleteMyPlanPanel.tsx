@@ -113,18 +113,11 @@ export function AthleteMyPlanPanel({ onBack, onSaved }: AthleteMyPlanPanelProps)
 
   return (
     <div className="athlete-overlay-screen">
-      <header className="athlete-overlay-screen__header">
-        <button type="button" className="athlete-overlay-screen__back" onClick={onBack}>
-          ← Назад
-        </button>
-        <h1 className="athlete-overlay-screen__title">Мой план</h1>
-      </header>
-
       {loading ? (
         <p className="text-muted">Загрузка…</p>
       ) : (
         <div className="athlete-my-plan">
-          <section className="athlete-my-plan__section glass glass--panel">
+          <section className="athlete-my-plan__section athlete-my-plan__section--plain">
             <h2 className="athlete-my-plan__section-title">Тренировки в неделю</h2>
             <p className="athlete-my-plan__lead text-secondary">
               Сколько раз в неделю вы планируете заниматься. Прогресс на главной считается по
@@ -149,7 +142,7 @@ export function AthleteMyPlanPanel({ onBack, onSaved }: AthleteMyPlanPanelProps)
             </div>
           </section>
 
-          <section className="athlete-my-plan__section glass glass--panel">
+          <section className="athlete-my-plan__section athlete-my-plan__section--plain">
             <h2 className="athlete-my-plan__section-title">Уровень активности</h2>
             <p className="athlete-my-plan__lead text-secondary">
               Цель по расходу энергии и времени движения. Чем выше уровень — тем больше минут

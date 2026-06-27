@@ -30,6 +30,7 @@ import {
   type ScheduleSlotCompletion,
 } from "@sport-app/shared";
 import { useLiveDataRefresh } from "../hooks/useLiveDataRefresh";
+import { ICON_VIEW_BOX, iconStrokeProps } from "../icons/iconProps";
 import { SessionsBalanceBadge } from "../sessions/SessionsBalanceBadge";
 import { ScheduleActivityTypeField } from "../schedule/ScheduleActivityTypeField";
 import { CoachAthleteWeightModal } from "../weight/CoachAthleteWeightModal";
@@ -62,9 +63,9 @@ interface CompleteModalState {
 
 function IconCompleteWorkout() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+    <svg viewBox={ICON_VIEW_BOX} aria-hidden="true" {...iconStrokeProps}>
       <circle cx="12" cy="12" r="9" />
-      <path d="m8 12.5 2.5 2.5L16 9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="m8 12.5 2.5 2.5L16 9" />
     </svg>
   );
 }
