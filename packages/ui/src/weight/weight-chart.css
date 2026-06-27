@@ -1,11 +1,14 @@
 .weight-dynamics__chart-wrap {
   position: relative;
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 .weight-dynamics__chart {
   display: block;
   width: 100%;
   height: auto;
+  max-width: 100%;
 }
 
 .weight-dynamics__tooltip {
@@ -23,6 +26,10 @@
   white-space: nowrap;
   pointer-events: none;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.weight-dynamics__tooltip--anchored {
+  transform: translate(0, calc(-100% - 8px));
 }
 
 .weight-dynamics__chart-empty {

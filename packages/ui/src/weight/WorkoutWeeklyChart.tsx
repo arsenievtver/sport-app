@@ -5,6 +5,7 @@ import {
   countToChartY,
   formatWorkoutWeekTooltip,
 } from "@sport-app/shared";
+import { ChartPointTooltip } from "./ChartPointTooltip";
 
 const CHART_WIDTH = 320;
 const CHART_HEIGHT = 200;
@@ -138,19 +139,16 @@ export function WorkoutWeeklyChart({ entries }: WorkoutWeeklyChartProps) {
   return (
     <div className="workout-weekly-chart weight-dynamics__chart-wrap">
       {hoveredBar ? (
-        <div
-          className="weight-dynamics__tooltip"
-          style={{
-            left: `${(hoveredBar.centerX / CHART_WIDTH) * 100}%`,
-            top: `${(tooltipTopY / CHART_HEIGHT) * 100}%`,
-          }}
+        <ChartPointTooltip
+          anchorXPercent={(hoveredBar.centerX / CHART_WIDTH) * 100}
+          anchorYPercent={(tooltipTopY / CHART_HEIGHT) * 100}
         >
           {formatWorkoutWeekTooltip(
             hoveredBar.entry.week_start,
             hoveredBar.entry.workouts_count,
             hoveredBar.entry.other_activity_count,
           )}
-        </div>
+        </ChartPointTooltip>
       ) : null}
       <svg
         className="weight-dynamics__chart"

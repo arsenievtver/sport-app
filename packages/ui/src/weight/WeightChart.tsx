@@ -7,6 +7,7 @@ import {
   formatWeightMeasurementDate,
   weightToChartY,
 } from "@sport-app/shared";
+import { ChartPointTooltip } from "./ChartPointTooltip";
 
 const CHART_WIDTH = 320;
 const CHART_HEIGHT = 200;
@@ -98,16 +99,13 @@ export function WeightChart({
   return (
     <div className="weight-dynamics__chart-wrap">
       {hoveredPoint ? (
-        <div
-          className="weight-dynamics__tooltip"
-          style={{
-            left: `${(hoveredPoint.x / CHART_WIDTH) * 100}%`,
-            top: `${(hoveredPoint.y / CHART_HEIGHT) * 100}%`,
-          }}
+        <ChartPointTooltip
+          anchorXPercent={(hoveredPoint.x / CHART_WIDTH) * 100}
+          anchorYPercent={(hoveredPoint.y / CHART_HEIGHT) * 100}
         >
           {formatWeightKg(hoveredPoint.entry.weight_kg)} кг ·{" "}
           {formatWeightMeasurementDate(hoveredPoint.entry.entry_date)}
-        </div>
+        </ChartPointTooltip>
       ) : null}
       <svg
         className="weight-dynamics__chart"
