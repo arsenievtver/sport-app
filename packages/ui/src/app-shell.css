@@ -36,6 +36,8 @@
 .app-shell__header-bar {
   pointer-events: auto;
   width: 100%;
+  box-sizing: border-box;
+  min-height: var(--shell-header-bar-height);
 }
 
 .app-shell__header-inner {
@@ -69,7 +71,7 @@
   min-width: 0;
   background: transparent;
   padding:
-    calc(var(--content-padding) + var(--shell-header-float-offset))
+    calc(var(--content-header-gap) + var(--shell-header-float-offset))
     max(var(--content-padding), var(--safe-right))
     max(var(--content-padding), var(--safe-bottom))
     max(var(--content-padding), var(--safe-left));
@@ -84,7 +86,7 @@
 
 .app-shell--with-subtitle {
   --shell-header-bar-height: calc(
-    var(--shell-bar-padding-y) * 2 + 1.40625rem + var(--space-1) + 1.3125rem
+    var(--shell-bar-padding-y) * 2 + 1.40625rem + var(--space-1) + 1.3125rem + 2px
   );
   --shell-header-float-offset: calc(
     var(--shell-header-bar-height) + max(var(--shell-bar-margin), var(--safe-top))
