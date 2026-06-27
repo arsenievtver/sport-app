@@ -12,49 +12,20 @@ const PLOT_LEFT = 40;
 const PLOT_RIGHT = 308;
 const PLOT_TOP = 16;
 const PLOT_BOTTOM = 168;
+const BAR_RADIUS = 4;
 
-interface WeekChartPoint {
-  x: number;
-  workoutY: number;
-  activityY: number;
+interface WeekBarLayout {
   entry: AthleteWorkoutWeeklyEntry;
-}
-
-function buildWeekChartPoints(
-  entries: AthleteWorkoutWeeklyEntry[],
-  bounds: ReturnType<typeof computeWorkoutWeeklyChartBounds>,
-): WeekChartPoint[] {
-  if (entries.length === 0) return [];
-  const plotWidth = PLOT_RIGHT - PLOT_LEFT;
-  const step = entries.length === 1 ? 0 : plotWidth / (entries.length - 1);
-
-  return entries.map((entry, index) => ({
-    entry,
-    x: PLOT_LEFT + step * index,
-    workoutY: countToChartY(entry.workouts_count, bounds, PLOT_TOP, PLOT_BOTTOM),
-    activityY: countToChartY(entry.other_activity_count, bounds, PLOT_TOP, PLOT_BOTTOM),
-  }));
-}
-
-function buildSmoothLinePath(points: WeekChartPoint[], yKey: "workoutY" | "activityY"): string {
-  if (points.length === 0) return "";
-  if (points.length === 1) return `M ${points[0].x} ${points[0][yKey]}`;
-
-  let path = `M ${points[0].x} ${points[0][yKey]}`;
-  for (let index = 0; index < points.length - 1; index += 1) {
-    const previous = points[index - 1] ?? points[index];
-    const current = points[index];
-    const next = points[index + 1];
-    const following = points[index + 2] ?? next;
-
-    const control1X = current.x + (next.x - previous.x) / 6;
-    const control1Y = current[yKey] + (next[yKey] - previous[yKey]) / 6;
-    const control2X = next.x - (following.x - current.x) / 6;
-    const control2Y = next[yKey] - (following[yKey] - current[yKey]) / 6;
-
-    path += ` C ${control1X} ${control1Y}, ${control2X} ${control2Y}, ${next.x} ${next[yKey]}`;
-  }
-  return path;
+  x: number;
+  centerX: number;
+  width: number;
+  slotX: number;
+  slotWidth: number;
+  workoutsTop: number;
+  workoutsBottom: number;
+  activityTop: number;
+  activityBottom: number;
+  total: number;
 }
 
 function buildCountTicks(bounds: ReturnType<typeof computeWorkoutWeeklyChartBounds>): number[] {
@@ -63,6 +34,71 @@ function buildCountTicks(bounds: ReturnType<typeof computeWorkoutWeeklyChartBoun
   }
   const mid = Math.round((bounds.yMin + bounds.yMax) / 2);
   return [bounds.yMin, mid, bounds.yMax];
+}
+
+function buildWeekBarLayouts(
+  entries: AthleteWorkoutWeeklyEntry[],
+  bounds: ReturnType<typeof computeWorkoutWeeklyChartBounds>,
+): WeekBarLayout[] {
+  if (entries.length === 0) return [];
+
+  const plotWidth = PLOT_RIGHT - PLOT_LEFT;
+  const slotWidth = plotWidth / entries.length;
+  const barWidth = Math.max(8, Math.min(24, slotWidth * 0.62));
+  const baseline = countToChartY(0, bounds, PLOT_TOP, PLOT_BOTTOM);
+
+  return entries.map((entry, index) => {
+    const slotX = PLOT_LEFT + slotWidth * index;
+    const x = slotX + (slotWidth - barWidth) / 2;
+    const workoutsTop = countToChartY(entry.workouts_count, bounds, PLOT_TOP, PLOT_BOTTOM);
+    const stackTop = countToChartY(
+      entry.workouts_count + entry.other_activity_count,
+      bounds,
+      PLOT_TOP,
+      PLOT_BOTTOM,
+    );
+
+    return {
+      entry,
+      x,
+      centerX: slotX + slotWidth / 2,
+      width: barWidth,
+      slotX,
+      slotWidth,
+      workoutsTop,
+      workoutsBottom: baseline,
+      activityTop: stackTop,
+      activityBottom: workoutsTop,
+      total: entry.workouts_count + entry.other_activity_count,
+    };
+  });
+}
+
+/** Bar segment with optional rounded top corners (SVG y grows downward). */
+function barSegmentPath(
+  x: number,
+  yTop: number,
+  width: number,
+  yBottom: number,
+  roundTop: boolean,
+): string {
+  const height = yBottom - yTop;
+  if (height <= 0) return "";
+
+  const radius = roundTop ? Math.min(BAR_RADIUS, width / 2, height / 2) : 0;
+  if (radius <= 0) {
+    return `M ${x} ${yTop} h ${width} v ${height} h ${-width} Z`;
+  }
+
+  return [
+    `M ${x} ${yBottom}`,
+    `L ${x + width} ${yBottom}`,
+    `L ${x + width} ${yTop + radius}`,
+    `Q ${x + width} ${yTop} ${x + width - radius} ${yTop}`,
+    `L ${x + radius} ${yTop}`,
+    `Q ${x} ${yTop} ${x} ${yTop + radius}`,
+    "Z",
+  ].join(" ");
 }
 
 export interface WorkoutWeeklyChartProps {
@@ -74,17 +110,15 @@ export function WorkoutWeeklyChart({ entries }: WorkoutWeeklyChartProps) {
   const bounds = useMemo(
     () =>
       computeWorkoutWeeklyChartBounds(
-        entries.flatMap((entry) => [entry.workouts_count, entry.other_activity_count]),
+        entries.map((entry) => entry.workouts_count + entry.other_activity_count),
       ),
     [entries],
   );
-  const points = useMemo(() => buildWeekChartPoints(entries, bounds), [bounds, entries]);
-  const workoutLinePath = useMemo(() => buildSmoothLinePath(points, "workoutY"), [points]);
-  const activityLinePath = useMemo(() => buildSmoothLinePath(points, "activityY"), [points]);
+  const bars = useMemo(() => buildWeekBarLayouts(entries, bounds), [bounds, entries]);
   const yTicks = useMemo(() => buildCountTicks(bounds), [bounds]);
-  const hoveredPoint = useMemo(
-    () => points.find((point) => point.entry.week_start === hoveredWeek) ?? null,
-    [hoveredWeek, points],
+  const hoveredBar = useMemo(
+    () => bars.find((bar) => bar.entry.week_start === hoveredWeek) ?? null,
+    [bars, hoveredWeek],
   );
 
   if (entries.length === 0) {
@@ -95,24 +129,26 @@ export function WorkoutWeeklyChart({ entries }: WorkoutWeeklyChartProps) {
     );
   }
 
-  const tooltipTopY = hoveredPoint
-    ? Math.min(hoveredPoint.workoutY, hoveredPoint.activityY)
+  const tooltipTopY = hoveredBar
+    ? hoveredBar.total > 0
+      ? hoveredBar.activityTop
+      : (PLOT_TOP + PLOT_BOTTOM) / 2
     : 0;
 
   return (
     <div className="workout-weekly-chart weight-dynamics__chart-wrap">
-      {hoveredPoint ? (
+      {hoveredBar ? (
         <div
           className="weight-dynamics__tooltip"
           style={{
-            left: `${(hoveredPoint.x / CHART_WIDTH) * 100}%`,
+            left: `${(hoveredBar.centerX / CHART_WIDTH) * 100}%`,
             top: `${(tooltipTopY / CHART_HEIGHT) * 100}%`,
           }}
         >
           {formatWorkoutWeekTooltip(
-            hoveredPoint.entry.week_start,
-            hoveredPoint.entry.workouts_count,
-            hoveredPoint.entry.other_activity_count,
+            hoveredBar.entry.week_start,
+            hoveredBar.entry.workouts_count,
+            hoveredBar.entry.other_activity_count,
           )}
         </div>
       ) : null}
@@ -120,7 +156,7 @@ export function WorkoutWeeklyChart({ entries }: WorkoutWeeklyChartProps) {
         className="weight-dynamics__chart"
         viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
         role="img"
-        aria-label="График динамики тренировок и прочей активности по неделям"
+        aria-label="Столбчатый график тренировок и прочей активности по неделям"
         onMouseLeave={() => setHoveredWeek(null)}
       >
         {yTicks.map((tick) => {
@@ -141,37 +177,47 @@ export function WorkoutWeeklyChart({ entries }: WorkoutWeeklyChartProps) {
           );
         })}
 
-        {points.length > 1 ? (
-          <>
-            <path className="weight-dynamics__line workout-weekly-chart__line--activity" d={activityLinePath} />
-            <path className="weight-dynamics__line workout-weekly-chart__line--workouts" d={workoutLinePath} />
-          </>
-        ) : null}
+        {bars.map((bar) => {
+          const isHovered = hoveredWeek === bar.entry.week_start;
+          const { entry } = bar;
+          const hasWorkouts = entry.workouts_count > 0;
+          const hasActivity = entry.other_activity_count > 0;
+          const hoverClass = isHovered ? " workout-weekly-chart__bar-segment--active" : "";
 
-        {points.map((point) => {
-          const isHovered = hoveredWeek === point.entry.week_start;
           return (
-            <g key={point.entry.week_start}>
+            <g key={entry.week_start}>
+              {hasWorkouts ? (
+                <path
+                  className={`workout-weekly-chart__bar-segment workout-weekly-chart__bar-segment--workouts${hoverClass}`}
+                  d={barSegmentPath(
+                    bar.x,
+                    bar.workoutsTop,
+                    bar.width,
+                    bar.workoutsBottom,
+                    !hasActivity,
+                  )}
+                />
+              ) : null}
+              {hasActivity ? (
+                <path
+                  className={`workout-weekly-chart__bar-segment workout-weekly-chart__bar-segment--activity${hoverClass}`}
+                  d={barSegmentPath(
+                    bar.x,
+                    bar.activityTop,
+                    bar.width,
+                    hasWorkouts ? bar.activityBottom : bar.workoutsBottom,
+                    true,
+                  )}
+                />
+              ) : null}
               <rect
                 className="workout-weekly-chart__week-hit"
-                x={point.x - 14}
+                x={bar.slotX}
                 y={PLOT_TOP}
-                width={28}
+                width={bar.slotWidth}
                 height={PLOT_BOTTOM - PLOT_TOP}
-                onMouseEnter={() => setHoveredWeek(point.entry.week_start)}
-                onTouchStart={() => setHoveredWeek(point.entry.week_start)}
-              />
-              <circle
-                className={`workout-weekly-chart__point workout-weekly-chart__point--activity${isHovered ? " workout-weekly-chart__point--active" : ""}`}
-                cx={point.x}
-                cy={point.activityY}
-                r={isHovered ? 4 : 3}
-              />
-              <circle
-                className={`workout-weekly-chart__point workout-weekly-chart__point--workouts${isHovered ? " workout-weekly-chart__point--active" : ""}`}
-                cx={point.x}
-                cy={point.workoutY}
-                r={isHovered ? 4 : 3}
+                onMouseEnter={() => setHoveredWeek(entry.week_start)}
+                onTouchStart={() => setHoveredWeek(entry.week_start)}
               />
             </g>
           );

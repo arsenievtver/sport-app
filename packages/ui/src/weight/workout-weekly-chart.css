@@ -1,39 +1,17 @@
-.workout-weekly-chart .workout-weekly-chart__line--workouts {
-  stroke: var(--color-workout-chart, #ff3355);
+.workout-weekly-chart__bar-segment {
+  transition: opacity var(--duration-fast) var(--ease-out);
 }
 
-.workout-weekly-chart .workout-weekly-chart__line--activity {
-  stroke: var(--color-activity-chart, #38bdf8);
-}
-
-.workout-weekly-chart .workout-weekly-chart__point--workouts {
-  fill: color-mix(in srgb, var(--color-workout-chart, #ff3355) 45%, transparent);
-  stroke: color-mix(in srgb, var(--color-surface) 92%, transparent);
-  stroke-width: 1.5;
-  pointer-events: none;
-  transition:
-    fill var(--duration-fast) var(--ease-out),
-    r var(--duration-fast) var(--ease-out);
-}
-
-.workout-weekly-chart .workout-weekly-chart__point--activity {
-  fill: color-mix(in srgb, var(--color-activity-chart, #38bdf8) 45%, transparent);
-  stroke: color-mix(in srgb, var(--color-surface) 92%, transparent);
-  stroke-width: 1.5;
-  pointer-events: none;
-  transition:
-    fill var(--duration-fast) var(--ease-out),
-    r var(--duration-fast) var(--ease-out);
-}
-
-.workout-weekly-chart .workout-weekly-chart__point--workouts.workout-weekly-chart__point--active {
+.workout-weekly-chart__bar-segment--workouts {
   fill: var(--color-workout-chart, #ff3355);
-  stroke: var(--color-surface);
 }
 
-.workout-weekly-chart .workout-weekly-chart__point--activity.workout-weekly-chart__point--active {
+.workout-weekly-chart__bar-segment--activity {
   fill: var(--color-activity-chart, #38bdf8);
-  stroke: var(--color-surface);
+}
+
+.workout-weekly-chart__bar-segment--active {
+  filter: brightness(1.1);
 }
 
 .workout-weekly-chart__week-hit {
@@ -58,9 +36,9 @@
 
 .workout-weekly-chart__legend-item::before {
   content: "";
-  width: 1.25rem;
-  height: 2px;
-  border-radius: var(--radius-full);
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 2px;
 }
 
 .workout-weekly-chart__legend-item--workouts::before {
