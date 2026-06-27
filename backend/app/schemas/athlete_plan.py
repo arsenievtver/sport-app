@@ -40,6 +40,7 @@ class AthleteWeekProgressResponse(BaseModel):
 class AthleteWorkoutWeeklyEntryResponse(BaseModel):
     week_start: date
     workouts_count: int
+    other_activity_count: int = 0
 
 
 class AthleteWorkoutWeeklyDynamicsResponse(BaseModel):

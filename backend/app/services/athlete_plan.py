@@ -23,7 +23,7 @@ from app.services.baseline_calories import (
     calculate_daily_baseline_calories_kcal,
     calculate_target_daily_calories_kcal,
 )
-from app.services.session_counting import countable_session_entries
+from app.services.session_counting import countable_session_entries, supplementary_activity_entries
 
 
 def _athlete_today(profile: AthleteProfile) -> date:
@@ -160,11 +160,17 @@ class AthletePlanService:
         )
         all_entries = list(result.scalars().all())
         countable = countable_session_entries(all_entries)
+        supplementary = supplementary_activity_entries(all_entries)
 
-        counts_by_week: dict[date, int] = {}
+        workouts_by_week: dict[date, int] = {}
         for entry in countable:
             week_start, _ = _week_bounds(entry.entry_date)
-            counts_by_week[week_start] = counts_by_week.get(week_start, 0) + entry.sessions_count
+            workouts_by_week[week_start] = workouts_by_week.get(week_start, 0) + entry.sessions_count
+
+        other_by_week: dict[date, int] = {}
+        for entry in supplementary:
+            week_start, _ = _week_bounds(entry.entry_date)
+            other_by_week[week_start] = other_by_week.get(week_start, 0) + entry.sessions_count
 
         entries_out: list[AthleteWorkoutWeeklyEntryResponse] = []
         for index in range(weeks):
@@ -172,7 +178,8 @@ class AthletePlanService:
             entries_out.append(
                 AthleteWorkoutWeeklyEntryResponse(
                     week_start=week_start,
-                    workouts_count=counts_by_week.get(week_start, 0),
+                    workouts_count=workouts_by_week.get(week_start, 0),
+                    other_activity_count=other_by_week.get(week_start, 0),
                 )
             )
 

@@ -6,6 +6,7 @@ from app.services.session_counting import (
     SELF_LOGGED_MIN_DURATION_MIN,
     SELF_LOGGED_MIN_EFFORT,
     SELF_LOGGED_MIN_MET,
+    counts_as_supplementary_activity,
     counts_toward_completed_sessions,
     self_logged_session_qualifies,
 )
@@ -76,3 +77,25 @@ class TestCountsTowardCompletedSessions:
     def test_weak_self_logged_does_not_count(self):
         entry = _entry(link_id=None, duration_min=30, effort=5, activity_met=6.0)
         assert counts_toward_completed_sessions(entry) is False
+
+
+class TestCountsAsSupplementaryActivity:
+    def test_credit_entries_never_count(self):
+        entry = _entry(kind=CoachAthleteSessionEntryKind.credit, link_id=None)
+        assert counts_as_supplementary_activity(entry) is False
+
+    def test_coach_debit_is_not_supplementary(self):
+        entry = _entry(link_id=uuid4(), duration_min=10, effort=1, activity_met=2.0)
+        assert counts_as_supplementary_activity(entry) is False
+
+    def test_qualifying_self_logged_is_not_supplementary(self):
+        entry = _entry(link_id=None, duration_min=60, effort=5, activity_met=6.0)
+        assert counts_as_supplementary_activity(entry) is False
+
+    def test_short_self_logged_is_supplementary(self):
+        entry = _entry(link_id=None, duration_min=30, effort=5, activity_met=6.0)
+        assert counts_as_supplementary_activity(entry) is True
+
+    def test_low_met_self_logged_is_supplementary(self):
+        entry = _entry(link_id=None, duration_min=90, effort=5, activity_met=3.5)
+        assert counts_as_supplementary_activity(entry) is True

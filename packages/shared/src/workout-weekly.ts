@@ -3,6 +3,7 @@ export const WORKOUT_WEEKLY_CHART_WEEKS = 10;
 export interface AthleteWorkoutWeeklyEntry {
   week_start: string;
   workouts_count: number;
+  other_activity_count: number;
 }
 
 export interface AthleteWorkoutWeeklyDynamics {
@@ -55,7 +56,11 @@ export function formatWorkoutWeekRangeLabel(weekStartIso: string): string {
   return `${formatShort(start)}-${formatShort(end)}`;
 }
 
-export function formatWorkoutWeekTooltip(isoDate: string, count: number): string {
+export function formatWorkoutWeekTooltip(
+  isoDate: string,
+  workoutsCount: number,
+  otherActivityCount = 0,
+): string {
   const range = formatWorkoutWeekRangeLabel(isoDate);
-  return `${range} · ${count} тр.`;
+  return `${range} · ${workoutsCount} тр. · ${otherActivityCount} пр.`;
 }

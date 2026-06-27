@@ -44,10 +44,25 @@ def counts_toward_completed_sessions(entry: CoachAthleteSessionEntry) -> bool:
     return self_logged_session_qualifies(entry)
 
 
+def counts_as_supplementary_activity(entry: CoachAthleteSessionEntry) -> bool:
+    """Self-logged debits that do not qualify as completed workouts (short / low MET)."""
+    if entry.kind != CoachAthleteSessionEntryKind.debit:
+        return False
+    if entry.link_id is not None:
+        return False
+    return not self_logged_session_qualifies(entry)
+
+
 def countable_session_entries(
     entries: list[CoachAthleteSessionEntry],
 ) -> list[CoachAthleteSessionEntry]:
     return [entry for entry in entries if counts_toward_completed_sessions(entry)]
+
+
+def supplementary_activity_entries(
+    entries: list[CoachAthleteSessionEntry],
+) -> list[CoachAthleteSessionEntry]:
+    return [entry for entry in entries if counts_as_supplementary_activity(entry)]
 
 
 def completed_sessions_count_sql_filter():
