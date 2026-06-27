@@ -1,0 +1,13 @@
+.workout-weekly-chart .weight-dynamics__line {
+  stroke: var(--color-workout-chart, #ff3355);
+}
+
+.workout-weekly-chart .weight-dynamics__point {
+  fill: color-mix(in srgb, var(--color-workout-chart, #ff3355) 45%, transparent);
+  stroke: color-mix(in srgb, var(--color-surface) 92%, transparent);
+}
+
+.workout-weekly-chart .weight-dynamics__point--active {
+  fill: var(--color-workout-chart, #ff3355);
+  stroke: var(--color-surface);
+}

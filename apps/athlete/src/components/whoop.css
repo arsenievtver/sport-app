@@ -692,6 +692,39 @@
   margin: 0;
 }
 
+.workout-dynamics {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.workout-dynamics__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.workout-dynamics__title {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.workout-dynamics__current {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.workout-dynamics__current strong {
+  color: var(--color-workout-chart, #ff3355);
+}
+
+.workout-dynamics__error {
+  margin: 0;
+}
+
 .athlete-nutrition__subtitle {
   margin: var(--space-1) 0 0;
   font-size: var(--text-sm);

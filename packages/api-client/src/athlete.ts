@@ -7,6 +7,7 @@ import type {
   AthleteSessionHistoryItem,
   AthleteWeightDynamics,
   AthleteWeightMeasurementPayload,
+  AthleteWorkoutWeeklyDynamics,
   AthleteOnboardingPayload,
   AthletePlan,
   AthletePlanUpdatePayload,
@@ -18,7 +19,7 @@ import type {
   JoinCoachPayload,
   UserResponse,
 } from "@sport-app/shared";
-import { SESSION_HISTORY_DAYS } from "@sport-app/shared";
+import { SESSION_HISTORY_DAYS, WORKOUT_WEEKLY_CHART_WEEKS } from "@sport-app/shared";
 
 import { authenticatedFetchOk } from "./auth";
 import { getApiBaseUrl } from "./config";
@@ -103,6 +104,13 @@ export async function fetchActivityTypes(): Promise<ActivityTypesList> {
 export async function fetchAthleteWeightDynamics(): Promise<AthleteWeightDynamics> {
   const res = await authenticatedFetchOk("/athlete/weight/dynamics");
   return res.json() as Promise<AthleteWeightDynamics>;
+}
+
+export async function fetchAthleteWorkoutWeeklyDynamics(
+  weeks = WORKOUT_WEEKLY_CHART_WEEKS,
+): Promise<AthleteWorkoutWeeklyDynamics> {
+  const res = await authenticatedFetchOk(`/athlete/sessions/weekly-dynamics?weeks=${weeks}`);
+  return res.json() as Promise<AthleteWorkoutWeeklyDynamics>;
 }
 
 export async function addAthleteWeightMeasurement(

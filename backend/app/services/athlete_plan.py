@@ -13,6 +13,8 @@ from app.schemas.athlete_plan import (
     AthletePlanUpdateRequest,
     AthleteWeekProgressMetric,
     AthleteWeekProgressResponse,
+    AthleteWorkoutWeeklyDynamicsResponse,
+    AthleteWorkoutWeeklyEntryResponse,
 )
 from app.services.activity_load import clamp_activity_effort
 from app.services.activity_tier import get_tier_spec, resolve_activity_tier
@@ -51,6 +53,8 @@ def _progress_percent(actual: float, target: float) -> int:
 COMPLETION_WEIGHT_WORKOUTS = 0.50
 COMPLETION_WEIGHT_CALORIES = 0.25
 COMPLETION_WEIGHT_ACTIVITY = 0.25
+
+WORKOUT_WEEKLY_CHART_WEEKS = 10
 
 # Per-session reference for 100% resultative score (matches ACTIVITY_EFFORT_DEFAULT in shared).
 RESULTATIVE_SESSION_FULL_DURATION_MIN = 60
@@ -129,6 +133,50 @@ class AthletePlanService:
             profile.plan_activity_tier = data.activity_tier
         await self.db.flush()
         return await self.get_plan(profile)
+
+    async def get_weekly_workout_dynamics(
+        self,
+        profile: AthleteProfile,
+        weeks: int = WORKOUT_WEEKLY_CHART_WEEKS,
+    ) -> AthleteWorkoutWeeklyDynamicsResponse:
+        weeks = max(1, min(weeks, 52))
+        today = _athlete_today(profile)
+        current_monday, _ = _week_bounds(today)
+        oldest_monday = current_monday - timedelta(weeks=weeks - 1)
+
+        result = await self.db.execute(
+            select(CoachAthleteSessionEntry)
+            .outerjoin(CoachAthleteLink, CoachAthleteSessionEntry.link_id == CoachAthleteLink.id)
+            .where(
+                CoachAthleteSessionEntry.kind == CoachAthleteSessionEntryKind.debit,
+                CoachAthleteSessionEntry.entry_date >= oldest_monday,
+                CoachAthleteSessionEntry.entry_date <= today,
+                or_(
+                    CoachAthleteLink.athlete_id == profile.id,
+                    CoachAthleteSessionEntry.athlete_id == profile.id,
+                ),
+            )
+            .options(selectinload(CoachAthleteSessionEntry.activity_type))
+        )
+        all_entries = list(result.scalars().all())
+        countable = countable_session_entries(all_entries)
+
+        counts_by_week: dict[date, int] = {}
+        for entry in countable:
+            week_start, _ = _week_bounds(entry.entry_date)
+            counts_by_week[week_start] = counts_by_week.get(week_start, 0) + entry.sessions_count
+
+        entries_out: list[AthleteWorkoutWeeklyEntryResponse] = []
+        for index in range(weeks):
+            week_start = oldest_monday + timedelta(weeks=index)
+            entries_out.append(
+                AthleteWorkoutWeeklyEntryResponse(
+                    week_start=week_start,
+                    workouts_count=counts_by_week.get(week_start, 0),
+                )
+            )
+
+        return AthleteWorkoutWeeklyDynamicsResponse(entries=entries_out)
 
     async def get_week_progress(self, profile: AthleteProfile) -> AthleteWeekProgressResponse:
         today = _athlete_today(profile)

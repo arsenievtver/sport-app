@@ -1,3 +1,5 @@
+from datetime import date
+
 from pydantic import BaseModel, Field
 
 from app.models.enums import PlanActivityTier
@@ -33,3 +35,12 @@ class AthleteWeekProgressResponse(BaseModel):
     workouts: AthleteWeekProgressMetric
     calories: AthleteWeekProgressMetric
     activity: AthleteWeekProgressMetric
+
+
+class AthleteWorkoutWeeklyEntryResponse(BaseModel):
+    week_start: date
+    workouts_count: int
+
+
+class AthleteWorkoutWeeklyDynamicsResponse(BaseModel):
+    entries: list[AthleteWorkoutWeeklyEntryResponse]

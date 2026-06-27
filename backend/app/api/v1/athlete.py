@@ -37,6 +37,7 @@ from app.schemas.athlete_plan import (
     AthletePlanResponse,
     AthletePlanUpdateRequest,
     AthleteWeekProgressResponse,
+    AthleteWorkoutWeeklyDynamicsResponse,
 )
 from app.schemas.auth import UserResponse
 from app.schemas.schedule import AthleteUpcomingSessionResponse
@@ -180,6 +181,18 @@ async def list_session_history(
 
     service = AthleteService(db)
     return await service.list_session_history(user.athlete_profile, days=days, limit=limit)
+
+
+@router.get("/sessions/weekly-dynamics", response_model=AthleteWorkoutWeeklyDynamicsResponse)
+async def get_workout_weekly_dynamics(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    weeks: Annotated[int, Query(ge=1, le=52)] = 10,
+) -> AthleteWorkoutWeeklyDynamicsResponse:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    return await AthletePlanService(db).get_weekly_workout_dynamics(user.athlete_profile, weeks=weeks)
 
 
 @router.get("/activity-types", response_model=ActivityTypesListResponse)
