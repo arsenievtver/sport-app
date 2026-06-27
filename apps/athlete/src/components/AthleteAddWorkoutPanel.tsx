@@ -9,7 +9,6 @@ import {
   ACTIVITY_EFFORT_MIN,
   ATHLETE_WORKOUT_WITHOUT_COACH,
   ATHLETE_WORKOUT_WITHOUT_COACH_LABEL,
-  RECENT_ACTIVITY_TYPES_LABEL,
   calculateEffectiveMet,
   calculateLoadMetMinutes,
   calculateWorkoutCalories,
@@ -17,8 +16,8 @@ import {
   clampActivityEffort,
   formatCaloriesKcal,
   getActivityEffortLabel,
-  groupActivityTypesByMajorHeading,
 } from "@sport-app/shared";
+import { ActivityTypePicker } from "@sport-app/ui";
 
 interface AthleteAddWorkoutPanelProps {
   refreshKey?: string;
@@ -123,27 +122,6 @@ export function AthleteAddWorkoutPanel({
     [activityTypes, activityTypeId],
   );
 
-  const recentActivityTypes = useMemo(
-    () =>
-      recentActivityTypeIds
-        .map((id) => activityTypes.find((item) => item.id === id))
-        .filter((item): item is ActivityType => item != null),
-    [activityTypes, recentActivityTypeIds],
-  );
-
-  const recentActivityTypeIdSet = useMemo(
-    () => new Set(recentActivityTypes.map((item) => item.id)),
-    [recentActivityTypes],
-  );
-
-  const groupedActivityTypes = useMemo(
-    () =>
-      groupActivityTypesByMajorHeading(activityTypes, headingLabels, {
-        excludeIds: recentActivityTypeIdSet,
-      }),
-    [activityTypes, headingLabels, recentActivityTypeIdSet],
-  );
-
   const previewLoad = useMemo(() => {
     if (!selectedActivity) return null;
     return calculateLoadMetMinutes(selectedActivity.met_value, durationMin, effort);
@@ -242,32 +220,16 @@ export function AthleteAddWorkoutPanel({
         <label className="athlete-add-workout__label text-secondary" htmlFor="activity-type">
           Вид активности
         </label>
-        <select
+        <ActivityTypePicker
           id="activity-type"
-          className="athlete-add-workout__select"
+          activityTypes={activityTypes}
+          headingLabels={headingLabels}
+          recentActivityTypeIds={recentActivityTypeIds}
           value={activityTypeId}
           disabled={busy || activityTypes.length === 0}
-          onChange={(event) => setActivityTypeId(event.target.value)}
-        >
-          {recentActivityTypes.length > 0 ? (
-            <optgroup label={RECENT_ACTIVITY_TYPES_LABEL}>
-              {recentActivityTypes.map((item) => (
-                <option key={`recent-${item.id}`} value={item.id} title={item.name_en}>
-                  {item.name_ru} · MET {item.met_value}
-                </option>
-              ))}
-            </optgroup>
-          ) : null}
-          {groupedActivityTypes.map((group) => (
-            <optgroup key={group.heading || "__ungrouped__"} label={group.label}>
-              {group.items.map((item) => (
-                <option key={item.id} value={item.id} title={item.name_en}>
-                  {item.name_ru} · MET {item.met_value}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+          triggerClassName="athlete-add-workout__select activity-type-picker__trigger"
+          onChange={setActivityTypeId}
+        />
       </div>
 
       <div className="athlete-add-workout__field">

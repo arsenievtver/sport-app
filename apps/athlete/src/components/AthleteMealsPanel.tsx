@@ -569,7 +569,6 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             className="meal-panel__file-input"
             onChange={(event) => void handlePhotoSelected(event.target.files?.[0] ?? null)}
           />

@@ -46,3 +46,4 @@ export { AthleteStubPanel } from "./plan/AthleteStubPanel";
 export { AthleteWorkoutsPanel } from "./plan/AthleteWorkoutsPanel";
 export { CoachSchedulePanel } from "./schedule/CoachSchedulePanel";
 export { CoachScheduleSettingsForm } from "./schedule/CoachScheduleSettingsForm";
+export { ActivityTypePicker } from "./activity/ActivityTypePicker";
