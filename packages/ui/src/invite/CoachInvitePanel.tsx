@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchCoachAthletes } from "@sport-app/api-client";
 import { buildAthleteInviteUrl, buildInviteShareMessage, type CoachAthleteSummary } from "@sport-app/shared";
 import QRCode from "qrcode";
+import { SelectPicker } from "../select/SelectPicker";
 
 interface CoachInvitePanelProps {
   inviteCode: string;
@@ -44,6 +45,17 @@ export function CoachInvitePanel({ inviteCode, coachName, athleteAppBaseUrl }: C
   const selectedAthlete = useMemo(
     () => managedAthletes.find((athlete) => athlete.athlete_id === selectedAthleteId) ?? null,
     [managedAthletes, selectedAthleteId],
+  );
+
+  const inviteAthleteOptions = useMemo(
+    () => [
+      ...managedAthletes.map((athlete) => ({
+        value: athlete.athlete_id,
+        label: athlete.display_name,
+      })),
+      { value: NEW_ATHLETE_VALUE, label: "Новый атлет (ещё не в списке)" },
+    ],
+    [managedAthletes],
   );
 
   const claimAthleteId = selectedAthleteId || null;
@@ -127,19 +139,13 @@ export function CoachInvitePanel({ inviteCode, coachName, athleteAppBaseUrl }: C
           <label className="invite-target__label" htmlFor="invite-athlete-select">
             Кому отправить приглашение
           </label>
-          <select
+          <SelectPicker
             id="invite-athlete-select"
-            className="glass-input invite-target__select"
             value={selectedAthleteId}
-            onChange={(event) => setSelectedAthleteId(event.target.value)}
-          >
-            {managedAthletes.map((athlete) => (
-              <option key={athlete.athlete_id} value={athlete.athlete_id}>
-                {athlete.display_name}
-              </option>
-            ))}
-            <option value={NEW_ATHLETE_VALUE}>Новый атлет (ещё не в списке)</option>
-          </select>
+            options={inviteAthleteOptions}
+            triggerClassName="glass-input invite-target__select select-picker__trigger"
+            onChange={setSelectedAthleteId}
+          />
         </div>
       ) : null}
 

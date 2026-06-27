@@ -227,7 +227,7 @@ export function AthleteAddWorkoutPanel({
           recentActivityTypeIds={recentActivityTypeIds}
           value={activityTypeId}
           disabled={busy || activityTypes.length === 0}
-          triggerClassName="athlete-add-workout__select activity-type-picker__trigger"
+          triggerClassName="athlete-add-workout__select select-picker__trigger"
           onChange={setActivityTypeId}
         />
       </div>

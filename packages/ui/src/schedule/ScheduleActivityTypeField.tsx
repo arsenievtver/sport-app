@@ -25,7 +25,7 @@ export function ScheduleActivityTypeField({
         value={value}
         disabled={disabled}
         emptyLabel="Нет видов тренировок"
-        triggerClassName="schedule-sheet__select activity-type-picker__trigger"
+        triggerClassName="schedule-sheet__select select-picker__trigger"
         onChange={onChange}
       />
     </label>
