@@ -71,6 +71,26 @@ export interface AdminActivityCompendiumGroupLabelUpdatePayload {
   label_ru: string;
 }
 
+export interface AdminActivityCompendiumGroupTranslateLabelPayload {
+  label_ru: string;
+}
+
+export interface AdminActivityCompendiumGroupTranslateLabelResponse {
+  heading_en: string;
+}
+
+export interface AdminActivityCompendiumGroupCreatePayload {
+  label_ru: string;
+  heading_en: string;
+  activity_ids?: string[];
+}
+
+export interface AdminActivityCompendiumGroupCreateResponse {
+  heading: string;
+  label_ru: string;
+  moved: number;
+}
+
 export type ActivityCompendiumSortField =
   | "compendium_code"
   | "major_heading"

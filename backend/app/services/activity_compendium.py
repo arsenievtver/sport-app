@@ -314,6 +314,56 @@ class ActivityCompendiumService:
         await self.db.flush()
         return label
 
+    async def translate_group_label(self, label_ru: str) -> str:
+        label = label_ru.strip()
+        if not label:
+            raise ValueError("Укажите русское название")
+        translator = FoodTranslationService(self.db)
+        if not translator.is_enabled():
+            raise ValueError("Переводчик не настроен")
+        translated = await translator.translate_from_russian([label])
+        return self._title_case_heading(translated[0])
+
+    async def create_group(
+        self,
+        *,
+        label_ru: str,
+        heading_en: str,
+        activity_ids: list[UUID],
+    ) -> tuple[str, str, int]:
+        label = label_ru.strip()
+        heading = heading_en.strip()
+        if not label:
+            raise ValueError("Укажите русское название")
+        if not heading:
+            raise ValueError("Укажите английское название группы")
+
+        await self._upsert_major_heading_label(heading, label)
+        moved = await self.bulk_move_activities(activity_ids, heading)
+        return heading, label, moved
+
+    async def bulk_move_activities(self, activity_ids: list[UUID], major_heading: str) -> int:
+        if not activity_ids:
+            return 0
+
+        target = major_heading.strip()
+        if not target:
+            raise ValueError("Укажите группу")
+
+        unique_ids = list(dict.fromkeys(activity_ids))
+        result = await self.db.execute(select(ActivityType).where(ActivityType.id.in_(unique_ids)))
+        rows = result.scalars().all()
+        if len(rows) != len(unique_ids):
+            raise LookupError("Некоторые активности не найдены")
+
+        category = self._category_for_heading(target)
+        for row in rows:
+            row.major_heading = target
+            row.category = category
+
+        await self.db.flush()
+        return len(rows)
+
     async def merge_major_heading(self, from_heading: str, to_heading: str) -> int:
         return await self.rename_major_heading(from_heading, to_heading)
 
@@ -592,13 +642,47 @@ class ActivityCompendiumService:
         return row.imported_at if row else None
 
     async def _list_major_headings(self) -> list[str]:
-        result = await self.db.execute(
+        from_activity = await self.db.execute(
             select(ActivityType.major_heading)
             .where(ActivityType.major_heading.is_not(None))
-            .distinct()
-            .order_by(ActivityType.major_heading),
+            .distinct(),
         )
-        return [value for value in result.scalars().all() if value]
+        from_labels = await self.db.execute(select(ActivityMajorHeadingLabel.heading))
+        combined = {
+            value
+            for value in (*from_activity.scalars().all(), *from_labels.scalars().all())
+            if value
+        }
+        return sorted(combined)
+
+    async def _upsert_major_heading_label(self, heading: str, label_ru: str) -> str:
+        source = heading.strip()
+        label = label_ru.strip()
+        if not source:
+            raise ValueError("Укажите группу")
+        if not label:
+            raise ValueError("Укажите русское название")
+
+        default_label = DEFAULT_MAJOR_HEADING_LABELS.get(source)
+        if default_label == label:
+            await self._delete_major_heading_label_override(source)
+            return label
+
+        result = await self.db.execute(
+            select(ActivityMajorHeadingLabel).where(ActivityMajorHeadingLabel.heading == source),
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            self.db.add(ActivityMajorHeadingLabel(heading=source, label_ru=label))
+        else:
+            row.label_ru = label
+
+        await self.db.flush()
+        return label
+
+    @staticmethod
+    def _title_case_heading(text: str) -> str:
+        return " ".join(word[:1].upper() + word[1:] if word else "" for word in text.split())
 
     async def _load_major_heading_label_overrides(self) -> dict[str, str]:
         result = await self.db.execute(select(ActivityMajorHeadingLabel))

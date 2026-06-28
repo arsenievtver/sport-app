@@ -216,6 +216,9 @@ class FoodTranslationService:
     async def translate_texts(self, texts: list[str]) -> list[str]:
         return await self._translate_ephemeral(texts)
 
+    async def translate_from_russian(self, texts: list[str]) -> list[str]:
+        return await self._translate_ephemeral(texts, source_lang="ru", target_lang="en")
+
     async def save_verified_translation(
         self,
         *,
@@ -288,12 +291,21 @@ class FoodTranslationService:
         )
         await self.db.execute(stmt)
 
-    async def _translate_ephemeral(self, texts: list[str]) -> list[str]:
+    async def _translate_ephemeral(
+        self,
+        texts: list[str],
+        *,
+        source_lang: str | None = None,
+        target_lang: str | None = None,
+    ) -> list[str]:
         if not texts:
             return []
 
         if not self.is_enabled():
             return texts
+
+        resolved_source = source_lang or self.source_lang
+        resolved_target = target_lang or self.target_lang
 
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
@@ -303,8 +315,8 @@ class FoodTranslationService:
                     json={
                         "folderId": settings.yandex_translate_folder_id,
                         "texts": texts,
-                        "targetLanguageCode": self.target_lang,
-                        "sourceLanguageCode": self.source_lang,
+                        "targetLanguageCode": resolved_target,
+                        "sourceLanguageCode": resolved_source,
                     },
                 )
         except httpx.HTTPError:

@@ -11,6 +11,7 @@ import {
 
 import { ActivityCompendiumTable } from "./ActivityCompendiumTable";
 import { ActivityCreateModal } from "./ActivityCreateModal";
+import { ActivityGroupCreateModal } from "./ActivityGroupCreateModal";
 import { ActivityGroupRenameModal } from "./ActivityGroupRenameModal";
 
 export function ActivityCompendiumPage() {
@@ -20,6 +21,7 @@ export function ActivityCompendiumPage() {
   const [actionBusy, setActionBusy] = useState(false);
   const [tableRefreshKey, setTableRefreshKey] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
+  const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [renameGroupOpen, setRenameGroupOpen] = useState(false);
 
   const loadStatus = useCallback(async () => {
@@ -108,6 +110,14 @@ export function ActivityCompendiumPage() {
               type="button"
               className="admin-btn admin-btn--primary"
               disabled={actionBusy || isRunning}
+              onClick={() => setCreateGroupOpen(true)}
+            >
+              Создать группу
+            </button>
+            <button
+              type="button"
+              className="admin-btn"
+              disabled={actionBusy || isRunning}
               onClick={() => setCreateOpen(true)}
             >
               Добавить активность
@@ -161,6 +171,20 @@ export function ActivityCompendiumPage() {
               void loadStatus();
             }}
           />
+
+          {createGroupOpen ? (
+            <ActivityGroupCreateModal
+              majorHeadings={status.major_headings}
+              headingLabels={status.major_heading_labels ?? {}}
+              translatorEnabled={status.translator_enabled}
+              onClose={() => setCreateGroupOpen(false)}
+              onCreated={() => {
+                setCreateGroupOpen(false);
+                void loadStatus();
+                setTableRefreshKey((current) => current + 1);
+              }}
+            />
+          ) : null}
 
           {createOpen ? (
             <ActivityCreateModal

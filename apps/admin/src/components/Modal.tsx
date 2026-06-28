@@ -4,14 +4,20 @@ interface ModalProps {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  wide?: boolean;
 }
 
-export function Modal({ title, onClose, children }: ModalProps) {
+export function Modal({ title, onClose, children, wide = false }: ModalProps) {
   return (
     <div className="admin-modal-backdrop" onClick={onClose}>
-      <div className="admin-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+      <div
+        className={`admin-modal${wide ? " admin-modal--wide" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
         <h2 className="admin-modal__title">{title}</h2>
-        {children}
+        <div className="admin-modal__body">{children}</div>
       </div>
     </div>
   );

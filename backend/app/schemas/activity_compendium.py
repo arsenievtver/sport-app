@@ -74,3 +74,17 @@ class AdminActivityCompendiumGroupRename(BaseModel):
 class AdminActivityCompendiumGroupLabelUpdate(BaseModel):
     heading: str
     label_ru: str
+
+
+class AdminActivityCompendiumGroupTranslateLabel(BaseModel):
+    label_ru: str
+
+
+class AdminActivityCompendiumGroupTranslateLabelResponse(BaseModel):
+    heading_en: str
+
+
+class AdminActivityCompendiumGroupCreate(BaseModel):
+    label_ru: str
+    heading_en: str
+    activity_ids: list[UUID] = Field(default_factory=list)

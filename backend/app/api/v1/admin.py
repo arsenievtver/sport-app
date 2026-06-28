@@ -17,8 +17,11 @@ from app.schemas.admin import (
     CoachAthleteLinkResponse,
 )
 from app.schemas.activity_compendium import (
+    AdminActivityCompendiumGroupCreate,
     AdminActivityCompendiumGroupLabelUpdate,
     AdminActivityCompendiumGroupRename,
+    AdminActivityCompendiumGroupTranslateLabel,
+    AdminActivityCompendiumGroupTranslateLabelResponse,
     AdminActivityCompendiumItem,
     AdminActivityCompendiumItemCreate,
     AdminActivityCompendiumItemUpdate,
@@ -288,6 +291,39 @@ async def create_activity_compendium_item(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     await db.commit()
     return AdminActivityCompendiumItem.model_validate(row)
+
+
+@router.post("/activity-compendium/groups/translate-label", response_model=AdminActivityCompendiumGroupTranslateLabelResponse)
+async def translate_activity_compendium_group_label(
+    data: AdminActivityCompendiumGroupTranslateLabel,
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AdminActivityCompendiumGroupTranslateLabelResponse:
+    try:
+        heading_en = await ActivityCompendiumService(db).translate_group_label(data.label_ru)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return AdminActivityCompendiumGroupTranslateLabelResponse(heading_en=heading_en)
+
+
+@router.post("/activity-compendium/groups/create")
+async def create_activity_compendium_group(
+    data: AdminActivityCompendiumGroupCreate,
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, str | int]:
+    try:
+        heading, label_ru, moved = await ActivityCompendiumService(db).create_group(
+            label_ru=data.label_ru,
+            heading_en=data.heading_en,
+            activity_ids=data.activity_ids,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    await db.commit()
+    return {"heading": heading, "label_ru": label_ru, "moved": moved}
 
 
 @router.post("/activity-compendium/groups/rename")
