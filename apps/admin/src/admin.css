@@ -758,10 +758,10 @@
   font-size: var(--text-sm);
 }
 
-.admin-input:focus {
+.admin-input:focus,
+.admin-input:focus-visible {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-muted);
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
 }
 
 .admin-switch {

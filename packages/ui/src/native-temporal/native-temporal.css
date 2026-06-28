@@ -21,8 +21,16 @@
   background: var(--color-surface);
 }
 
+.native-temporal--schedule:focus-within {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border-subtle));
+}
+
 .native-temporal--glass {
   border-radius: var(--radius-lg);
+}
+
+.native-temporal--glass:focus-within {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 55%, var(--glass-border));
 }
 
 .native-temporal__input {

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useBodyScrollLock } from "@sport-app/ui";
 import { AthleteAddWorkoutPanel } from "./AthleteAddWorkoutPanel";
 
 interface AthleteAddWorkoutModalProps {
@@ -16,14 +17,7 @@ export function AthleteAddWorkoutModal({
   onWorkoutAdded,
   onGoToWeightData,
 }: AthleteAddWorkoutModalProps) {
-  useEffect(() => {
-    if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [open]);
+  useBodyScrollLock(open);
 
   useEffect(() => {
     if (!open) return;
@@ -48,7 +42,10 @@ export function AthleteAddWorkoutModal({
         aria-label="Закрыть"
         onClick={onClose}
       />
-      <div className="workout-modal__sheet glass glass--panel">
+      <div
+        className="workout-modal__sheet glass glass--panel"
+        onClick={(event) => event.stopPropagation()}
+      >
         <header className="workout-modal__header">
           <h2 id="workout-modal-title" className="workout-modal__title">
             Добавить активность

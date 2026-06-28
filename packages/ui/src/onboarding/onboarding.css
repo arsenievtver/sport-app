@@ -153,6 +153,10 @@
   background: var(--color-bg-elevated);
 }
 
+.onboarding__temporal:focus-within {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+}
+
 .onboarding__temporal .onboarding__input,
 .onboarding__temporal .native-temporal__input {
   width: 100%;

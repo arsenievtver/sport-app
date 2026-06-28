@@ -36,9 +36,30 @@ a:hover {
   color: var(--color-primary-hover);
 }
 
+/* Links, icon buttons, nav — external focus ring */
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* Text fields — inset border highlight (no external ring; survives overflow in modals/sheets) */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+}
+
+input[type="range"]:focus-visible {
+  outline: none;
 }
 
 ::selection {

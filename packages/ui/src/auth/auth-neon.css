@@ -78,11 +78,11 @@
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.3);
 }
 
-[data-theme^="neon-"] .auth-field__input:focus {
+[data-theme^="neon-"] .auth-field__input:focus,
+[data-theme^="neon-"] .auth-field__input:focus-visible {
   border-color: var(--color-primary);
   box-shadow:
     inset 0 2px 8px rgba(0, 0, 0, 0.4),
-    0 0 0 2px var(--color-primary-muted),
     0 0 24px color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
 

@@ -186,6 +186,7 @@ export function AthleteAddWorkoutPanel({
 
   return (
     <section className={getPanelClassName(embedded)}>
+      <div className={embedded ? "athlete-add-workout__scroll" : undefined}>
       {activeCoaches.length >= 1 ? (
         <div className="athlete-add-workout__coach-picker">
           <p className="athlete-add-workout__label text-secondary">Тренер</p>
@@ -317,6 +318,9 @@ export function AthleteAddWorkoutPanel({
         </p>
       ) : null}
 
+      </div>
+
+      <div className={embedded ? "athlete-add-workout__footer" : undefined}>
       <button
         type="button"
         className="btn btn-outline btn-outline--primary btn--block"
@@ -328,6 +332,7 @@ export function AthleteAddWorkoutPanel({
 
       {notice ? <p className="athlete-add-workout__notice text-secondary">{notice}</p> : null}
       {error ? <p className="auth-error athlete-add-workout__error">{error}</p> : null}
+      </div>
     </section>
   );
 }
