@@ -155,6 +155,7 @@ export default function App() {
       <>
         <WhoopOAuthListener />
         <AppShell
+          className="app-shell--athlete"
           title={title}
           subtitle={shellSubtitle}
           onBack={tab === "home" && homeOverlay ? () => setHomeOverlay(null) : undefined}

@@ -35,6 +35,8 @@
 
 .app-shell__header-bar {
   pointer-events: auto;
+  display: flex;
+  align-items: center;
   width: 100%;
   box-sizing: border-box;
   min-height: var(--shell-header-bar-height);
@@ -45,6 +47,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
 }
 
 .app-shell__header-text {
@@ -97,6 +101,23 @@
 
 .app-shell--with-back .app-shell__subtitle {
   font-size: var(--text-xs);
+}
+
+.app-shell--athlete {
+  --shell-bar-padding-y: var(--space-3);
+  --shell-header-bar-height: calc(var(--shell-bar-padding-y) * 2 + 2.125rem + 2px);
+  --shell-header-float-offset: calc(
+    var(--shell-header-bar-height) + max(var(--shell-bar-margin), var(--safe-top))
+  );
+}
+
+.app-shell--athlete.app-shell--with-subtitle {
+  --shell-header-bar-height: calc(
+    var(--shell-bar-padding-y) * 2 + 1.40625rem + var(--space-1) + 1.3125rem + 2px
+  );
+  --shell-header-float-offset: calc(
+    var(--shell-header-bar-height) + max(var(--shell-bar-margin), var(--safe-top))
+  );
 }
 
 .app-shell__main {
