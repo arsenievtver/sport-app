@@ -264,3 +264,71 @@
   --glass-bg: rgba(255, 255, 255, 0.062);
   --glass-border: rgba(255, 51, 85, 0.14);
 }
+
+/* ── 6. Soviet Sport (constructivist · aged paper) ──────────── */
+[data-theme="soviet-sport"] {
+  --color-bg: #12100e;
+  --color-bg-elevated: #1a1612;
+  --color-surface: #1f1b16;
+  --color-surface-hover: #2a241c;
+  --color-overlay: #352e24;
+
+  --color-border: rgba(232, 220, 200, 0.14);
+  --color-border-strong: rgba(196, 30, 58, 0.5);
+
+  --color-text: #f0e6d2;
+  --color-text-secondary: #c9b896;
+  --color-text-muted: #8a7d68;
+  --color-text-inverse: #1a1410;
+
+  --color-primary: #c41e3a;
+  --color-primary-hover: #a81830;
+  --color-primary-muted: rgba(196, 30, 58, 0.24);
+  --color-primary-subtle: rgba(196, 30, 58, 0.1);
+
+  --color-accent: #5a7d8c;
+  --color-accent-hover: #4a6d7c;
+  --color-accent-muted: rgba(90, 125, 140, 0.24);
+
+  --color-success: #3d6b4f;
+  --color-success-muted: rgba(61, 107, 79, 0.22);
+  --color-warning: #c9922a;
+  --color-danger: #b81830;
+  --color-danger-muted: rgba(184, 24, 48, 0.22);
+  --color-info: #5a7d8c;
+
+  --gradient-card-shine: linear-gradient(145deg, rgba(255, 248, 235, 0.35) 0%, transparent 55%);
+  --gradient-primary: linear-gradient(135deg, #c41e3a 0%, #8b1428 100%);
+  --gradient-progress: linear-gradient(90deg, #c41e3a 0%, #e8354f 100%);
+  --gradient-achievement: linear-gradient(135deg, #c41e3a 0%, #c9922a 100%);
+
+  --shadow-glow-primary: 3px 3px 0 rgba(0, 0, 0, 0.35);
+  --shadow-glow-accent: 2px 2px 0 rgba(0, 0, 0, 0.28);
+  --shadow-card: 4px 4px 0 rgba(0, 0, 0, 0.38), inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+
+  --glass-tint: rgba(196, 30, 58, 0.06);
+  --glass-bg: rgba(31, 27, 22, 0.92);
+  --glass-bg-panel: #ddd0b8;
+  --glass-border: rgba(42, 34, 24, 0.35);
+  --glass-border-panel: rgba(42, 34, 24, 0.45);
+
+  --app-bg-gradient:
+    repeating-conic-gradient(
+      from -4deg at 50% -8%,
+      rgba(196, 30, 58, 0.22) 0deg 7deg,
+      transparent 7deg 14deg
+    ),
+    radial-gradient(ellipse 130% 55% at 50% -12%, rgba(196, 30, 58, 0.28) 0%, transparent 62%),
+    radial-gradient(ellipse 90% 40% at 50% 0%, rgba(232, 220, 200, 0.08) 0%, transparent 55%),
+    linear-gradient(180deg, #1a1410 0%, #12100e 38%, #12100e 100%);
+  --app-bg-solid: #12100e;
+
+  --soviet-paper-light: #ece0cc;
+  --soviet-paper: #ddd0b8;
+  --soviet-paper-dark: #c4b49a;
+  --soviet-paper-ink: #2a2218;
+  --soviet-paper-muted: #5a4e3c;
+
+  --font-sans: "PT Sans Narrow", "Arial Narrow", sans-serif;
+  --font-display: "Oswald", "PT Sans Narrow", "Arial Narrow", sans-serif;
+}

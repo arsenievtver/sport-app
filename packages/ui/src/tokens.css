@@ -11,6 +11,7 @@
   --safe-left: env(safe-area-inset-left, 0px);
 
   --font-sans: "Recama", system-ui, -apple-system, sans-serif;
+  --font-display: "Oswald", "Arial Narrow", "Franklin Gothic Medium", sans-serif;
   --font-mono: ui-monospace, "JetBrains Mono", monospace;
 
   /* --text-base (16px) — минимум для input/textarea/select (iOS Safari не зумит при фокусе) */
@@ -23,7 +24,8 @@
   --text-3xl: 1.875rem;
 
   --font-normal: normal;
-  /* Recama-U — одно начертание; не синтезируем bold/medium в браузере */
+  /* Recama-U — одно начертание; Oswald variable — отдельно для заголовков */
+  --font-display-weight: 500;
   --font-medium: normal;
   --font-semibold: normal;
   --font-bold: normal;

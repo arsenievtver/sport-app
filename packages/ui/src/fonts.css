@@ -8,3 +8,27 @@
   font-style: normal;
   font-display: swap;
 }
+
+@font-face {
+  font-family: "Oswald";
+  src: url("../assets/fonts/Oswald-Variable.ttf") format("truetype");
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PT Sans Narrow";
+  src: url("../assets/fonts/PTSansNarrow-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PT Sans Narrow";
+  src: url("../assets/fonts/PTSansNarrow-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

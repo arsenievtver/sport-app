@@ -40,3 +40,65 @@ body {
   font-family: inherit;
   letter-spacing: inherit;
 }
+
+/* Заголовки — единый uppercase во всех темах */
+:where(
+  h1,
+  h2,
+  h3,
+  h4,
+  .app-shell__title,
+  .athlete-home-section__title,
+  .auth-card__title,
+  .auth-brand__name,
+  .onboarding__title,
+  .settings-section__title,
+  .schedule-sheet__title,
+  .athlete-overlay-screen__title,
+  .whoop-panel__title,
+  .meal-panel__title,
+  .workout-modal__title,
+  .weight-dynamics__title,
+  .workout-dynamics__title,
+  .avatar-crop__title,
+  .pwa-install__title,
+  .coach-athlete-history__title,
+  .theme-preview__name
+) {
+  font-family: var(--font-display);
+  font-weight: var(--font-display-weight);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Заголовки — на шаг меньше (uppercase визуально крупнее) */
+html :is(h1, .onboarding__title) {
+  font-size: var(--text-lg);
+}
+
+html :is(h2, .auth-brand__name, .athlete-overlay-screen__title, .avatar-crop__title) {
+  font-size: var(--text-base);
+}
+
+html :is(
+  h3,
+  .app-shell__title,
+  .athlete-home-section__title,
+  .auth-card__title,
+  .settings-section__title,
+  .whoop-panel__title,
+  .meal-panel__title,
+  .workout-modal__title,
+  .weight-dynamics__title,
+  .workout-dynamics__title
+) {
+  font-size: var(--text-sm);
+}
+
+html :is(h4, .schedule-sheet__title, .theme-preview__name, .coach-athlete-history__title) {
+  font-size: var(--text-xs);
+}
+
+html .app-shell--with-back .app-shell__title {
+  font-size: var(--text-xs);
+}
