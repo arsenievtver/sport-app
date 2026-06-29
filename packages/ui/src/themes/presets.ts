@@ -28,7 +28,7 @@ export const DEFAULT_THEME_ID: ThemeId = "neon-pulse";
 export const THEME_BG: Record<ThemeId, string> = {
   "neon-pulse": "#050508",
   "neon-crimson": "#080506",
-  "soviet-sport": "#12100e",
+  "soviet-sport": "#1a1410",
   "midnight-vitality": "#0c0f14",
   "electric-pulse": "#0a0e17",
   "forest-recovery": "#0a100e",

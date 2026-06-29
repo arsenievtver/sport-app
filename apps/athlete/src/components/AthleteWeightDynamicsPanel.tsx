@@ -78,7 +78,23 @@ export function AthleteWeightDynamicsPanel({
   return (
     <section className="weight-dynamics">
       <div className="weight-dynamics__header">
-        <h2 className="weight-dynamics__title">Динамика веса</h2>
+        <div className="weight-dynamics__header-top">
+          <h2 className="weight-dynamics__title">Динамика веса</h2>
+          {!showForm ? (
+            <button
+              type="button"
+              className="weight-dynamics__add-btn"
+              disabled={loading || busy}
+              aria-label="Добавить измерение"
+              onClick={() => {
+                setShowForm(true);
+                setError(null);
+              }}
+            >
+              +
+            </button>
+          ) : null}
+        </div>
         {data?.current_weight_kg != null ? (
           <p className="weight-dynamics__current">
             Сейчас <strong>{formatWeightKg(data.current_weight_kg)} кг</strong>
@@ -138,16 +154,7 @@ export function AthleteWeightDynamicsPanel({
             </button>
           </div>
         </div>
-      ) : (
-        <button
-          type="button"
-          className="btn btn-outline btn-outline--primary btn--block"
-          disabled={loading || busy}
-          onClick={() => setShowForm(true)}
-        >
-          Добавить измерение
-        </button>
-      )}
+      ) : null}
 
       {error ? <p className="auth-error weight-dynamics__error">{error}</p> : null}
     </section>

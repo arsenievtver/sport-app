@@ -321,7 +321,7 @@
     radial-gradient(ellipse 130% 55% at 50% -12%, rgba(196, 30, 58, 0.28) 0%, transparent 62%),
     radial-gradient(ellipse 90% 40% at 50% 0%, rgba(232, 220, 200, 0.08) 0%, transparent 55%),
     linear-gradient(180deg, #1a1410 0%, #12100e 38%, #12100e 100%);
-  --app-bg-solid: #12100e;
+  --app-bg-solid: #1a1410;
 
   --soviet-paper-light: #ece0cc;
   --soviet-paper: #ddd0b8;
