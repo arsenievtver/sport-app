@@ -14,6 +14,16 @@
   --radius-lg: 5px;
   --radius-xl: 6px;
   --tracking-normal: 0.04em;
+
+  --soviet-field-paper-bg: color-mix(in srgb, var(--soviet-paper-light) 90%, var(--soviet-paper-dark));
+  --soviet-field-paper-text: var(--soviet-paper-ink);
+  --soviet-field-paper-placeholder: var(--soviet-paper-muted);
+  --soviet-field-paper-border: color-mix(in srgb, var(--soviet-paper-ink) 28%, transparent);
+
+  --soviet-field-dark-bg: #2a241c;
+  --soviet-field-dark-text: #f0e6d2;
+  --soviet-field-dark-placeholder: #c9b896;
+  --soviet-field-dark-border: color-mix(in srgb, var(--soviet-field-dark-placeholder) 38%, transparent);
 }
 
 /* ── Grain overlay (aged paper / lithograph) ─────────────────── */
@@ -51,8 +61,22 @@
   line-height: var(--leading-tight);
 }
 
-[data-theme="soviet-sport"] .app-shell__title::before {
-  content: "★ ";
+[data-theme="soviet-sport"] .workouts-completed-badge__lightning {
+  display: none;
+}
+
+[data-theme="soviet-sport"] .workouts-completed-badge__fire {
+  font-size: 0;
+  line-height: 1;
+  animation: none;
+}
+
+[data-theme="soviet-sport"] .workouts-completed-badge__fire::before {
+  content: "★";
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1;
   color: var(--color-primary);
 }
 
@@ -387,15 +411,30 @@
   letter-spacing: 0.06em;
 }
 
+[data-theme="soviet-sport"] .auth-card .auth-field__label {
+  color: var(--soviet-paper-muted);
+}
+
 [data-theme="soviet-sport"] .auth-field__input,
 [data-theme="soviet-sport"] .auth-pin__cell {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  color: var(--soviet-paper-ink);
-  background: color-mix(in srgb, var(--soviet-paper-light) 85%, var(--soviet-paper-dark));
-  border: 2px solid color-mix(in srgb, var(--soviet-paper-ink) 22%, transparent);
+  color: var(--soviet-field-paper-text);
+  background: var(--soviet-field-paper-bg);
+  border: 2px solid var(--soviet-field-paper-border);
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.08);
   border-radius: var(--radius-sm);
+}
+
+[data-theme="soviet-sport"] .auth-field__input::placeholder {
+  color: var(--soviet-field-paper-placeholder);
+  opacity: 1;
+}
+
+[data-theme="soviet-sport"] .auth-pin__cell--filled {
+  color: var(--color-primary);
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--soviet-field-paper-border));
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--soviet-field-paper-bg));
 }
 
 [data-theme="soviet-sport"] .auth-field__input:focus,
@@ -474,13 +513,174 @@
   letter-spacing: 0.04em;
 }
 
-[data-theme="soviet-sport"] .glass-input {
+/* ── Forms: paper fields (светлая «бумага», тёмный текст) ─────── */
+
+[data-theme="soviet-sport"] .glass-input,
+[data-theme="soviet-sport"] .settings-field__input,
+[data-theme="soviet-sport"] .select-picker__trigger,
+[data-theme="soviet-sport"] .athlete-my-plan__input,
+[data-theme="soviet-sport"] .schedule-sheet__select,
+[data-theme="soviet-sport"] .invite-target__select {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  color: var(--soviet-paper-ink);
-  background: color-mix(in srgb, var(--soviet-paper-light) 85%, var(--soviet-paper-dark));
-  border: 2px solid color-mix(in srgb, var(--soviet-paper-ink) 22%, transparent);
+  color: var(--soviet-field-paper-text);
+  background: var(--soviet-field-paper-bg);
+  border: 2px solid var(--soviet-field-paper-border);
   border-radius: var(--radius-sm);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="soviet-sport"] .glass-input::placeholder,
+[data-theme="soviet-sport"] .settings-field__input::placeholder,
+[data-theme="soviet-sport"] .athlete-my-plan__input::placeholder {
+  color: var(--soviet-field-paper-placeholder);
+  opacity: 1;
+}
+
+[data-theme="soviet-sport"] .glass-input:focus,
+[data-theme="soviet-sport"] .glass-input:focus-visible,
+[data-theme="soviet-sport"] .settings-field__input:focus,
+[data-theme="soviet-sport"] .settings-field__input:focus-visible,
+[data-theme="soviet-sport"] .select-picker__trigger:focus-visible,
+[data-theme="soviet-sport"] .select-picker--open .select-picker__trigger,
+[data-theme="soviet-sport"] .athlete-my-plan__input:focus,
+[data-theme="soviet-sport"] .athlete-my-plan__input:focus-visible {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+[data-theme="soviet-sport"] .native-temporal--glass {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--soviet-field-paper-bg);
+  border: 2px solid var(--soviet-field-paper-border);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="soviet-sport"] .native-temporal--glass .native-temporal__input,
+[data-theme="soviet-sport"] .native-temporal--glass .native-temporal__input[type="date"]::-webkit-datetime-edit,
+[data-theme="soviet-sport"] .native-temporal--glass .native-temporal__input[type="time"]::-webkit-datetime-edit {
+  color: var(--soviet-field-paper-text);
+}
+
+/* Портал в body — наследует только html, не бумажную плашку */
+[data-theme="soviet-sport"] .select-picker__list {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: var(--soviet-field-paper-text);
+  background:
+    linear-gradient(160deg, var(--soviet-paper-light) 0%, var(--soviet-paper) 42%, var(--soviet-paper-dark) 100%);
+  border: 2px solid var(--soviet-field-paper-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.32);
+}
+
+[data-theme="soviet-sport"] .select-picker__group-label {
+  color: var(--soviet-field-paper-placeholder);
+}
+
+[data-theme="soviet-sport"] .select-picker__option {
+  color: var(--soviet-field-paper-text);
+}
+
+[data-theme="soviet-sport"] .select-picker__option:hover:not(:disabled),
+[data-theme="soviet-sport"] .select-picker__option:focus-visible {
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--soviet-paper));
+}
+
+[data-theme="soviet-sport"] .select-picker__option--selected {
+  background: color-mix(in srgb, var(--color-primary) 16%, var(--soviet-paper));
+}
+
+[data-theme="soviet-sport"] .select-picker__check {
+  color: var(--color-primary);
+}
+
+[data-theme="soviet-sport"] .meal-dish-search__results {
+  backdrop-filter: none;
+  color: var(--soviet-field-paper-text);
+  background:
+    linear-gradient(160deg, var(--soviet-paper-light) 0%, var(--soviet-paper) 42%, var(--soviet-paper-dark) 100%);
+  border: 2px solid var(--soviet-field-paper-border);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.32);
+}
+
+[data-theme="soviet-sport"] .meal-dish-search__option {
+  color: var(--soviet-field-paper-text);
+}
+
+[data-theme="soviet-sport"] .meal-dish-search__option:hover:not(:disabled),
+[data-theme="soviet-sport"] .meal-dish-search__option:focus-visible {
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--soviet-paper));
+}
+
+/* ── Forms: dark fields (тёмный фон экрана, светлый текст) ───── */
+
+[data-theme="soviet-sport"] .onboarding__input,
+[data-theme="soviet-sport"] .onboarding__textarea,
+[data-theme="soviet-sport"] .meal-manual__input,
+[data-theme="soviet-sport"] .meal-manual .meal-manual__input,
+[data-theme="soviet-sport"] .weight-dynamics__input,
+[data-theme="soviet-sport"] .athlete-add-workout__input,
+[data-theme="soviet-sport"] .athlete-add-workout__select,
+[data-theme="soviet-sport"] .coach-athlete-card__session-input {
+  color: var(--soviet-field-dark-text);
+  background: var(--soviet-field-dark-bg);
+  border: 2px solid var(--soviet-field-dark-border);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+[data-theme="soviet-sport"] .onboarding__input::placeholder,
+[data-theme="soviet-sport"] .onboarding__textarea::placeholder,
+[data-theme="soviet-sport"] .meal-manual__input::placeholder,
+[data-theme="soviet-sport"] .meal-manual .meal-manual__input::placeholder,
+[data-theme="soviet-sport"] .weight-dynamics__input::placeholder,
+[data-theme="soviet-sport"] .athlete-add-workout__input::placeholder,
+[data-theme="soviet-sport"] .coach-athlete-card__session-input::placeholder {
+  color: var(--soviet-field-dark-placeholder);
+  opacity: 1;
+}
+
+[data-theme="soviet-sport"] .onboarding__input:focus,
+[data-theme="soviet-sport"] .onboarding__input:focus-visible,
+[data-theme="soviet-sport"] .onboarding__textarea:focus,
+[data-theme="soviet-sport"] .onboarding__textarea:focus-visible,
+[data-theme="soviet-sport"] .meal-manual__input:focus,
+[data-theme="soviet-sport"] .meal-manual__input:focus-visible,
+[data-theme="soviet-sport"] .weight-dynamics__input:focus,
+[data-theme="soviet-sport"] .weight-dynamics__input:focus-visible,
+[data-theme="soviet-sport"] .athlete-add-workout__input:focus,
+[data-theme="soviet-sport"] .athlete-add-workout__input:focus-visible,
+[data-theme="soviet-sport"] .athlete-add-workout .select-picker--open .select-picker__trigger,
+[data-theme="soviet-sport"] .athlete-add-workout__select:focus-visible {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--soviet-field-dark-border));
+  outline: none;
+}
+
+[data-theme="soviet-sport"] .onboarding__temporal,
+[data-theme="soviet-sport"] .native-temporal--schedule {
+  background: var(--soviet-field-dark-bg);
+  border: 2px solid var(--soviet-field-dark-border);
+  border-radius: var(--radius-sm);
+}
+
+[data-theme="soviet-sport"] .onboarding__temporal .native-temporal__input,
+[data-theme="soviet-sport"] .native-temporal--schedule .native-temporal__input,
+[data-theme="soviet-sport"] .onboarding__temporal .native-temporal__input[type="date"]::-webkit-datetime-edit,
+[data-theme="soviet-sport"] .native-temporal--schedule .native-temporal__input[type="date"]::-webkit-datetime-edit,
+[data-theme="soviet-sport"] .native-temporal--schedule .native-temporal__input[type="time"]::-webkit-datetime-edit {
+  color: var(--soviet-field-dark-text);
+}
+
+[data-theme="soviet-sport"] .onboarding__temporal:focus-within,
+[data-theme="soviet-sport"] .native-temporal--schedule:focus-within {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--soviet-field-dark-border));
+}
+
+[data-theme="soviet-sport"] select.settings-field__input option {
+  color: var(--soviet-field-paper-text);
+  background: var(--soviet-paper);
 }
 
 @media (prefers-reduced-transparency: reduce) {

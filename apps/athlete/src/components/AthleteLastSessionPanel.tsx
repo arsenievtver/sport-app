@@ -12,11 +12,6 @@ interface AthleteLastSessionPanelProps {
   refreshKey?: string | number;
 }
 
-function formatWeightKg(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return "—";
-  return `${value.toFixed(1)} кг`;
-}
-
 function formatNumber(value: number | null | undefined, suffix = ""): string {
   if (value == null || Number.isNaN(value)) return "—";
   return `${value}${suffix}`;
@@ -113,18 +108,6 @@ export function AthleteLastSessionPanel({ refreshKey }: AthleteLastSessionPanelP
                   ? `${getActivityEffortLabel(session.effort)} (${session.effort}/10)`
                   : "—"}
               </dd>
-            </div>
-            <div className="athlete-home-last-session__stat">
-              <dt className="text-muted">MET</dt>
-              <dd>{formatNumber(session.effective_met)}</dd>
-            </div>
-            <div className="athlete-home-last-session__stat">
-              <dt className="text-muted">Нагрузка</dt>
-              <dd>{formatNumber(session.load_met_minutes, " MET·мин")}</dd>
-            </div>
-            <div className="athlete-home-last-session__stat">
-              <dt className="text-muted">Вес</dt>
-              <dd>{formatWeightKg(session.weight_kg_used)}</dd>
             </div>
             <div className="athlete-home-last-session__stat">
               <dt className="text-muted">Калории</dt>
