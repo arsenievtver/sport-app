@@ -1,6 +1,8 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
+import { useScrollableOverlayLock } from "../hooks/useScrollableOverlayLock";
+
 export interface SelectPickerOption {
   value: string;
   label: string;
@@ -80,8 +82,11 @@ export function SelectPicker({
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const [open, setOpen] = useState(false);
   const [listStyle, setListStyle] = useState<CSSProperties>({});
+
+  useScrollableOverlayLock(listRef, open);
 
   const selectedLabel = useMemo(
     () => findSelectedLabel(value, groups, options),
@@ -168,10 +173,12 @@ export function SelectPicker({
 
   const list = open ? (
     <ul
+      ref={listRef}
       id={listId}
       className="select-picker__list select-picker__list--floating"
       style={listStyle}
       role="listbox"
+      data-overlay-scroll=""
     >
       {options.length > 0 ? options.map((option) => renderOption(option)) : null}
       {groups.map((group) => (

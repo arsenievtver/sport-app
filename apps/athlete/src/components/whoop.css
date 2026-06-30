@@ -546,7 +546,7 @@
   align-content: start;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
   touch-action: pan-y;
 }
 
@@ -595,7 +595,7 @@
   flex-direction: column;
   overflow: hidden;
   border-radius: var(--radius-xl);
-  touch-action: pan-y;
+  touch-action: none;
 }
 
 @supports not (height: 100dvh) {
@@ -625,7 +625,7 @@
   flex-direction: column;
   overflow: hidden;
   padding: var(--space-4);
-  touch-action: pan-y;
+  touch-action: none;
 }
 
 .workout-modal__title {
@@ -1059,6 +1059,9 @@
   background: color-mix(in srgb, var(--glass-bg-panel) 92%, transparent);
   max-height: 13.5rem;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+  touch-action: pan-y;
 }
 
 .meal-dish-search__results--inline {

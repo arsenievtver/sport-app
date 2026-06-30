@@ -1,7 +1,7 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { searchAthleteMealDishes } from "@sport-app/api-client";
 import type { MealDishSearchItem } from "@sport-app/shared";
-import { iconStrokeProps, iconStrokeWidthForViewBox } from "@sport-app/ui";
+import { iconStrokeProps, iconStrokeWidthForViewBox, useScrollableOverlayLock } from "@sport-app/ui";
 
 type ResultsMode = "inline" | "floating";
 
@@ -52,6 +52,7 @@ export function MealDishSearchPicker({
   onSelect,
 }: MealDishSearchPickerProps) {
   const listId = useId();
+  const listRef = useRef<HTMLUListElement>(null);
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<MealDishSearchItem[]>([]);
   const [searching, setSearching] = useState(false);
@@ -97,6 +98,8 @@ export function MealDishSearchPicker({
 
   const isDisabled = disabled || inactive;
   const hasResults = open && items.length > 0;
+
+  useScrollableOverlayLock(listRef, hasResults, resultsMode !== "inline");
   const resultsClassName = `meal-dish-search__results${resultsMode === "inline" ? " meal-dish-search__results--inline" : ""}`;
   const rootClassName = [
     "meal-dish-search",
@@ -147,7 +150,7 @@ export function MealDishSearchPicker({
       {searching ? <p className="meal-dish-search__hint meal-dish-search__hint--status">Ищем в базе…</p> : null}
       {searchError ? <p className="auth-error meal-dish-search__hint">{searchError}</p> : null}
       {hasResults ? (
-        <ul id={listId} className={resultsClassName} role="listbox">
+        <ul ref={listRef} id={listId} className={resultsClassName} role="listbox">
           {items.map((item) => (
             <li key={item.logmeal_dish_id}>
               <button

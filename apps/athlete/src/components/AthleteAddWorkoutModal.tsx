@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { useBodyScrollLock } from "@sport-app/ui";
+import { useEffect, useRef } from "react";
+import { useModalScrollIsolation } from "@sport-app/ui";
 import { AthleteAddWorkoutPanel } from "./AthleteAddWorkoutPanel";
 
 interface AthleteAddWorkoutModalProps {
@@ -17,7 +17,8 @@ export function AthleteAddWorkoutModal({
   onWorkoutAdded,
   onGoToWeightData,
 }: AthleteAddWorkoutModalProps) {
-  useBodyScrollLock(open);
+  const modalRef = useRef<HTMLDivElement>(null);
+  useModalScrollIsolation(open, modalRef);
 
   useEffect(() => {
     if (!open) return;
@@ -35,7 +36,13 @@ export function AthleteAddWorkoutModal({
   }
 
   return (
-    <div className="workout-modal" role="dialog" aria-modal="true" aria-labelledby="workout-modal-title">
+    <div
+      ref={modalRef}
+      className="workout-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="workout-modal-title"
+    >
       <button
         type="button"
         className="workout-modal__backdrop"

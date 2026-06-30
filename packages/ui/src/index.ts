@@ -28,6 +28,8 @@ export { useAuthSession, setSessionRefreshPaused } from "./auth/useAuthSession";
 export type { AuthSession } from "./auth/useAuthSession";
 export { useLiveDataRefresh } from "./hooks/useLiveDataRefresh";
 export { useBodyScrollLock } from "./hooks/useBodyScrollLock";
+export { useModalScrollIsolation } from "./hooks/useModalScrollIsolation";
+export { useScrollableOverlayLock } from "./hooks/useScrollableOverlayLock";
 export { PullToRefresh, usePullToRefresh } from "./pull-to-refresh/PullToRefresh";
 export { PhoneInput } from "./auth/PhoneInput";
 export { PinInput } from "./auth/PinInput";
