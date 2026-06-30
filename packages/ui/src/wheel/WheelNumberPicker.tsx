@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export interface WheelNumberPickerProps {
   value: number;
@@ -11,9 +11,11 @@ export interface WheelNumberPickerProps {
   disabled?: boolean;
 }
 
-const ITEM_HEIGHT = 26;
-const RUBBER_BAND = 0.35;
-const SETTLE_MS = 220;
+const ITEM_HEIGHT = 28;
+const VIEWPORT_HEIGHT_ITEMS = 2.75;
+const RENDER_BUFFER = 5;
+const RUBBER_BAND = 0.32;
+const SETTLE_MS = 280;
 
 function clampValue(value: number, min: number, max: number, step: number): number {
   const snapped = Math.round(value / step) * step;
@@ -25,47 +27,57 @@ function formatWheelValue(value: number): string {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1).replace(".", ",");
 }
 
-interface WheelDragState {
-  value: number;
-  offsetPx: number;
+function valueToScrollPos(value: number, min: number, step: number): number {
+  return ((value - min) / step) * ITEM_HEIGHT;
 }
 
-/**
- * iOS-style wheel: keep offset within one row height by shifting the value
- * instead of jumping the track back to center.
- */
-function applyWheelRecycle(
-  value: number,
-  offsetPx: number,
-  min: number,
-  max: number,
-  step: number,
-): WheelDragState {
-  const half = ITEM_HEIGHT / 2;
-  let nextValue = value;
-  let nextOffset = offsetPx;
+function maxScrollPos(min: number, max: number, step: number): number {
+  return ((max - min) / step) * ITEM_HEIGHT;
+}
 
-  while (nextOffset < -half) {
-    const candidate = clampValue(nextValue + step, min, max, step);
-    if (candidate === nextValue) {
-      nextOffset = -half + (nextOffset + half) * RUBBER_BAND;
-      break;
-    }
-    nextValue = candidate;
-    nextOffset += ITEM_HEIGHT;
-  }
+function scrollPosToValue(scrollPos: number, min: number, max: number, step: number): number {
+  return clampValue(min + Math.round(scrollPos / ITEM_HEIGHT) * step, min, max, step);
+}
 
-  while (nextOffset > half) {
-    const candidate = clampValue(nextValue - step, min, max, step);
-    if (candidate === nextValue) {
-      nextOffset = half + (nextOffset - half) * RUBBER_BAND;
-      break;
-    }
-    nextValue = candidate;
-    nextOffset -= ITEM_HEIGHT;
-  }
+function rubberBandScroll(scrollPos: number, maxScroll: number): number {
+  if (scrollPos < 0) return scrollPos * RUBBER_BAND;
+  if (scrollPos > maxScroll) return maxScroll + (scrollPos - maxScroll) * RUBBER_BAND;
+  return scrollPos;
+}
 
-  return { value: nextValue, offsetPx: nextOffset };
+function clampScroll(scrollPos: number, maxScroll: number): number {
+  return Math.min(maxScroll, Math.max(0, scrollPos));
+}
+
+function snapScroll(scrollPos: number, maxScroll: number): number {
+  return clampScroll(Math.round(scrollPos / ITEM_HEIGHT) * ITEM_HEIGHT, maxScroll);
+}
+
+function smoothstep(t: number): number {
+  const x = Math.min(1, Math.max(0, t));
+  return x * x * (3 - 2 * x);
+}
+
+interface ItemVisualStyle {
+  transform: string;
+  opacity: number;
+  fontSize: string;
+  fontWeight: number;
+  color: string;
+}
+
+function itemVisual(distanceFromCenter: number): ItemVisualStyle {
+  const t = Math.min(1, Math.abs(distanceFromCenter) / ITEM_HEIGHT);
+  const focus = smoothstep(1 - t);
+  const scale = 0.76 + focus * 0.24;
+
+  return {
+    transform: `scale(${scale})`,
+    opacity: 0.32 + focus * 0.68,
+    fontSize: `${10 + focus * 6}px`,
+    fontWeight: Math.round(400 + focus * 200),
+    color: focus > 0.45 ? "var(--color-text)" : "var(--color-text-secondary)",
+  };
 }
 
 export function WheelNumberPicker({
@@ -79,117 +91,128 @@ export function WheelNumberPicker({
   disabled = false,
 }: WheelNumberPickerProps) {
   const current = clampValue(value, min, max, step);
+  const maxScroll = maxScrollPos(min, max, step);
+
+  const [scrollPos, setScrollPos] = useState(() => valueToScrollPos(current, min, step));
   const [isDragging, setIsDragging] = useState(false);
   const [isSettling, setIsSettling] = useState(false);
-  const [wheelValue, setWheelValue] = useState(current);
-  const [wheelOffset, setWheelOffset] = useState(0);
 
+  const scrollPosRef = useRef(scrollPos);
   const activePointerId = useRef<number | null>(null);
-  const dragState = useRef<WheelDragState>({ value: current, offsetPx: 0 });
+  const dragStartY = useRef(0);
+  const dragStartScroll = useRef(0);
   const lastPointerY = useRef(0);
   const lastMoveTime = useRef(0);
   const velocityY = useRef(0);
-  const inertiaFrame = useRef<number | null>(null);
-  const settleTimer = useRef<number | null>(null);
+  const animationFrame = useRef<number | null>(null);
 
-  const syncDragToState = (state: WheelDragState) => {
-    dragState.current = state;
-    setWheelValue(state.value);
-    setWheelOffset(state.offsetPx);
+  const syncScroll = (next: number) => {
+    scrollPosRef.current = next;
+    setScrollPos(next);
   };
 
   useEffect(() => {
     if (!isDragging && !isSettling) {
-      dragState.current = { value: current, offsetPx: 0 };
-      setWheelValue(current);
-      setWheelOffset(0);
+      const next = valueToScrollPos(current, min, step);
+      syncScroll(next);
     }
-  }, [current, isDragging, isSettling]);
+  }, [current, min, step, isDragging, isSettling]);
 
   useEffect(() => {
     return () => {
-      if (inertiaFrame.current != null) {
-        cancelAnimationFrame(inertiaFrame.current);
-      }
-      if (settleTimer.current != null) {
-        window.clearTimeout(settleTimer.current);
+      if (animationFrame.current != null) {
+        cancelAnimationFrame(animationFrame.current);
       }
     };
   }, []);
 
-  const stopInertia = () => {
-    if (inertiaFrame.current != null) {
-      cancelAnimationFrame(inertiaFrame.current);
-      inertiaFrame.current = null;
+  const stopAnimation = () => {
+    if (animationFrame.current != null) {
+      cancelAnimationFrame(animationFrame.current);
+      animationFrame.current = null;
     }
   };
 
-  const beginSettle = (finalValue: number) => {
-    stopInertia();
-    onChange(finalValue);
-    dragState.current = { value: finalValue, offsetPx: 0 };
-    setWheelValue(finalValue);
-    setIsDragging(false);
-    setIsSettling(true);
-    setWheelOffset(0);
+  const animateScrollTo = (target: number, onComplete: () => void) => {
+    stopAnimation();
+    const start = scrollPosRef.current;
+    const startTime = performance.now();
 
-    if (settleTimer.current != null) {
-      window.clearTimeout(settleTimer.current);
-    }
-    settleTimer.current = window.setTimeout(() => {
-      setIsSettling(false);
-      settleTimer.current = null;
-    }, SETTLE_MS);
-  };
+    const frame = (now: number) => {
+      const progress = Math.min(1, (now - startTime) / SETTLE_MS);
+      const eased = 1 - (1 - progress) ** 3;
+      syncScroll(start + (target - start) * eased);
 
-  const runInertia = (initialVelocity: number) => {
-    let velocity = initialVelocity;
-    let lastFrame = performance.now();
-
-    const tick = (time: number) => {
-      const dt = Math.min(32, time - lastFrame);
-      lastFrame = time;
-
-      const delta = velocity * (dt / 16);
-      const next = applyWheelRecycle(
-        dragState.current.value,
-        dragState.current.offsetPx + delta,
-        min,
-        max,
-        step,
-      );
-      syncDragToState(next);
-      velocity *= 0.9;
-
-      if (Math.abs(velocity) < 0.2) {
-        inertiaFrame.current = null;
-        beginSettle(dragState.current.value);
+      if (progress < 1) {
+        animationFrame.current = requestAnimationFrame(frame);
         return;
       }
 
-      inertiaFrame.current = requestAnimationFrame(tick);
+      animationFrame.current = null;
+      onComplete();
     };
 
-    inertiaFrame.current = requestAnimationFrame(tick);
+    animationFrame.current = requestAnimationFrame(frame);
+  };
+
+  const finishInteraction = (withInertia = false) => {
+    if (withInertia && Math.abs(velocityY.current) > 0.45) {
+      setIsDragging(false);
+      let velocity = velocityY.current * 14;
+      let lastFrame = performance.now();
+
+      const tick = (time: number) => {
+        const dt = Math.min(32, time - lastFrame);
+        lastFrame = time;
+        const next = scrollPosRef.current - velocity * (dt / 16);
+        syncScroll(next);
+        velocity *= 0.9;
+
+        if (Math.abs(velocity) < 0.2) {
+          animationFrame.current = null;
+          const snapped = snapScroll(scrollPosRef.current, maxScroll);
+          setIsSettling(true);
+          animateScrollTo(snapped, () => {
+            const finalValue = scrollPosToValue(snapped, min, max, step);
+            onChange(finalValue);
+            syncScroll(snapped);
+            setIsSettling(false);
+          });
+          return;
+        }
+
+        animationFrame.current = requestAnimationFrame(tick);
+      };
+
+      animationFrame.current = requestAnimationFrame(tick);
+      return;
+    }
+
+    const snapped = snapScroll(scrollPosRef.current, maxScroll);
+    setIsDragging(false);
+    setIsSettling(true);
+    animateScrollTo(snapped, () => {
+      const finalValue = scrollPosToValue(snapped, min, max, step);
+      onChange(finalValue);
+      syncScroll(snapped);
+      setIsSettling(false);
+    });
   };
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (disabled || activePointerId.current != null) return;
 
-    stopInertia();
-    if (settleTimer.current != null) {
-      window.clearTimeout(settleTimer.current);
-      settleTimer.current = null;
-    }
+    stopAnimation();
     setIsSettling(false);
 
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     activePointerId.current = event.pointerId;
+    dragStartY.current = event.clientY;
+    dragStartScroll.current = scrollPosRef.current;
     lastPointerY.current = event.clientY;
     lastMoveTime.current = performance.now();
     velocityY.current = 0;
-    syncDragToState({ value: current, offsetPx: 0 });
     setIsDragging(true);
   };
 
@@ -204,34 +227,20 @@ export function WheelNumberPicker({
     lastPointerY.current = event.clientY;
     lastMoveTime.current = now;
 
-    const next = applyWheelRecycle(
-      dragState.current.value,
-      dragState.current.offsetPx + deltaY,
-      min,
-      max,
-      step,
-    );
-    syncDragToState(next);
+    syncScroll(dragStartScroll.current - (event.clientY - dragStartY.current));
   };
 
   const onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
     if (activePointerId.current !== event.pointerId) return;
     event.preventDefault();
     activePointerId.current = null;
-
-    if (Math.abs(velocityY.current) > 0.45) {
-      setIsDragging(false);
-      runInertia(velocityY.current * 14);
-      return;
-    }
-
-    beginSettle(dragState.current.value);
+    finishInteraction(true);
   };
 
   const onPointerCancel = (event: React.PointerEvent<HTMLDivElement>) => {
     if (activePointerId.current !== event.pointerId) return;
     activePointerId.current = null;
-    beginSettle(dragState.current.value);
+    finishInteraction(false);
   };
 
   const onWheel = (event: React.WheelEvent<HTMLDivElement>) => {
@@ -253,11 +262,39 @@ export function WheelNumberPicker({
     }
   };
 
-  const shownValue = isDragging || isSettling ? wheelValue : current;
-  const offset = isDragging || isSettling ? wheelOffset : 0;
-  const prevValue = shownValue - step >= min ? shownValue - step : null;
-  const nextValue = shownValue + step <= max ? shownValue + step : null;
-  const trackAnimating = isSettling && !isDragging;
+  const visualScroll = isDragging ? rubberBandScroll(scrollPos, maxScroll) : scrollPos;
+  const shownValue = scrollPosToValue(clampScroll(visualScroll, maxScroll), min, max, step);
+
+  const items = useMemo(() => {
+    const centerIndex = visualScroll / ITEM_HEIGHT;
+    const firstIndex = Math.floor(centerIndex) - RENDER_BUFFER;
+    const lastIndex = Math.ceil(centerIndex) + RENDER_BUFFER;
+    const viewportCenter = ITEM_HEIGHT * VIEWPORT_HEIGHT_ITEMS * 0.5;
+
+    const rendered: Array<{
+      key: number;
+      value: number;
+      top: number;
+      style: ItemVisualStyle;
+    }> = [];
+
+    for (let index = firstIndex; index <= lastIndex; index += 1) {
+      const itemValue = min + index * step;
+      if (itemValue < min || itemValue > max) continue;
+
+      const distanceFromCenter = index * ITEM_HEIGHT - visualScroll;
+      const top = viewportCenter + distanceFromCenter - ITEM_HEIGHT / 2;
+
+      rendered.push({
+        key: index,
+        value: itemValue,
+        top,
+        style: itemVisual(distanceFromCenter),
+      });
+    }
+
+    return rendered;
+  }, [visualScroll, min, max, step]);
 
   return (
     <div className={`wheel-number-picker${disabled ? " wheel-number-picker--disabled" : ""}`}>
@@ -279,24 +316,26 @@ export function WheelNumberPicker({
       >
         <div className="wheel-number-picker__fade wheel-number-picker__fade--top" aria-hidden="true" />
         <div className="wheel-number-picker__fade wheel-number-picker__fade--bottom" aria-hidden="true" />
+        <div className="wheel-number-picker__highlight" aria-hidden="true" />
 
-        <div
-          className={`wheel-number-picker__track${isDragging ? " wheel-number-picker__track--dragging" : ""}${
-            trackAnimating ? " wheel-number-picker__track--settling" : ""
-          }`}
-          style={{
-            transform: `translateY(calc(var(--wheel-item-height) * -0.5 + ${offset}px))`,
-          }}
-        >
-          <div className="wheel-number-picker__item wheel-number-picker__item--prev" aria-hidden="true">
-            {prevValue != null ? formatWheelValue(prevValue) : ""}
-          </div>
-          <div className="wheel-number-picker__item wheel-number-picker__item--active">
-            {formatWheelValue(shownValue)}
-          </div>
-          <div className="wheel-number-picker__item wheel-number-picker__item--next" aria-hidden="true">
-            {nextValue != null ? formatWheelValue(nextValue) : ""}
-          </div>
+        <div className="wheel-number-picker__track">
+          {items.map((item) => (
+            <div
+              key={item.key}
+              className="wheel-number-picker__item"
+              aria-hidden={item.value !== shownValue}
+              style={{
+                top: `${item.top}px`,
+                transform: item.style.transform,
+                opacity: item.style.opacity,
+                fontSize: item.style.fontSize,
+                fontWeight: item.style.fontWeight,
+                color: item.style.color,
+              }}
+            >
+              {formatWheelValue(item.value)}
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -1186,7 +1186,7 @@
   width: 100%;
   min-width: 0;
   min-height: var(--touch-target);
-  padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + 1.5rem);
+  padding: var(--space-3) var(--space-4);
   font-family: var(--font-sans);
   font-size: var(--text-base);
   color: var(--color-text);
@@ -1285,8 +1285,19 @@
   min-width: 0;
 }
 
-.meal-manual__component .wheel-number-picker {
-  justify-self: end;
+.meal-weight-picker-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.meal-weight-picker-row__label,
+.meal-weight-picker-row__unit {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.2;
 }
 
 .meal-manual__component-main {
@@ -1451,6 +1462,10 @@
 .meal-panel__input--readonly {
   opacity: 0.92;
   cursor: default;
+}
+
+.meal-dish-search__field input[type="search"] {
+  padding-left: calc(var(--space-3) + 1.25rem + var(--space-2));
 }
 
 .meal-panel__grid {

@@ -1,5 +1,5 @@
 .wheel-number-picker {
-  --wheel-item-height: 26px;
+  --wheel-item-height: 28px;
 
   display: inline-flex;
   flex-direction: column;
@@ -26,7 +26,7 @@
 .wheel-number-picker__viewport {
   position: relative;
   width: 5rem;
-  height: calc(var(--wheel-item-height) * 2);
+  height: calc(var(--wheel-item-height) * 2.75);
   overflow: hidden;
   border-radius: calc(var(--radius-md) - 2px);
   border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
@@ -51,7 +51,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  height: calc(var(--wheel-item-height) * 0.35);
+  height: calc(var(--wheel-item-height) * 0.55);
   pointer-events: none;
   z-index: 2;
 }
@@ -60,7 +60,7 @@
   top: 0;
   background: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--color-surface) 96%, transparent),
+    color-mix(in srgb, var(--color-surface) 98%, transparent),
     transparent
   );
 }
@@ -69,57 +69,42 @@
   bottom: 0;
   background: linear-gradient(
     to top,
-    color-mix(in srgb, var(--color-surface) 96%, transparent),
+    color-mix(in srgb, var(--color-surface) 98%, transparent),
     transparent
   );
 }
 
+.wheel-number-picker__highlight {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 50%;
+  height: var(--wheel-item-height);
+  transform: translateY(-50%);
+  border-radius: calc(var(--radius-md) - 4px);
+  background: color-mix(in srgb, var(--color-primary) 7%, transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
 .wheel-number-picker__track {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  display: grid;
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
-}
-
-.wheel-number-picker__track--dragging {
-  transition: none;
-}
-
-.wheel-number-picker__track--settling {
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  inset: 0;
+  z-index: 1;
 }
 
 .wheel-number-picker__item {
+  position: absolute;
+  left: 0;
+  right: 0;
   height: var(--wheel-item-height);
   display: flex;
   align-items: center;
   justify-content: center;
   font-variant-numeric: tabular-nums;
   line-height: 1;
-}
-
-.wheel-number-picker__item--prev,
-.wheel-number-picker__item--next {
-  font-size: 0.6875rem;
-  font-weight: var(--font-medium);
-  color: color-mix(in srgb, var(--color-text-secondary) 78%, transparent);
-  opacity: 0.8;
-}
-
-.wheel-number-picker__item--prev {
-  align-items: flex-end;
-}
-
-.wheel-number-picker__item--next {
-  align-items: flex-start;
-}
-
-.wheel-number-picker__item--active {
-  font-size: 1.05rem;
-  font-weight: var(--font-semibold);
+  transform-origin: center center;
+  will-change: transform, opacity, font-size;
+  pointer-events: none;
   letter-spacing: -0.02em;
-  color: var(--color-text);
 }

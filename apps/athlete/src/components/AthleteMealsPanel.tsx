@@ -471,16 +471,19 @@ export function AthleteMealsPanel({ embedded = false }: { embedded?: boolean }) 
                   catalogDishCount={catalogStats?.dish_count ?? null}
                   onSelect={(item) => void handleReplaceDishFromSearch(row.key, item)}
                 />
-                <WheelNumberPicker
-                  value={dishRowWeightG(row)}
-                  onChange={(weightG) => handleDishWeightChange(row.key, weightG)}
-                  min={0}
-                  max={MAX_DISH_WEIGHT_G}
-                  step={1}
-                  unit="г"
-                  ariaLabel={`Вес: ${row.name}`}
-                  disabled={busy || analyzing}
-                />
+                <div className="meal-weight-picker-row">
+                  <span className="meal-weight-picker-row__label">Вес:</span>
+                  <WheelNumberPicker
+                    value={dishRowWeightG(row)}
+                    onChange={(weightG) => handleDishWeightChange(row.key, weightG)}
+                    min={0}
+                    max={MAX_DISH_WEIGHT_G}
+                    step={1}
+                    ariaLabel={`Вес: ${row.name}`}
+                    disabled={busy || analyzing}
+                  />
+                  <span className="meal-weight-picker-row__unit">грамм</span>
+                </div>
               </li>
             );
           })}

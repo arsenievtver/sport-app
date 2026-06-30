@@ -232,16 +232,19 @@ export function ManualMealForm({ busy, catalogDishCount, onSave, onCancel }: Man
             ×
           </button>
         </div>
-        <WheelNumberPicker
-          value={componentWeightG(item)}
-          onChange={(weightG) => handleComponentWeightChange(item.key, weightG)}
-          min={0}
-          max={MAX_DISH_WEIGHT_G}
-          step={1}
-          unit="г"
-          ariaLabel={`Вес: ${item.name}`}
-          disabled={formBusy}
-        />
+        <div className="meal-weight-picker-row">
+          <span className="meal-weight-picker-row__label">Вес:</span>
+          <WheelNumberPicker
+            value={componentWeightG(item)}
+            onChange={(weightG) => handleComponentWeightChange(item.key, weightG)}
+            min={0}
+            max={MAX_DISH_WEIGHT_G}
+            step={1}
+            ariaLabel={`Вес: ${item.name}`}
+            disabled={formBusy}
+          />
+          <span className="meal-weight-picker-row__unit">грамм</span>
+        </div>
       </li>
     );
   };

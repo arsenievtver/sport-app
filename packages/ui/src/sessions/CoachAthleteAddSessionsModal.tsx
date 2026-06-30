@@ -1,12 +1,21 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { addCoachAthleteSessions } from "@sport-app/api-client";
 import type { CoachAthleteSessionsResponse } from "@sport-app/shared";
 
+import { useBodyScrollLock } from "../hooks/useBodyScrollLock";
 import { WheelNumberPicker } from "../wheel/WheelNumberPicker";
 
 const DEFAULT_COUNT = 10;
 const MIN_COUNT = 1;
 const MAX_COUNT = 30;
+
+function pluralSessionsAccusative(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return "тренировку";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "тренировки";
+  return "тренировок";
+}
 
 interface CoachAthleteAddSessionsModalProps {
   athleteId: string;
@@ -26,6 +35,24 @@ export function CoachAthleteAddSessionsModal({
   const [count, setCount] = useState(DEFAULT_COUNT);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+
+  useBodyScrollLock(true);
+
+  useEffect(() => {
+    const preventTouchMove = (event: TouchEvent) => {
+      event.preventDefault();
+    };
+
+    const backdrop = backdropRef.current;
+    const options: AddEventListenerOptions = { passive: false };
+
+    backdrop?.addEventListener("touchmove", preventTouchMove, options);
+
+    return () => {
+      backdrop?.removeEventListener("touchmove", preventTouchMove);
+    };
+  }, []);
 
   const handleClose = () => {
     if (busy) return;
@@ -47,6 +74,7 @@ export function CoachAthleteAddSessionsModal({
 
   return (
     <div
+      ref={backdropRef}
       className="schedule-sheet-backdrop coach-athletes-sessions-backdrop"
       role="presentation"
       onClick={handleClose}
@@ -58,7 +86,7 @@ export function CoachAthleteAddSessionsModal({
         aria-labelledby="coach-athletes-sessions-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="schedule-sheet__body">
+        <div className="schedule-sheet__body coach-athletes-sessions-sheet__body">
           <div className="schedule-sheet__header">
             <div className="schedule-sheet__heading">
               <h2 className="schedule-sheet__title" id="coach-athletes-sessions-title">
@@ -81,8 +109,8 @@ export function CoachAthleteAddSessionsModal({
             Сейчас на балансе: <strong>{currentBalance}</strong>
           </p>
 
-          <div className="coach-athletes-sessions-sheet__picker">
-            <p className="coach-athletes-sessions-sheet__picker-label">Сколько добавить</p>
+          <div className="coach-athletes-sessions-sheet__picker-row">
+            <span className="coach-athletes-sessions-sheet__picker-label">Добавить</span>
             <WheelNumberPicker
               value={count}
               onChange={setCount}
@@ -92,11 +120,14 @@ export function CoachAthleteAddSessionsModal({
               ariaLabel="Количество тренировок"
               disabled={busy}
             />
+            <span className="coach-athletes-sessions-sheet__picker-unit">
+              {pluralSessionsAccusative(count)}
+            </span>
           </div>
 
           <button
             type="button"
-            className="coach-btn coach-btn--primary schedule-sheet__submit"
+            className="coach-btn coach-btn--primary schedule-sheet__submit coach-athletes-sessions-sheet__submit"
             disabled={busy}
             onClick={() => void handleAdd()}
           >
@@ -114,4 +145,4 @@ export function CoachAthleteAddSessionsModal({
       </div>
     </div>
   );
-}
+};
