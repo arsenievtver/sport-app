@@ -14,6 +14,7 @@ from app.models.user import AthleteProfile, CoachAthleteLink, CoachProfile
 from app.schemas.auth import CoachProfileResponse
 from app.schemas.athlete_weight import AthleteWeightDynamicsResponse, AthleteWeightMeasurementRequest
 from app.schemas.coach import (
+    CoachAthleteActiveCreditBatch,
     CoachAthleteSessionHistoryEntry,
     CoachAthleteSessionsResponse,
     CoachAthleteSummary,
@@ -21,6 +22,7 @@ from app.schemas.coach import (
     CreateManagedAthleteRequest,
 )
 from app.services.athlete_weight import AthleteWeightService
+from app.services.session_batches import compute_active_credit_batches
 
 
 class CoachService:
@@ -150,6 +152,54 @@ class CoachService:
         )
         entries = result.scalars().all()
         return [CoachAthleteSessionHistoryEntry.model_validate(entry) for entry in entries]
+
+    async def list_active_credit_batches(
+        self,
+        coach_profile: CoachProfile,
+        athlete_id: UUID,
+    ) -> list[CoachAthleteActiveCreditBatch]:
+        link = await self._get_link(coach_profile, athlete_id)
+        result = await self.db.execute(
+            select(CoachAthleteSessionEntry)
+            .where(CoachAthleteSessionEntry.link_id == link.id)
+            .order_by(
+                CoachAthleteSessionEntry.entry_date.asc(),
+                CoachAthleteSessionEntry.created_at.asc(),
+            )
+        )
+        entries = result.scalars().all()
+        return compute_active_credit_batches(entries)
+
+    async def delete_session_entry(
+        self,
+        coach_profile: CoachProfile,
+        athlete_id: UUID,
+        entry_id: UUID,
+    ) -> CoachAthleteSessionsResponse:
+        link = await self._get_link(coach_profile, athlete_id)
+        result = await self.db.execute(
+            select(CoachAthleteSessionEntry).where(
+                CoachAthleteSessionEntry.id == entry_id,
+                CoachAthleteSessionEntry.link_id == link.id,
+            )
+        )
+        entry = result.scalar_one_or_none()
+        if entry is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Запись не найдена")
+
+        if entry.kind == CoachAthleteSessionEntryKind.credit:
+            if link.sessions_balance < entry.sessions_count:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Нельзя отменить начисление: на балансе недостаточно тренировок",
+                )
+            link.sessions_balance -= entry.sessions_count
+        else:
+            link.sessions_balance += entry.sessions_count
+
+        await self.db.delete(entry)
+        await self.db.flush()
+        return await self._link_to_sessions_response(link)
 
     async def _count_completed_sessions(self, link_id: UUID) -> int:
         result = await self.db.execute(

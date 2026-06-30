@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export interface WheelNumberPickerProps {
   value: number;
@@ -12,7 +12,8 @@ export interface WheelNumberPickerProps {
 }
 
 const ITEM_HEIGHT = 26;
-const RUBBER_BAND = 0.28;
+const RUBBER_BAND = 0.35;
+const SETTLE_MS = 220;
 
 function clampValue(value: number, min: number, max: number, step: number): number {
   const snapped = Math.round(value / step) * step;
@@ -24,43 +25,47 @@ function formatWheelValue(value: number): string {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1).replace(".", ",");
 }
 
-function computeDragVisual(
-  startValue: number,
-  totalDragPx: number,
-  min: number,
-  max: number,
-  step: number,
-): { value: number; visualOffset: number } {
-  const rawSteps = -totalDragPx / ITEM_HEIGHT;
-  let steps = rawSteps > 0 ? Math.floor(rawSteps) : Math.ceil(rawSteps);
-  const value = clampValue(startValue + steps * step, min, max, step);
-  const appliedSteps = (value - startValue) / step;
-  const committedOffset = -appliedSteps * ITEM_HEIGHT;
-  let visualOffset = totalDragPx - committedOffset;
-
-  const maxStepsUp = (max - startValue) / step;
-  const maxStepsDown = (startValue - min) / step;
-  const atUpper = rawSteps > maxStepsUp;
-  const atLower = rawSteps < -maxStepsDown;
-
-  if (atUpper || atLower) {
-    const limitSteps = atUpper ? maxStepsUp : -maxStepsDown;
-    const limitOffset = -limitSteps * ITEM_HEIGHT;
-    visualOffset = limitOffset + (totalDragPx - limitOffset) * RUBBER_BAND;
-  }
-
-  return { value, visualOffset };
+interface WheelDragState {
+  value: number;
+  offsetPx: number;
 }
 
-function snapDragValue(
-  startValue: number,
-  totalDragPx: number,
+/**
+ * iOS-style wheel: keep offset within one row height by shifting the value
+ * instead of jumping the track back to center.
+ */
+function applyWheelRecycle(
+  value: number,
+  offsetPx: number,
   min: number,
   max: number,
   step: number,
-): number {
-  const roundedSteps = Math.round(-totalDragPx / ITEM_HEIGHT);
-  return clampValue(startValue + roundedSteps * step, min, max, step);
+): WheelDragState {
+  const half = ITEM_HEIGHT / 2;
+  let nextValue = value;
+  let nextOffset = offsetPx;
+
+  while (nextOffset < -half) {
+    const candidate = clampValue(nextValue + step, min, max, step);
+    if (candidate === nextValue) {
+      nextOffset = -half + (nextOffset + half) * RUBBER_BAND;
+      break;
+    }
+    nextValue = candidate;
+    nextOffset += ITEM_HEIGHT;
+  }
+
+  while (nextOffset > half) {
+    const candidate = clampValue(nextValue - step, min, max, step);
+    if (candidate === nextValue) {
+      nextOffset = half + (nextOffset - half) * RUBBER_BAND;
+      break;
+    }
+    nextValue = candidate;
+    nextOffset -= ITEM_HEIGHT;
+  }
+
+  return { value: nextValue, offsetPx: nextOffset };
 }
 
 export function WheelNumberPicker({
@@ -75,45 +80,116 @@ export function WheelNumberPicker({
 }: WheelNumberPickerProps) {
   const current = clampValue(value, min, max, step);
   const [isDragging, setIsDragging] = useState(false);
-  const [visualOffset, setVisualOffset] = useState(0);
-  const [previewValue, setPreviewValue] = useState(current);
+  const [isSettling, setIsSettling] = useState(false);
+  const [wheelValue, setWheelValue] = useState(current);
+  const [wheelOffset, setWheelOffset] = useState(0);
 
-  const dragStartValue = useRef(current);
-  const totalDragPx = useRef(0);
-  const lastPointerY = useRef(0);
   const activePointerId = useRef<number | null>(null);
+  const dragState = useRef<WheelDragState>({ value: current, offsetPx: 0 });
+  const lastPointerY = useRef(0);
+  const lastMoveTime = useRef(0);
+  const velocityY = useRef(0);
+  const inertiaFrame = useRef<number | null>(null);
+  const settleTimer = useRef<number | null>(null);
 
-  const shownValue = isDragging ? previewValue : current;
-  const prevValue = shownValue - step >= min ? shownValue - step : null;
-  const nextValue = shownValue + step <= max ? shownValue + step : null;
+  const syncDragToState = (state: WheelDragState) => {
+    dragState.current = state;
+    setWheelValue(state.value);
+    setWheelOffset(state.offsetPx);
+  };
 
-  const finishDrag = (commit: boolean) => {
-    if (activePointerId.current == null) return;
-
-    let finalValue = dragStartValue.current;
-    if (commit) {
-      finalValue = snapDragValue(dragStartValue.current, totalDragPx.current, min, max, step);
-      onChange(finalValue);
+  useEffect(() => {
+    if (!isDragging && !isSettling) {
+      dragState.current = { value: current, offsetPx: 0 };
+      setWheelValue(current);
+      setWheelOffset(0);
     }
+  }, [current, isDragging, isSettling]);
 
-    activePointerId.current = null;
-    totalDragPx.current = 0;
+  useEffect(() => {
+    return () => {
+      if (inertiaFrame.current != null) {
+        cancelAnimationFrame(inertiaFrame.current);
+      }
+      if (settleTimer.current != null) {
+        window.clearTimeout(settleTimer.current);
+      }
+    };
+  }, []);
+
+  const stopInertia = () => {
+    if (inertiaFrame.current != null) {
+      cancelAnimationFrame(inertiaFrame.current);
+      inertiaFrame.current = null;
+    }
+  };
+
+  const beginSettle = (finalValue: number) => {
+    stopInertia();
+    onChange(finalValue);
+    dragState.current = { value: finalValue, offsetPx: 0 };
+    setWheelValue(finalValue);
     setIsDragging(false);
-    setVisualOffset(0);
-    setPreviewValue(finalValue);
+    setIsSettling(true);
+    setWheelOffset(0);
+
+    if (settleTimer.current != null) {
+      window.clearTimeout(settleTimer.current);
+    }
+    settleTimer.current = window.setTimeout(() => {
+      setIsSettling(false);
+      settleTimer.current = null;
+    }, SETTLE_MS);
+  };
+
+  const runInertia = (initialVelocity: number) => {
+    let velocity = initialVelocity;
+    let lastFrame = performance.now();
+
+    const tick = (time: number) => {
+      const dt = Math.min(32, time - lastFrame);
+      lastFrame = time;
+
+      const delta = velocity * (dt / 16);
+      const next = applyWheelRecycle(
+        dragState.current.value,
+        dragState.current.offsetPx + delta,
+        min,
+        max,
+        step,
+      );
+      syncDragToState(next);
+      velocity *= 0.9;
+
+      if (Math.abs(velocity) < 0.2) {
+        inertiaFrame.current = null;
+        beginSettle(dragState.current.value);
+        return;
+      }
+
+      inertiaFrame.current = requestAnimationFrame(tick);
+    };
+
+    inertiaFrame.current = requestAnimationFrame(tick);
   };
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (disabled || activePointerId.current != null) return;
 
+    stopInertia();
+    if (settleTimer.current != null) {
+      window.clearTimeout(settleTimer.current);
+      settleTimer.current = null;
+    }
+    setIsSettling(false);
+
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     activePointerId.current = event.pointerId;
-    dragStartValue.current = current;
-    totalDragPx.current = 0;
     lastPointerY.current = event.clientY;
-    setPreviewValue(current);
-    setVisualOffset(0);
+    lastMoveTime.current = performance.now();
+    velocityY.current = 0;
+    syncDragToState({ value: current, offsetPx: 0 });
     setIsDragging(true);
   };
 
@@ -121,24 +197,41 @@ export function WheelNumberPicker({
     if (disabled || activePointerId.current !== event.pointerId) return;
 
     event.preventDefault();
+    const now = performance.now();
     const deltaY = event.clientY - lastPointerY.current;
+    const dt = Math.max(1, now - lastMoveTime.current);
+    velocityY.current = deltaY / dt;
     lastPointerY.current = event.clientY;
-    totalDragPx.current += deltaY;
+    lastMoveTime.current = now;
 
-    const next = computeDragVisual(dragStartValue.current, totalDragPx.current, min, max, step);
-    setPreviewValue(next.value);
-    setVisualOffset(next.visualOffset);
+    const next = applyWheelRecycle(
+      dragState.current.value,
+      dragState.current.offsetPx + deltaY,
+      min,
+      max,
+      step,
+    );
+    syncDragToState(next);
   };
 
   const onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
     if (activePointerId.current !== event.pointerId) return;
     event.preventDefault();
-    finishDrag(true);
+    activePointerId.current = null;
+
+    if (Math.abs(velocityY.current) > 0.45) {
+      setIsDragging(false);
+      runInertia(velocityY.current * 14);
+      return;
+    }
+
+    beginSettle(dragState.current.value);
   };
 
   const onPointerCancel = (event: React.PointerEvent<HTMLDivElement>) => {
     if (activePointerId.current !== event.pointerId) return;
-    finishDrag(true);
+    activePointerId.current = null;
+    beginSettle(dragState.current.value);
   };
 
   const onWheel = (event: React.WheelEvent<HTMLDivElement>) => {
@@ -159,6 +252,12 @@ export function WheelNumberPicker({
       onChange(clampValue(current - step, min, max, step));
     }
   };
+
+  const shownValue = isDragging || isSettling ? wheelValue : current;
+  const offset = isDragging || isSettling ? wheelOffset : 0;
+  const prevValue = shownValue - step >= min ? shownValue - step : null;
+  const nextValue = shownValue + step <= max ? shownValue + step : null;
+  const trackAnimating = isSettling && !isDragging;
 
   return (
     <div className={`wheel-number-picker${disabled ? " wheel-number-picker--disabled" : ""}`}>
@@ -182,9 +281,11 @@ export function WheelNumberPicker({
         <div className="wheel-number-picker__fade wheel-number-picker__fade--bottom" aria-hidden="true" />
 
         <div
-          className={`wheel-number-picker__track${isDragging ? " wheel-number-picker__track--dragging" : ""}`}
+          className={`wheel-number-picker__track${isDragging ? " wheel-number-picker__track--dragging" : ""}${
+            trackAnimating ? " wheel-number-picker__track--settling" : ""
+          }`}
           style={{
-            transform: `translateY(calc(var(--wheel-item-height, 48px) * -0.5 + ${visualOffset}px))`,
+            transform: `translateY(calc(var(--wheel-item-height) * -0.5 + ${offset}px))`,
           }}
         >
           <div className="wheel-number-picker__item wheel-number-picker__item--prev" aria-hidden="true">
@@ -200,4 +301,4 @@ export function WheelNumberPicker({
       </div>
     </div>
   );
-}
+};

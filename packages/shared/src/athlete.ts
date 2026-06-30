@@ -136,6 +136,15 @@ export interface CoachAthleteSessionHistoryEntry {
   entry_date: string;
 }
 
+
+export interface CoachAthleteActiveCreditBatch {
+  entry_id: string;
+  credited_date: string;
+  credited_count: number;
+  completed_count: number;
+  remaining_count: number;
+}
+
 export const ATHLETE_APP_STATUS_LABELS = {
   withApp: "В приложении",
   withoutApp: "Без приложения",

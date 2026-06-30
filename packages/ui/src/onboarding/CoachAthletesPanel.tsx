@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  addCoachAthleteSessions,
   createManagedAthlete,
   fetchCoachAthletes,
   resolveMediaUrl,
@@ -9,13 +8,13 @@ import {
   GENDER_LABELS,
   TRAINING_TRAIT_LABELS,
   getAthleteAppStatusLabel,
+  type CoachAthleteSessionsResponse,
   type CoachAthleteSummary,
   type TrainingTrait,
 } from "@sport-app/shared";
+import { CoachAthleteAddSessionsModal } from "../sessions/CoachAthleteAddSessionsModal";
 import { SessionsBalanceCircle } from "../sessions/SessionsBalanceBadge";
 import { CoachAthleteSessionHistoryTable } from "./CoachAthleteSessionHistoryTable";
-
-const DEFAULT_ADD_COUNT = "10";
 
 function formatBirthDate(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -24,6 +23,14 @@ function formatBirthDate(value: string | null | undefined): string | null {
   } catch {
     return value;
   }
+}
+
+function pluralSessions(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return "тренировка";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "тренировки";
+  return "тренировок";
 }
 
 function TraitRow({ label, value }: { label: string; value: number | null | undefined }) {
@@ -114,53 +121,19 @@ function AthleteDetails({ athlete }: { athlete: CoachAthleteSummary }) {
   );
 }
 
-interface AthleteSessionControlsProps {
-  athleteId: string;
-  busyAthleteId: string | null;
-  addCount: string;
-  onAddCountChange: (value: string) => void;
-  onAddSessions: () => void;
-}
-
-function AthleteSessionControls({
-  athleteId,
-  busyAthleteId,
-  addCount,
-  onAddCountChange,
-  onAddSessions,
-}: AthleteSessionControlsProps) {
-  const busy = busyAthleteId === athleteId;
-
-  return (
-    <div className="coach-athlete-card__session-controls">
-      <input
-        className="glass-input coach-athlete-card__session-input"
-        type="number"
-        inputMode="numeric"
-        min={1}
-        step={1}
-        value={addCount}
-        onChange={(event) => onAddCountChange(event.target.value)}
-        disabled={busy}
-      />
-      <button
-        type="button"
-        className="coach-btn coach-btn--primary coach-athlete-card__session-btn"
-        disabled={busy}
-        onClick={onAddSessions}
-      >
-        Добавить
-      </button>
-    </div>
-  );
-}
-
 interface CoachAthleteProfileProps {
   athlete: CoachAthleteSummary;
   onBack: () => void;
+  onBalanceClick: () => void;
+  onSessionsUpdated: (result: CoachAthleteSessionsResponse) => void;
 }
 
-function CoachAthleteProfile({ athlete, onBack }: CoachAthleteProfileProps) {
+function CoachAthleteProfile({
+  athlete,
+  onBack,
+  onBalanceClick,
+  onSessionsUpdated,
+}: CoachAthleteProfileProps) {
   return (
     <div className="coach-athlete-profile">
       <button type="button" className="coach-btn coach-btn--muted coach-athlete-profile__back" onClick={onBack}>
@@ -176,7 +149,7 @@ function CoachAthleteProfile({ athlete, onBack }: CoachAthleteProfileProps) {
               <AthleteAppStatus hasApp={athlete.has_app} />
             </div>
           </div>
-          <SessionsBalanceCircle balance={athlete.sessions_balance} />
+          <SessionsBalanceCircle balance={athlete.sessions_balance} onClick={onBalanceClick} />
         </div>
 
         <p className="coach-athlete-card__completed text-secondary">
@@ -186,13 +159,19 @@ function CoachAthleteProfile({ athlete, onBack }: CoachAthleteProfileProps) {
         <AthleteDetails athlete={athlete} />
       </article>
 
-      <CoachAthleteSessionHistoryTable athleteId={athlete.athlete_id} balance={athlete.sessions_balance} />
+      <CoachAthleteSessionHistoryTable
+        athleteId={athlete.athlete_id}
+        balance={athlete.sessions_balance}
+        onSessionsUpdated={onSessionsUpdated}
+      />
     </div>
   );
 }
 
-function getAddCount(addCounts: Record<string, string>, athleteId: string): string {
-  return addCounts[athleteId] ?? DEFAULT_ADD_COUNT;
+interface SessionsModalState {
+  athleteId: string;
+  athleteName: string;
+  currentBalance: number;
 }
 
 function updateAthleteSessions(
@@ -216,10 +195,9 @@ export function CoachAthletesPanel({
   const [athletes, setAthletes] = useState<CoachAthleteSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<string | null>(initialProfileId);
-  const [addCounts, setAddCounts] = useState<Record<string, string>>({});
-  const [busyAthleteId, setBusyAthleteId] = useState<string | null>(null);
+  const [sessionsModal, setSessionsModal] = useState<SessionsModalState | null>(null);
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAthleteName, setNewAthleteName] = useState("");
@@ -240,28 +218,39 @@ export function CoachAthletesPanel({
     }
   }, [initialProfileId]);
 
-  const handleAddSessions = async (athleteId: string) => {
-    const raw = getAddCount(addCounts, athleteId);
-    const count = Number(raw);
-    if (!Number.isFinite(count) || count < 1) return;
+  useEffect(() => {
+    if (!successNotice) return;
+    const timer = window.setTimeout(() => setSuccessNotice(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [successNotice]);
 
-    setBusyAthleteId(athleteId);
-    setActionError(null);
-    try {
-      const updated = await addCoachAthleteSessions({ athlete_id: athleteId, count });
-      setAthletes((prev) =>
-        prev.map((a) => (a.athlete_id === athleteId ? updateAthleteSessions(a, updated) : a)),
-      );
-      setAddCounts((prev) => ({ ...prev, [athleteId]: DEFAULT_ADD_COUNT }));
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Не удалось добавить тренировки");
-    } finally {
-      setBusyAthleteId(null);
-    }
+  const openSessionsModal = (athlete: CoachAthleteSummary) => {
+    setSessionsModal({
+      athleteId: athlete.athlete_id,
+      athleteName: athlete.display_name,
+      currentBalance: athlete.sessions_balance,
+    });
   };
 
-  const toggleExpanded = (athleteId: string) => {
-    setExpandedId((prev) => (prev === athleteId ? null : athleteId));
+  const handleSessionsAdded = (result: CoachAthleteSessionsResponse, count: number) => {
+    const athleteName = sessionsModal?.athleteName ?? "атлету";
+    setAthletes((prev) =>
+      prev.map((athlete) =>
+        athlete.athlete_id === result.athlete_id ? updateAthleteSessions(athlete, result) : athlete,
+      ),
+    );
+    setSuccessNotice(
+      `+${count} ${pluralSessions(count)} для ${athleteName}. Баланс: ${result.sessions_balance}`,
+    );
+    setSessionsModal(null);
+  };
+
+  const handleSessionsUpdated = (result: CoachAthleteSessionsResponse) => {
+    setAthletes((prev) =>
+      prev.map((athlete) =>
+        athlete.athlete_id === result.athlete_id ? updateAthleteSessions(athlete, result) : athlete,
+      ),
+    );
   };
 
   const handleCreateAthlete = async () => {
@@ -275,7 +264,7 @@ export function CoachAthletesPanel({
       setAthletes((prev) => [created, ...prev]);
       setNewAthleteName("");
       setShowAddForm(false);
-      setExpandedId(created.athlete_id);
+      setProfileId(created.athlete_id);
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Не удалось добавить атлета");
     } finally {
@@ -340,6 +329,16 @@ export function CoachAthletesPanel({
     </form>
   ) : null;
 
+  const sessionsModalElement = sessionsModal ? (
+    <CoachAthleteAddSessionsModal
+      athleteId={sessionsModal.athleteId}
+      athleteName={sessionsModal.athleteName}
+      currentBalance={sessionsModal.currentBalance}
+      onClose={() => setSessionsModal(null)}
+      onAdded={handleSessionsAdded}
+    />
+  ) : null;
+
   if (loading) {
     return (
       <>
@@ -364,6 +363,7 @@ export function CoachAthletesPanel({
       <>
         {panelHeader}
         {addForm}
+        {successNotice ? <p className="coach-athletes__notice">{successNotice}</p> : null}
         {actionError ? <p className="auth-error">{actionError}</p> : null}
         <CoachAthleteProfile
           athlete={profileAthlete}
@@ -371,7 +371,10 @@ export function CoachAthletesPanel({
             setProfileId(null);
             onInitialProfileHandled?.();
           }}
+          onBalanceClick={() => openSessionsModal(profileAthlete)}
+          onSessionsUpdated={handleSessionsUpdated}
         />
+        {sessionsModalElement}
       </>
     );
   }
@@ -394,61 +397,35 @@ export function CoachAthletesPanel({
     <>
       {panelHeader}
       {addForm}
+      {successNotice ? <p className="coach-athletes__notice">{successNotice}</p> : null}
       {actionError ? <p className="auth-error">{actionError}</p> : null}
       <div className="coach-athletes">
-        {athletes.map((athlete) => {
-          const isExpanded = expandedId === athlete.athlete_id;
-
-          return (
-            <article
-              key={athlete.athlete_id}
-              className={`coach-athlete-card coach-athlete-card--accordion${isExpanded ? " coach-athlete-card--expanded" : ""}`}
-            >
+        {athletes.map((athlete) => (
+          <article key={athlete.athlete_id} className="coach-athlete-card">
+            <div className="coach-athlete-card__row">
               <button
                 type="button"
-                className="coach-athlete-card__summary"
-                aria-expanded={isExpanded}
-                onClick={() => toggleExpanded(athlete.athlete_id)}
+                className="coach-athlete-card__profile-link"
+                onClick={() => setProfileId(athlete.athlete_id)}
               >
-                <div className="coach-athlete-card__identity">
-                  <AthleteAvatar athlete={athlete} />
-                  <div className="coach-athlete-card__title-block">
-                    <h3 className="coach-athlete-card__name">{athlete.display_name}</h3>
-                    <AthleteAppStatus hasApp={athlete.has_app} />
-                  </div>
-                </div>
-                <SessionsBalanceCircle balance={athlete.sessions_balance} />
-              </button>
-
-              {isExpanded ? (
-                <div className="coach-athlete-card__expanded">
+                <AthleteAvatar athlete={athlete} />
+                <div className="coach-athlete-card__title-block">
+                  <h3 className="coach-athlete-card__name">{athlete.display_name}</h3>
+                  <AthleteAppStatus hasApp={athlete.has_app} />
                   <p className="coach-athlete-card__completed text-secondary">
-                    Пройдено тренировок: <strong>{athlete.sessions_completed}</strong>
+                    Пройдено: <strong>{athlete.sessions_completed}</strong>
                   </p>
-
-                  <AthleteSessionControls
-                    athleteId={athlete.athlete_id}
-                    busyAthleteId={busyAthleteId}
-                    addCount={getAddCount(addCounts, athlete.athlete_id)}
-                    onAddCountChange={(value) =>
-                      setAddCounts((prev) => ({ ...prev, [athlete.athlete_id]: value }))
-                    }
-                    onAddSessions={() => void handleAddSessions(athlete.athlete_id)}
-                  />
-
-                  <button
-                    type="button"
-                    className="coach-btn coach-btn--primary coach-athlete-card__goto"
-                    onClick={() => setProfileId(athlete.athlete_id)}
-                  >
-                    Перейти к профилю
-                  </button>
                 </div>
-              ) : null}
-            </article>
-          );
-        })}
+              </button>
+              <SessionsBalanceCircle
+                balance={athlete.sessions_balance}
+                onClick={() => openSessionsModal(athlete)}
+              />
+            </div>
+          </article>
+        ))}
       </div>
+      {sessionsModalElement}
     </>
   );
 }

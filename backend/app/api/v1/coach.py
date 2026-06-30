@@ -13,6 +13,7 @@ from app.schemas.auth import UserResponse
 from app.schemas.athlete_weight import AthleteWeightDynamicsResponse, AthleteWeightMeasurementRequest
 from app.schemas.coach import (
     AddSessionsRequest,
+    CoachAthleteActiveCreditBatch,
     CoachAthleteSessionHistoryEntry,
     CoachAthleteSessionsResponse,
     CoachAthleteSummary,
@@ -105,6 +106,31 @@ async def list_athlete_session_history(
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.get(
+    "/athletes/{athlete_id}/sessions/active-batches",
+    response_model=list[CoachAthleteActiveCreditBatch],
+)
+async def list_athlete_active_credit_batches(
+    athlete_id: UUID,
+    coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> list[CoachAthleteActiveCreditBatch]:
+    return await CoachService(db).list_active_credit_batches(coach_profile, athlete_id)
+
+
+@router.delete(
+    "/athletes/{athlete_id}/sessions/entries/{entry_id}",
+    response_model=CoachAthleteSessionsResponse,
+)
+async def delete_athlete_session_entry(
+    athlete_id: UUID,
+    entry_id: UUID,
+    coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> CoachAthleteSessionsResponse:
+    return await CoachService(db).delete_session_entry(coach_profile, athlete_id, entry_id)
 
 
 @router.post(

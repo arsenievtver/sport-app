@@ -60,6 +60,14 @@ class CoachAthleteSessionHistoryEntry(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CoachAthleteActiveCreditBatch(BaseModel):
+    entry_id: UUID
+    credited_date: date
+    credited_count: int
+    completed_count: int
+    remaining_count: int
+
+
 class CoachAthleteWeightMeasurementResponse(BaseModel):
     athlete_id: UUID
     entry_date: date

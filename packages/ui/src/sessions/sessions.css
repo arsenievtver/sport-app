@@ -38,6 +38,22 @@
   line-height: 1;
 }
 
+.sessions-balance-btn {
+  margin: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.sessions-balance-btn:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.sessions-balance-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
 .workouts-completed-badge {
   display: inline-flex;
   align-items: center;

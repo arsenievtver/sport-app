@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   deleteAdminActivityCompendiumItem,
   fetchAdminActivityCompendiumActivities,
@@ -69,6 +69,7 @@ export function ActivityCompendiumTable({
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<ActivityCompendiumSortField>(ACTIVITY_COMPENDIUM_DEFAULT_SORT_BY);
   const [sortDir, setSortDir] = useState<ActivityCompendiumSortDir>(ACTIVITY_COMPENDIUM_DEFAULT_SORT_DIR);
+  const loadGenerationRef = useRef(0);
 
   const totalPages = Math.max(1, Math.ceil(total / ACTIVITY_COMPENDIUM_PAGE_SIZE));
 
@@ -98,6 +99,7 @@ export function ActivityCompendiumTable({
   );
 
   const loadActivities = useCallback(async () => {
+    const generation = ++loadGenerationRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -110,15 +112,19 @@ export function ActivityCompendiumTable({
         sortBy,
         sortDir,
       });
+      if (generation !== loadGenerationRef.current) return;
       setItems(data.items);
       setTotal(data.total);
       if (data.page !== page) {
         setPage(data.page);
       }
     } catch (err) {
+      if (generation !== loadGenerationRef.current) return;
       setError(err instanceof Error ? err.message : "Не удалось загрузить справочник");
     } finally {
-      setLoading(false);
+      if (generation === loadGenerationRef.current) {
+        setLoading(false);
+      }
     }
   }, [page, query, majorHeading, appFilter, sortBy, sortDir]);
 
@@ -182,7 +188,8 @@ export function ActivityCompendiumTable({
     );
 
     try {
-      await updateAdminActivityCompendiumItem(item.id, { is_active: nextActive });
+      const updated = await updateAdminActivityCompendiumItem(item.id, { is_active: nextActive });
+      setItems((current) => current.map((row) => (row.id === updated.id ? updated : row)));
       onDataChanged?.();
       if (appFilter === "active" && !nextActive) {
         await loadActivities();

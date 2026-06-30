@@ -1,6 +1,7 @@
 import type {
   ActivityTypesList,
   AthleteWeightDynamics,
+  CoachAthleteActiveCreditBatch,
   CoachAthleteSessionHistoryEntry,
   CoachAthleteSessionsResponse,
   CoachAthleteSummary,
@@ -85,4 +86,22 @@ export async function fetchCoachAthleteSessionHistory(
   });
   const res = await authenticatedFetchOk(`/coach/athletes/${athleteId}/sessions/history?${params}`);
   return res.json() as Promise<CoachAthleteSessionHistoryEntry[]>;
+}
+
+export async function fetchCoachAthleteActiveCreditBatches(
+  athleteId: string,
+): Promise<CoachAthleteActiveCreditBatch[]> {
+  const res = await authenticatedFetchOk(`/coach/athletes/${athleteId}/sessions/active-batches`);
+  return res.json() as Promise<CoachAthleteActiveCreditBatch[]>;
+}
+
+export async function deleteCoachAthleteSessionEntry(payload: {
+  athlete_id: string;
+  entry_id: string;
+}): Promise<CoachAthleteSessionsResponse> {
+  const res = await authenticatedFetchOk(
+    `/coach/athletes/${payload.athlete_id}/sessions/entries/${payload.entry_id}`,
+    { method: "DELETE" },
+  );
+  return res.json() as Promise<CoachAthleteSessionsResponse>;
 }

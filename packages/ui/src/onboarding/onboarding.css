@@ -265,6 +265,15 @@
   gap: var(--space-4);
 }
 
+.coach-athletes__notice {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-success) 14%, transparent);
+  color: var(--color-success);
+  font-size: var(--text-sm);
+}
+
 .coach-athlete-card {
   padding: var(--space-4);
   border: 1px solid var(--color-border);
@@ -313,6 +322,34 @@
   justify-content: space-between;
   gap: var(--space-4);
   margin-bottom: var(--space-2);
+}
+
+.coach-athlete-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.coach-athlete-card__profile-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.coach-athlete-card__profile-link .coach-athlete-card__completed {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
 }
 
 .coach-athlete-card__identity {
@@ -408,9 +445,52 @@
   margin-top: var(--space-3);
 }
 
-.coach-athlete-card__goto {
-  width: 100%;
-  margin-top: var(--space-4) !important;
+.coach-athletes-sessions-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.coach-athletes-sessions-sheet {
+  max-width: 420px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.coach-athletes-sessions-sheet .schedule-sheet__body,
+.coach-athletes-sessions-sheet .schedule-sheet__header {
+  padding-inline: var(--space-4);
+  background: var(--color-surface);
+}
+
+.coach-athletes-sessions-sheet__balance {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.coach-athletes-sessions-sheet__picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+.coach-athletes-sessions-sheet__picker-label {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.coach-athletes-sessions-sheet__hint {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+.coach-athletes-sessions-sheet__error {
+  margin: var(--space-3) 0 0;
 }
 
 .coach-athlete-card__completed {
@@ -501,6 +581,77 @@
   text-transform: capitalize;
 }
 
+.coach-athlete-history__batches {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-surface-muted) 72%, transparent);
+}
+
+.coach-athlete-history__batches-heading {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.coach-athlete-history__batches-title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+
+.coach-athlete-history__batches-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+.coach-athlete-history__batches-table {
+  min-width: 0;
+}
+
+.coach-athlete-history__table--batches {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.coach-athlete-history__table--batches th,
+.coach-athlete-history__table--batches td {
+  padding: var(--space-2) var(--space-1);
+}
+
+.coach-athlete-history__table--batches th {
+  font-size: var(--text-xs);
+  white-space: normal;
+  line-height: 1.2;
+}
+
+.coach-athlete-history__table--batches th:nth-child(1),
+.coach-athlete-history__table--batches td:nth-child(1) {
+  width: 34%;
+  text-align: left;
+}
+
+.coach-athlete-history__table--batches th:nth-child(2),
+.coach-athlete-history__table--batches th:nth-child(3),
+.coach-athlete-history__table--batches th:nth-child(4),
+.coach-athlete-history__table--batches td:nth-child(2),
+.coach-athlete-history__table--batches td:nth-child(3),
+.coach-athlete-history__table--batches td:nth-child(4) {
+  width: 22%;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.coach-athlete-history__batch-date {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.coach-athlete-history__remaining {
+  font-weight: var(--font-semibold);
+}
+
 .coach-athlete-history__hint {
   margin: 0;
   font-size: var(--text-sm);
@@ -554,6 +705,39 @@
 .coach-athlete-history__debit {
   color: var(--color-warning, #fbbf24);
   font-weight: var(--font-semibold);
+}
+
+.coach-athlete-history__actions-col,
+.coach-athlete-history__actions {
+  width: 2.75rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.coach-athlete-history__delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target, 44px);
+  height: var(--touch-target, 44px);
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-danger);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.coach-athlete-history__delete-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.coach-athlete-history__delete-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .coach-athletes__header {

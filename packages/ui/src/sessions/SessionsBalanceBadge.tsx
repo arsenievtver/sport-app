@@ -22,13 +22,30 @@ export function SessionsBalanceBadge({ balance }: SessionsBalanceBadgeProps) {
 
 interface SessionsBalanceCircleProps {
   balance: number;
+  onClick?: () => void;
 }
 
-export function SessionsBalanceCircle({ balance }: SessionsBalanceCircleProps) {
+export function SessionsBalanceCircle({ balance, onClick }: SessionsBalanceCircleProps) {
   const tone = getSessionsBalanceTone(balance);
+  const className = `sessions-balance sessions-balance--circle sessions-balance--${tone}`;
+  const label = `Баланс: ${balance}`;
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        className={`sessions-balance-btn ${className}`}
+        aria-label={`${label}. Добавить тренировки`}
+        title="Добавить тренировки на баланс"
+        onClick={onClick}
+      >
+        {balance}
+      </button>
+    );
+  }
 
   return (
-    <span className={`sessions-balance sessions-balance--circle sessions-balance--${tone}`} aria-label={`Баланс: ${balance}`}>
+    <span className={className} aria-label={label}>
       {balance}
     </span>
   );

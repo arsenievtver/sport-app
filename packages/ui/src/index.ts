@@ -59,4 +59,5 @@ export { WeightChart } from "./weight/WeightChart";
 export type { WeightChartProps } from "./weight/WeightChart";
 export { WorkoutWeeklyChart } from "./weight/WorkoutWeeklyChart";
 export type { WorkoutWeeklyChartProps } from "./weight/WorkoutWeeklyChart";
+export { CoachAthleteAddSessionsModal } from "./sessions/CoachAthleteAddSessionsModal";
 export { CoachAthleteWeightModal } from "./weight/CoachAthleteWeightModal";

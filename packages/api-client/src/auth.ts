@@ -1,6 +1,7 @@
 import type { InvitePreview, LoginPayload, RegisterPayload, TokenResponse, UserResponse } from "@sport-app/shared";
 
 import { getApiBaseUrl } from "./config";
+import { fetchWithTimeout } from "./fetch";
 
 const ACCESS_KEY = "sport-app:access-token";
 const REFRESH_KEY = "sport-app:refresh-token";
@@ -85,7 +86,7 @@ async function isSessionUnauthorized(res: Response): Promise<boolean> {
 }
 
 async function postJson<T>(path: string, payload: unknown): Promise<T> {
-  const res = await fetch(`${getApiBaseUrl()}${path}`, {
+  const res = await fetchWithTimeout(`${getApiBaseUrl()}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -140,7 +141,7 @@ export async function authenticatedFetch(path: string, init: RequestInit = {}): 
     if (init.body && !headers.has("Content-Type") && !(init.body instanceof FormData)) {
       headers.set("Content-Type", "application/json");
     }
-    return fetch(`${getApiBaseUrl()}${path}`, { ...init, headers });
+    return fetchWithTimeout(`${getApiBaseUrl()}${path}`, { ...init, headers });
   };
 
   let res = await doFetch(accessToken);
