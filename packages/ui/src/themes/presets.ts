@@ -28,7 +28,7 @@ export const DEFAULT_THEME_ID: ThemeId = "neon-pulse";
 export const THEME_BG: Record<ThemeId, string> = {
   "neon-pulse": "#050508",
   "neon-crimson": "#080506",
-  "soviet-sport": "#1a1410",
+  "soviet-sport": "#1e1814",
   "midnight-vitality": "#0c0f14",
   "electric-pulse": "#0a0e17",
   "forest-recovery": "#0a100e",
@@ -60,9 +60,9 @@ export const themePresets: ThemePreset[] = [
     name: "Soviet Sport",
     tagline: "Красный + беж · плакатный constructivism",
     vibe: "Состаренная бумага, лучи, плакатная типографика. Советский спорт без неона.",
-    primary: "#c41e3a",
-    accent: "#e8dcc8",
-    tertiary: "#5a7d8c",
+    primary: "#d45228",
+    accent: "#e8d8b4",
+    tertiary: "#4a6d82",
     isNew: true,
   },
   {

@@ -15,7 +15,7 @@
   --radius-xl: 6px;
   --tracking-normal: 0.04em;
 
-  --soviet-field-paper-bg: color-mix(in srgb, var(--soviet-paper-light) 90%, var(--soviet-paper-dark));
+  --soviet-field-paper-bg: color-mix(in srgb, var(--soviet-paper) 72%, var(--soviet-paper-dark));
   --soviet-field-paper-text: var(--soviet-paper-ink);
   --soviet-field-paper-placeholder: var(--soviet-paper-muted);
   --soviet-field-paper-border: color-mix(in srgb, var(--soviet-paper-ink) 28%, transparent);
@@ -140,14 +140,14 @@
 }
 
 [data-theme="soviet-sport"] .bottom-nav__action {
-  background: linear-gradient(145deg, #d42027 0%, #9a1520 100%);
+  background: linear-gradient(180deg, #e86a38 0%, #d45228 55%, #b8431c 100%);
   color: var(--soviet-paper-light);
   border: 2px solid rgba(0, 0, 0, 0.45);
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
 }
 
 [data-theme="soviet-sport"] .bottom-nav__action--active {
-  background: linear-gradient(145deg, #e8354f 0%, #c41e3a 100%);
+  background: linear-gradient(145deg, #f07840 0%, #d45228 100%);
   color: var(--soviet-paper-light);
 }
 
@@ -189,13 +189,12 @@
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   color: var(--soviet-paper-ink);
-  background:
-    linear-gradient(160deg, var(--soviet-paper-light) 0%, var(--soviet-paper) 42%, var(--soviet-paper-dark) 100%);
-  border: 2px solid color-mix(in srgb, var(--soviet-paper-ink) 28%, transparent);
+  background: var(--soviet-paper-bg);
+  border: 2px solid color-mix(in srgb, var(--soviet-paper-ink) 32%, transparent);
   box-shadow:
     3px 3px 0 rgba(0, 0, 0, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -3px 12px rgba(0, 0, 0, 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -4px 16px rgba(72, 52, 32, 0.12);
   border-radius: var(--radius-md);
 }
 
@@ -203,16 +202,25 @@
 [data-theme="soviet-sport"] .glass--panel:not(.app-shell__header-bar):not(.bottom-nav__bar):not(.bottom-nav__action-bar):not(.athlete-quick-actions__tile)::before,
 [data-theme="soviet-sport"] .card::before,
 [data-theme="soviet-sport"] .auth-card::before {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.5'/%3E%3C/svg%3E");
-  background-size: 140px 140px;
-  opacity: 0.22;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.62'/%3E%3C/svg%3E");
+  background-size: 120px 120px;
+  opacity: 0.34;
   mix-blend-mode: multiply;
 }
 
-[data-theme="soviet-sport"] .glass:not(.app-shell__header-bar):not(.bottom-nav__bar):not(.bottom-nav__action-bar):not(.athlete-quick-actions__tile)::after,
+[data-theme="soviet-sport"] .glass:not(.app-shell__header-bar):not(.bottom-nav__bar):not(.bottom-nav__action-bar):not(.athlete-quick-actions__tile):not(.athlete-home-last-session)::after,
 [data-theme="soviet-sport"] .glass--panel:not(.app-shell__header-bar):not(.bottom-nav__bar):not(.bottom-nav__action-bar):not(.athlete-quick-actions__tile):not(.athlete-home-last-session)::after,
-[data-theme="soviet-sport"] .card::after {
-  display: none;
+[data-theme="soviet-sport"] .card:not(.athlete-home-last-session)::after,
+[data-theme="soviet-sport"] .auth-card::after {
+  display: block;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: auto;
+  border-radius: inherit;
+  opacity: 1;
+  mix-blend-mode: multiply;
+  background: var(--soviet-paper-stains);
 }
 
 [data-theme="soviet-sport"] .glass:not(.app-shell__header-bar):not(.bottom-nav__bar):not(.bottom-nav__action-bar):not(.athlete-quick-actions__tile) .text-muted,
@@ -240,20 +248,34 @@
 
 [data-theme="soviet-sport"] .athlete-quick-actions__tile:nth-child(1) {
   color: var(--soviet-paper-light);
-  background: linear-gradient(145deg, #d42027 0%, #8b1428 55%, #6e1020 100%);
+  background: linear-gradient(180deg, #e86a38 0%, #d45228 55%, #b8431c 100%);
   border-color: rgba(0, 0, 0, 0.4);
 }
 
 [data-theme="soviet-sport"] .athlete-quick-actions__tile:nth-child(2) {
   color: var(--soviet-paper-light);
-  background: linear-gradient(145deg, #5a7d8c 0%, #3d5a68 55%, #2e4652 100%);
+  background: linear-gradient(180deg, #5a7d8c 0%, #4a6d82 55%, #3d5a68 100%);
   border-color: rgba(0, 0, 0, 0.38);
 }
 
 [data-theme="soviet-sport"] .athlete-quick-actions__tile:nth-child(3) {
   color: var(--soviet-paper-ink);
-  background: linear-gradient(145deg, #ece0cc 0%, #ddd0b8 45%, #c4b49a 100%);
-  border-color: rgba(42, 34, 24, 0.35);
+  background:
+    radial-gradient(ellipse 70% 45% at 18% 92%, rgba(100, 72, 40, 0.14) 0%, transparent 55%),
+    linear-gradient(180deg, var(--soviet-paper-light) 0%, var(--soviet-paper) 45%, var(--soviet-paper-dark) 100%);
+  border-color: rgba(48, 36, 24, 0.38);
+}
+
+[data-theme="soviet-sport"] .athlete-quick-actions__tile:nth-child(3)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.62'/%3E%3C/svg%3E");
+  background-size: 120px 120px;
+  opacity: 0.3;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  border-radius: inherit;
 }
 
 [data-theme="soviet-sport"] .athlete-quick-actions__tile:nth-child(1) .athlete-quick-actions__icon,
@@ -303,7 +325,8 @@
 /* ── Week progress ring ──────────────────────────────────────── */
 
 [data-theme="soviet-sport"] .progress-ring__track {
-  stroke: color-mix(in srgb, var(--color-text-muted) 35%, transparent);
+  stroke: var(--soviet-ring-track);
+  opacity: 0.85;
 }
 
 [data-theme="soviet-sport"] .progress-ring__fill,
@@ -354,23 +377,28 @@
   z-index: 1;
 }
 
-/* Constructivist rays at bottom (placeholder until custom illustrations) */
+/* Constructivist rays + paper stains — full card, rays concentrated at bottom */
 [data-theme="soviet-sport"] .athlete-home-last-session.glass--panel::after {
   display: block;
   content: "";
   position: absolute;
-  inset: auto 0 0;
-  height: 56px;
+  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: auto;
   z-index: 0;
-  opacity: 0.18;
+  border-radius: inherit;
+  opacity: 1;
   mix-blend-mode: multiply;
+  pointer-events: none;
   background:
     repeating-conic-gradient(
       from -8deg at 50% 120%,
-      var(--color-accent) 0deg 10deg,
+      color-mix(in srgb, var(--color-accent) 22%, transparent) 0deg 10deg,
       transparent 10deg 20deg
-    );
-  pointer-events: none;
+    ),
+    var(--soviet-paper-stains);
 }
 
 [data-theme="soviet-sport"] .athlete-home-last-session__activity {
@@ -386,10 +414,10 @@
   background:
     repeating-conic-gradient(
       from -4deg at 50% -8%,
-      rgba(196, 30, 58, 0.2) 0deg 7deg,
+      rgba(212, 82, 40, 0.28) 0deg 7deg,
       transparent 7deg 14deg
     ),
-    radial-gradient(ellipse 130% 55% at 50% -12%, rgba(196, 30, 58, 0.25) 0%, transparent 62%);
+    radial-gradient(ellipse 130% 55% at 50% -12%, rgba(212, 82, 40, 0.32) 0%, transparent 62%);
   pointer-events: none;
 }
 
@@ -401,22 +429,10 @@
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   color: var(--soviet-paper-ink);
-  background:
-    linear-gradient(160deg, var(--soviet-paper-light) 0%, var(--soviet-paper) 42%, var(--soviet-paper-dark) 100%);
-  border: 2px solid color-mix(in srgb, var(--soviet-paper-ink) 28%, transparent);
+  background: var(--soviet-paper-bg);
+  border: 2px solid color-mix(in srgb, var(--soviet-paper-ink) 32%, transparent);
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.38);
   border-radius: var(--radius-md);
-}
-
-[data-theme="soviet-sport"] .auth-card::before {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.5'/%3E%3C/svg%3E");
-  background-size: 140px 140px;
-  opacity: 0.2;
-  mix-blend-mode: multiply;
-}
-
-[data-theme="soviet-sport"] .auth-card::after {
-  display: none;
 }
 
 [data-theme="soviet-sport"] .auth-card__title {
@@ -526,8 +542,14 @@
 }
 
 [data-theme="soviet-sport"] .sessions-balance,
+[data-theme="soviet-sport"] .sessions-balance--low,
+[data-theme="soviet-sport"] .sessions-balance--mid,
+[data-theme="soviet-sport"] .sessions-balance--high,
 [data-theme="soviet-sport"] .sessions-balance--circle {
   border-radius: var(--radius-sm);
+  color: var(--soviet-paper-light);
+  background: var(--color-primary);
+  border: 2px solid rgba(0, 0, 0, 0.35);
 }
 
 /* ── Forms: paper fields (светлая «бумага», тёмный текст) ─────── */
@@ -585,8 +607,7 @@
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   color: var(--soviet-field-paper-text);
-  background:
-    linear-gradient(160deg, var(--soviet-paper-light) 0%, var(--soviet-paper) 42%, var(--soviet-paper-dark) 100%);
+  background: var(--soviet-paper-bg);
   border: 2px solid var(--soviet-field-paper-border);
   border-radius: var(--radius-sm);
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.32);
@@ -616,8 +637,7 @@
 [data-theme="soviet-sport"] .meal-dish-search__results {
   backdrop-filter: none;
   color: var(--soviet-field-paper-text);
-  background:
-    linear-gradient(160deg, var(--soviet-paper-light) 0%, var(--soviet-paper) 42%, var(--soviet-paper-dark) 100%);
+  background: var(--soviet-paper-bg);
   border: 2px solid var(--soviet-field-paper-border);
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.32);
 }
