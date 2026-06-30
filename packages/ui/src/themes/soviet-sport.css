@@ -314,29 +314,35 @@
   border-bottom-color: var(--color-primary);
 }
 
-[data-theme="soviet-sport"] .progress-ring__fill--low,
-[data-theme="soviet-sport"] .progress-ring__fill--mid,
-[data-theme="soviet-sport"] .progress-ring__value--low,
-[data-theme="soviet-sport"] .progress-ring__value--mid {
-  stroke: var(--color-primary);
-  color: var(--color-primary);
-}
-
-/* ── Week progress ring ──────────────────────────────────────── */
+/* ── Week progress ring (constructivist triad: rust · ochre · forest) ─ */
 
 [data-theme="soviet-sport"] .progress-ring__track {
   stroke: var(--soviet-ring-track);
   opacity: 0.85;
 }
 
-[data-theme="soviet-sport"] .progress-ring__fill,
-[data-theme="soviet-sport"] .progress-ring__fill--high {
-  stroke: var(--color-primary);
+[data-theme="soviet-sport"] .progress-ring__fill--low {
+  stroke: var(--soviet-progress-low);
 }
 
-[data-theme="soviet-sport"] .progress-ring__value,
+[data-theme="soviet-sport"] .progress-ring__fill--mid {
+  stroke: var(--soviet-progress-mid);
+}
+
+[data-theme="soviet-sport"] .progress-ring__fill--high {
+  stroke: var(--soviet-progress-high);
+}
+
+[data-theme="soviet-sport"] .progress-ring__value--low {
+  color: var(--soviet-progress-low);
+}
+
+[data-theme="soviet-sport"] .progress-ring__value--mid {
+  color: var(--soviet-progress-mid);
+}
+
 [data-theme="soviet-sport"] .progress-ring__value--high {
-  color: var(--color-primary);
+  color: var(--soviet-progress-high);
 }
 
 [data-theme="soviet-sport"] .progress-ring__sublabel {

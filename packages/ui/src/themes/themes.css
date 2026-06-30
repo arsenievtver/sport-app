@@ -329,6 +329,9 @@
   --soviet-paper-ink: #302418;
   --soviet-paper-muted: #645038;
   --soviet-ring-track: #3d5a68;
+  --soviet-progress-low: #d45228;
+  --soviet-progress-mid: #c9922a;
+  --soviet-progress-high: #4a8a62;
   --soviet-paper-bg:
     radial-gradient(ellipse 78% 48% at 12% 88%, rgba(100, 72, 40, 0.16) 0%, transparent 58%),
     radial-gradient(ellipse 55% 38% at 92% 15%, rgba(82, 58, 34, 0.12) 0%, transparent 52%),
