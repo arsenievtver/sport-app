@@ -62,6 +62,10 @@ input[type="range"]:focus-visible {
   outline: none;
 }
 
+input[type="range"] {
+  touch-action: pan-x;
+}
+
 ::selection {
   background: var(--color-primary-muted);
   color: var(--color-text);

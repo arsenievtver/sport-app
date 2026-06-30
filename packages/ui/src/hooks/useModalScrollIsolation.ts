@@ -1,7 +1,7 @@
 import { useEffect, type RefObject } from "react";
 
 import { useBodyScrollLock } from "./useBodyScrollLock";
-import { canScrollY, findOverlayScrollArea, findScrollableAncestor } from "./scroll-lock-utils";
+import { canScrollY, findOverlayScrollArea, findScrollableAncestor, isTouchInteractiveTarget } from "./scroll-lock-utils";
 
 /** Locks page scroll and keeps touch/wheel inside modal scroll areas only. */
 export function useModalScrollIsolation(
@@ -42,6 +42,10 @@ export function useModalScrollIsolation(
         return;
       }
 
+      if (isTouchInteractiveTarget(target)) {
+        return;
+      }
+
       const scrollable = findScrollableAncestor(target, modal);
       if (!scrollable) {
         event.preventDefault();
@@ -69,6 +73,10 @@ export function useModalScrollIsolation(
         if (!overlayScrollable || !canScrollY(overlayScrollable, event.deltaY)) {
           event.preventDefault();
         }
+        return;
+      }
+
+      if (isTouchInteractiveTarget(target)) {
         return;
       }
 

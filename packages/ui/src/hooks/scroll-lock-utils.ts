@@ -31,3 +31,10 @@ export function findOverlayScrollArea(node: Node | null): HTMLElement | null {
   if (!(root instanceof HTMLElement)) return null;
   return findScrollableAncestor(node, root) ?? root;
 }
+
+const TOUCH_INTERACTIVE_SELECTOR = 'input[type="range"], [data-touch-interactive]';
+
+/** Elements that handle their own touch gestures (sliders, custom controls). */
+export function isTouchInteractiveTarget(node: Node | null): boolean {
+  return node instanceof Element && Boolean(node.closest(TOUCH_INTERACTIVE_SELECTOR));
+}
