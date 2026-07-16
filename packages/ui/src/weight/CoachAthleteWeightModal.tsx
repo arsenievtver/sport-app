@@ -12,6 +12,7 @@ import {
   WEIGHT_KG_MAX,
   WEIGHT_KG_MIN,
 } from "@sport-app/shared";
+import { useVisualViewportBottomInset } from "../hooks/useVisualViewportBottomInset";
 import { WeightChart } from "./WeightChart";
 
 interface CoachAthleteWeightModalProps {
@@ -40,6 +41,7 @@ export function CoachAthleteWeightModal({
   const [error, setError] = useState<string | null>(null);
   const [weightInput, setWeightInput] = useState("");
   const [savedInSession, setSavedInSession] = useState(false);
+  const keyboardInset = useVisualViewportBottomInset(true);
 
   const loadDynamics = useCallback(async (options?: { silent?: boolean }) => {
     if (!options?.silent) {
@@ -115,6 +117,7 @@ export function CoachAthleteWeightModal({
     <div
       className="schedule-sheet-backdrop coach-home-weight-backdrop"
       role="presentation"
+      style={keyboardInset > 0 ? { paddingBottom: keyboardInset } : undefined}
       onClick={handleClose}
     >
       <div
@@ -122,27 +125,32 @@ export function CoachAthleteWeightModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="coach-home-weight-title"
+        style={
+          keyboardInset > 0
+            ? { maxHeight: `min(560px, calc(100dvh - ${keyboardInset + 32}px))` }
+            : undefined
+        }
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="schedule-sheet__body">
-          <div className="schedule-sheet__header">
-            <div className="schedule-sheet__heading">
-              <h2 className="schedule-sheet__title" id="coach-home-weight-title">
-                Измерение веса
-              </h2>
-              <p className="schedule-sheet__subtitle">{athleteName}</p>
-            </div>
-            <button
-              type="button"
-              className="schedule-sheet__close"
-              aria-label="Закрыть"
-              disabled={busy}
-              onClick={handleClose}
-            >
-              ×
-            </button>
+        <div className="schedule-sheet__header">
+          <div className="schedule-sheet__heading">
+            <h2 className="schedule-sheet__title" id="coach-home-weight-title">
+              Измерение веса
+            </h2>
+            <p className="schedule-sheet__subtitle">{athleteName}</p>
           </div>
+          <button
+            type="button"
+            className="schedule-sheet__close"
+            aria-label="Закрыть"
+            disabled={busy}
+            onClick={handleClose}
+          >
+            ×
+          </button>
+        </div>
 
+        <div className="schedule-sheet__body">
           {loading ? (
             <p className="text-muted coach-home-weight-sheet__loading">Загрузка данных о весе…</p>
           ) : (
@@ -177,7 +185,9 @@ export function CoachAthleteWeightModal({
               </p>
             </>
           )}
+        </div>
 
+        <div className="schedule-sheet__actions coach-home-weight-sheet__footer">
           <label className="schedule-sheet__field">
             <span className="schedule-sheet__field-label">Вес, кг</span>
             <input

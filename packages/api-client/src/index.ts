@@ -3,7 +3,13 @@
 import type { ApiHealth } from "@sport-app/shared";
 
 export * from "./auth";
-export { FETCH_TIMEOUT_MS, fetchWithTimeout, humanizeFetchError } from "./fetch";
+export {
+  FETCH_TIMEOUT_MS,
+  TransportError,
+  fetchWithTimeout,
+  humanizeFetchError,
+  isTransportError,
+} from "./fetch";
 export * from "./admin";
 export * from "./athlete";
 export * from "./coach";

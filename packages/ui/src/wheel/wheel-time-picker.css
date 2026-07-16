@@ -1,0 +1,19 @@
+.wheel-time-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+}
+
+.wheel-time-picker__colon {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  line-height: 1;
+  padding-bottom: 2px;
+}
+
+.wheel-time-picker .wheel-number-picker__viewport {
+  width: 4.25rem;
+}

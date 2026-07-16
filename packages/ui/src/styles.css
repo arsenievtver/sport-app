@@ -20,6 +20,7 @@
 @import "./pwa/pwa-install.css";
 @import "./pull-to-refresh/pull-to-refresh.css";
 @import "./wheel/wheel-number-picker.css";
+@import "./wheel/wheel-time-picker.css";
 @import "./select/select-picker.css";
 @import "./weight/weight-chart.css";
 @import "./weight/workout-weekly-chart.css";

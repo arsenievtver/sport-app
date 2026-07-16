@@ -1,7 +1,7 @@
 import type { InvitePreview, LoginPayload, RegisterPayload, TokenResponse, UserResponse } from "@sport-app/shared";
 
 import { getApiBaseUrl } from "./config";
-import { fetchWithTimeout } from "./fetch";
+import { fetchWithTimeout, isTransportError } from "./fetch";
 
 const ACCESS_KEY = "sport-app:access-token";
 const REFRESH_KEY = "sport-app:refresh-token";
@@ -12,10 +12,19 @@ const REFRESH_BUFFER_MS = 60_000;
 let refreshPromise: Promise<TokenResponse> | null = null;
 let onAuthFailure: (() => void) | null = null;
 
+function requestPersistentStorage(): void {
+  try {
+    void navigator.storage?.persist?.();
+  } catch {
+    /* ignore */
+  }
+}
+
 export function saveTokens(tokens: TokenResponse): void {
   localStorage.setItem(ACCESS_KEY, tokens.access_token);
   localStorage.setItem(REFRESH_KEY, tokens.refresh_token);
   localStorage.setItem(EXPIRES_AT_KEY, String(Date.now() + tokens.expires_in * 1000));
+  requestPersistentStorage();
 }
 
 export function clearTokens(): void {
@@ -117,18 +126,19 @@ export async function refreshTokens(): Promise<TokenResponse> {
 
 async function ensureValidAccessToken(): Promise<string> {
   const token = getAccessToken();
-  if (!token) failAuth();
+  const needsRefresh = !token || isAccessTokenExpiringSoon();
 
-  if (isAccessTokenExpiringSoon()) {
-    try {
-      const tokens = await refreshTokens();
-      return tokens.access_token;
-    } catch {
-      failAuth();
-    }
+  if (!needsRefresh) {
+    return token;
   }
 
-  return token;
+  try {
+    const tokens = await refreshTokens();
+    return tokens.access_token;
+  } catch (err) {
+    if (isTransportError(err)) throw err;
+    failAuth();
+  }
 }
 
 /** Authenticated fetch: proactive refresh before expiry, retry once on 401. */
@@ -150,7 +160,8 @@ export async function authenticatedFetch(path: string, init: RequestInit = {}): 
     try {
       const tokens = await refreshTokens();
       res = await doFetch(tokens.access_token);
-    } catch {
+    } catch (err) {
+      if (isTransportError(err)) throw err;
       failAuth();
     }
 

@@ -15,6 +15,15 @@ export type { PendingCoachInviteState } from "./invite/usePendingCoachInvite";
 export type { BottomNavAction, BottomNavItem } from "./BottomNav";
 export { WheelNumberPicker } from "./wheel/WheelNumberPicker";
 export type { WheelNumberPickerProps } from "./wheel/WheelNumberPicker";
+export {
+  WheelTimePicker,
+  displayHhMm,
+  formatHhMm,
+  parseHhMm,
+  snapHhMm,
+  TIME_MINUTE_STEP,
+} from "./wheel/WheelTimePicker";
+export type { WheelTimePickerProps } from "./wheel/WheelTimePicker";
 export { theme } from "./theme";
 export type { Theme } from "./theme";
 export {

@@ -9,6 +9,9 @@ export interface WheelNumberPickerProps {
   unit?: string;
   ariaLabel?: string;
   disabled?: boolean;
+  /** Override displayed labels (e.g. zero-padded hours/minutes). */
+  formatValue?: (value: number) => string;
+  className?: string;
 }
 
 const ITEM_HEIGHT = 28;
@@ -89,6 +92,8 @@ export function WheelNumberPicker({
   unit,
   ariaLabel = "Значение",
   disabled = false,
+  formatValue = formatWheelValue,
+  className = "",
 }: WheelNumberPickerProps) {
   const current = clampValue(value, min, max, step);
   const maxScroll = maxScrollPos(min, max, step);
@@ -105,6 +110,9 @@ export function WheelNumberPicker({
   const lastMoveTime = useRef(0);
   const velocityY = useRef(0);
   const animationFrame = useRef<number | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const wheelStateRef = useRef({ current, min, max, step, disabled, onChange });
+  wheelStateRef.current = { current, min, max, step, disabled, onChange };
 
   const syncScroll = (next: number) => {
     scrollPosRef.current = next;
@@ -124,6 +132,23 @@ export function WheelNumberPicker({
         cancelAnimationFrame(animationFrame.current);
       }
     };
+  }, []);
+
+  // React registers onWheel as passive — preventDefault needs a native non-passive listener.
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const onWheel = (event: WheelEvent) => {
+      const state = wheelStateRef.current;
+      if (state.disabled) return;
+      event.preventDefault();
+      const direction = event.deltaY > 0 ? -1 : 1;
+      state.onChange(clampValue(state.current + direction * state.step, state.min, state.max, state.step));
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
   const stopAnimation = () => {
@@ -243,13 +268,6 @@ export function WheelNumberPicker({
     finishInteraction(false);
   };
 
-  const onWheel = (event: React.WheelEvent<HTMLDivElement>) => {
-    if (disabled) return;
-    event.preventDefault();
-    const direction = event.deltaY > 0 ? -1 : 1;
-    onChange(clampValue(current + direction * step, min, max, step));
-  };
-
   const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (disabled) return;
     if (event.key === "ArrowUp") {
@@ -297,9 +315,14 @@ export function WheelNumberPicker({
   }, [visualScroll, min, max, step]);
 
   return (
-    <div className={`wheel-number-picker${disabled ? " wheel-number-picker--disabled" : ""}`}>
+    <div
+      className={`wheel-number-picker${disabled ? " wheel-number-picker--disabled" : ""}${
+        className ? ` ${className}` : ""
+      }`}
+    >
       {unit ? <span className="wheel-number-picker__unit">{unit}</span> : null}
       <div
+        ref={viewportRef}
         className={`wheel-number-picker__viewport${isDragging ? " wheel-number-picker__viewport--dragging" : ""}`}
         role="spinbutton"
         aria-label={ariaLabel}
@@ -311,7 +334,6 @@ export function WheelNumberPicker({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerCancel}
-        onWheel={onWheel}
         onKeyDown={onKeyDown}
       >
         <div className="wheel-number-picker__fade wheel-number-picker__fade--top" aria-hidden="true" />
@@ -333,7 +355,7 @@ export function WheelNumberPicker({
                 color: item.style.color,
               }}
             >
-              {formatWheelValue(item.value)}
+              {formatValue(item.value)}
             </div>
           ))}
         </div>

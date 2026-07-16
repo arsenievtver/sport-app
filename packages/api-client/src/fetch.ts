@@ -1,5 +1,21 @@
 export const FETCH_TIMEOUT_MS = 30_000;
 
+/** Network / timeout — not an auth rejection; callers must not clear tokens. */
+export class TransportError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TransportError";
+  }
+}
+
+export function isTransportError(err: unknown): boolean {
+  if (err instanceof TransportError) return true;
+  if (err instanceof DOMException && err.name === "AbortError") return true;
+  if (err instanceof Error && err.name === "TransportError") return true;
+  if (err instanceof Error && err.name === "AbortError") return true;
+  return false;
+}
+
 export function humanizeFetchError(err: unknown): string {
   if (err instanceof DOMException && err.name === "AbortError") {
     return "Долго нет ответа. Проверьте интернет и попробуйте ещё раз.";
@@ -41,7 +57,7 @@ export async function fetchWithTimeout(
   try {
     return await fetch(url, { ...init, signal: controller.signal });
   } catch (err) {
-    throw new Error(humanizeFetchError(err));
+    throw new TransportError(humanizeFetchError(err));
   } finally {
     clearTimeout(timeoutId);
   }
