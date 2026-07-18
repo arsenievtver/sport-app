@@ -1,7 +1,7 @@
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -48,7 +48,8 @@ class CoachCustomWorkoutService:
             .options(
                 selectinload(ActivityType.workout_intervals).selectinload(
                     CoachWorkoutInterval.source_activity
-                )
+                ),
+                selectinload(ActivityType.owner_coach),
             )
             .order_by(ActivityType.name_ru.asc())
         )
@@ -146,7 +147,8 @@ class CoachCustomWorkoutService:
             stmt = stmt.options(
                 selectinload(ActivityType.workout_intervals).selectinload(
                     CoachWorkoutInterval.source_activity
-                )
+                ),
+                selectinload(ActivityType.owner_coach),
             )
         result = await self.db.execute(stmt)
         activity = result.scalar_one_or_none()
@@ -238,7 +240,12 @@ class CoachCustomWorkoutService:
             average_met, total_duration, total_load = calculate_weighted_average_met(met_durations)
         else:
             average_met, total_duration, total_load = activity.met_value, 0, 0.0
-        coach = activity.owner_coach
+        # Avoid lazy-load of owner_coach under AsyncSession (MissingGreenlet → 500).
+        coach = (
+            activity.owner_coach
+            if "owner_coach" not in inspect(activity).unloaded
+            else None
+        )
         return CustomWorkoutResponse(
             id=activity.id,
             name=activity.name_ru,
