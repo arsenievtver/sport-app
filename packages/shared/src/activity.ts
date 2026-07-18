@@ -53,12 +53,49 @@ export function isCustomWorkoutActivity(item: ActivityType): boolean {
   return item.owner_coach_id != null || item.major_heading === CUSTOM_WORKOUT_MAJOR_HEADING;
 }
 
+/**
+ * Compendium headings kept in athlete/coach pickers.
+ * Everything else (домашние дела, зимой, транспорт…) is hidden from search/lists.
+ */
+export const PICKER_ALLOWED_MAJOR_HEADINGS = [
+  "Bicycling",
+  "Conditioning Exercise",
+  "Running",
+  "Sports",
+  "Walking",
+  "Water Activities",
+] as const;
+
+const PICKER_ALLOWED_MAJOR_HEADING_SET = new Set<string>(PICKER_ALLOWED_MAJOR_HEADINGS);
+
+export function isPickerAllowedMajorHeading(heading?: string | null): boolean {
+  if (!heading) return false;
+  return PICKER_ALLOWED_MAJOR_HEADING_SET.has(heading.trim());
+}
+
+/** Custom coach workouts stay available; other activities must be on the allowlist. */
+export function isPickerAllowedActivity(item: ActivityType): boolean {
+  if (isCustomWorkoutActivity(item)) return true;
+  return isPickerAllowedMajorHeading(item.major_heading);
+}
+
+export function filterActivityTypesForPicker(items: ActivityType[]): ActivityType[] {
+  return items.filter(isPickerAllowedActivity);
+}
+
 export function groupActivityTypesByMajorHeading(
   items: ActivityType[],
   labels: Record<string, string> = {},
-  options?: { excludeIds?: Iterable<string>; compendiumOnly?: boolean },
+  options?: {
+    excludeIds?: Iterable<string>;
+    compendiumOnly?: boolean;
+    /** When set, only these major headings (+ custom unless compendiumOnly). */
+    allowedHeadings?: Iterable<string>;
+  },
 ): ActivityTypeMajorHeadingGroup[] {
   const excludeIds = new Set(options?.excludeIds ?? []);
+  const allowedHeadings =
+    options?.allowedHeadings != null ? new Set(options.allowedHeadings) : null;
   const groups = new Map<string, ActivityType[]>();
 
   for (const item of items) {
@@ -69,6 +106,13 @@ export function groupActivityTypesByMajorHeading(
       continue;
     }
     const heading = item.major_heading?.trim() ?? "";
+    if (
+      allowedHeadings &&
+      !isCustomWorkoutActivity(item) &&
+      !allowedHeadings.has(heading)
+    ) {
+      continue;
+    }
     const bucket = groups.get(heading) ?? [];
     bucket.push(item);
     groups.set(heading, bucket);
@@ -239,13 +283,16 @@ export function pickSuggestedActivityTypes(
   limit = SUGGESTED_ACTIVITY_TYPES_MAX,
 ): ActivityType[] {
   if (limit <= 0 || items.length === 0) return [];
+  const pool = items.filter(
+    (item) => !isCustomWorkoutActivity(item) && isPickerAllowedMajorHeading(item.major_heading),
+  );
   const picked: ActivityType[] = [];
   const seen = new Set<string>();
 
   for (const term of SUGGESTED_ACTIVITY_TERMS) {
     if (picked.length >= limit) break;
-    const match = items.find((item) => {
-      if (seen.has(item.id) || isCustomWorkoutActivity(item)) return false;
+    const match = pool.find((item) => {
+      if (seen.has(item.id)) return false;
       return activitySearchMatches(buildActivitySearchHaystack(item), term);
     });
     if (match) {

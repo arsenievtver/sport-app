@@ -62,9 +62,10 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  box-sizing: border-box;
   border: 1px solid var(--glass-border, var(--color-border));
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--glass-bg-panel, var(--color-surface)) 96%, transparent);
+  background: color-mix(in srgb, var(--glass-bg-panel, var(--color-surface)) 96%, #0c0f14);
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   box-shadow:
@@ -75,6 +76,29 @@
 .select-picker__panel--floating {
   width: auto;
   max-width: min(420px, calc(100vw - 24px));
+}
+
+.select-picker__panel--sheet {
+  width: auto;
+  max-width: none;
+  border-radius: 18px 18px 14px 14px;
+  box-shadow:
+    0 -8px 32px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.select-picker__sheet-handle {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  padding: 0.55rem 0 0.15rem;
+}
+
+.select-picker__sheet-handle span {
+  width: 2.4rem;
+  height: 0.28rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-secondary, #9aa3b2) 55%, transparent);
 }
 
 .select-picker__search {
@@ -93,7 +117,7 @@
   background: color-mix(in srgb, var(--color-bg, #0c0f14) 35%, var(--color-surface, #151a22));
   color: var(--color-text);
   font: inherit;
-  font-size: var(--text-sm);
+  font-size: 16px; /* Android: avoid focus zoom */
   outline: none;
 }
 
@@ -113,7 +137,7 @@
   flex: 1 1 auto;
   min-height: 0;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior: none;
+  overscroll-behavior: contain;
   touch-action: pan-y;
 }
 
@@ -136,11 +160,15 @@
 }
 
 .select-picker__group-label {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   margin: 0;
-  padding: 0 var(--space-2);
+  padding: 0.35rem var(--space-2);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--glass-bg-panel, var(--color-surface)) 92%, transparent);
 }
 
 .select-picker__group-list {

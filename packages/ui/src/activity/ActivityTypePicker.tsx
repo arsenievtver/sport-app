@@ -2,10 +2,12 @@ import { useCallback, useMemo } from "react";
 import type { ActivityType } from "@sport-app/shared";
 import {
   CUSTOM_WORKOUT_MAJOR_HEADING,
+  PICKER_ALLOWED_MAJOR_HEADINGS,
   RECENT_ACTIVITY_TYPES_LABEL,
   SUGGESTED_ACTIVITY_TYPES_LABEL,
   activitySearchMatches,
   buildActivitySearchHaystack,
+  filterActivityTypesForPicker,
   groupActivityTypesByMajorHeading,
   pickSuggestedActivityTypes,
 } from "@sport-app/shared";
@@ -51,19 +53,21 @@ export function ActivityTypePicker({
   searchable = true,
   onChange,
 }: ActivityTypePickerProps) {
+  const catalog = useMemo(() => filterActivityTypesForPicker(activityTypes), [activityTypes]);
+
   const recentActivityTypes = useMemo(
     () =>
       recentActivityTypeIds
-        .map((activityId) => activityTypes.find((item) => item.id === activityId))
+        .map((activityId) => catalog.find((item) => item.id === activityId))
         .filter((item): item is ActivityType => item != null),
-    [activityTypes, recentActivityTypeIds],
+    [catalog, recentActivityTypeIds],
   );
 
   const suggestedActivityTypes = useMemo(() => {
     // Constructor has no recent/custom pins — seed a short list so the dropdown is usable.
     if (!compendiumOnly && recentActivityTypes.length > 0) return [];
-    return pickSuggestedActivityTypes(activityTypes);
-  }, [activityTypes, compendiumOnly, recentActivityTypes.length]);
+    return pickSuggestedActivityTypes(catalog);
+  }, [catalog, compendiumOnly, recentActivityTypes.length]);
 
   const excludeIds = useMemo(() => {
     const ids = new Set(recentActivityTypes.map((item) => item.id));
@@ -75,11 +79,12 @@ export function ActivityTypePicker({
 
   const groupedActivityTypes = useMemo(
     () =>
-      groupActivityTypesByMajorHeading(activityTypes, headingLabels, {
+      groupActivityTypesByMajorHeading(catalog, headingLabels, {
         excludeIds,
         compendiumOnly,
+        allowedHeadings: PICKER_ALLOWED_MAJOR_HEADINGS,
       }),
-    [activityTypes, headingLabels, excludeIds, compendiumOnly],
+    [catalog, headingLabels, excludeIds, compendiumOnly],
   );
 
   const groups = useMemo(() => {
@@ -124,13 +129,13 @@ export function ActivityTypePicker({
       id={id}
       value={value}
       groups={groups}
-      disabled={disabled || activityTypes.length === 0}
+      disabled={disabled || catalog.length === 0}
       emptyLabel={emptyLabel}
       triggerClassName={triggerClassName}
       searchable={searchable}
-      searchPlaceholder="Поиск: бег, boxing, йога…"
+      searchPlaceholder="Поиск: бег, велосипед, плавание…"
       searchRequireQueryAbove={20}
-      maxVisibleOptions={40}
+      maxVisibleOptions={36}
       matchOption={matchOption}
       onChange={onChange}
     />

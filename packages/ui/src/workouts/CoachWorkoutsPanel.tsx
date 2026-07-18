@@ -10,6 +10,7 @@ import {
   ACTIVITY_DURATION_MIN_MAX,
   ACTIVITY_DURATION_MIN_MIN,
   calculateCustomWorkoutSummary,
+  filterActivityTypesForPicker,
   type ActivityType,
   type CustomWorkout,
 } from "@sport-app/shared";
@@ -85,7 +86,9 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
         fetchCoachActivityTypes(),
       ]);
       setWorkouts(workoutList);
-      setCompendium(activityList.items.filter((item) => item.owner_coach_id == null));
+      setCompendium(
+        filterActivityTypesForPicker(activityList.items.filter((item) => item.owner_coach_id == null)),
+      );
       setHeadingLabels(activityList.major_heading_labels);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось загрузить тренировки");
