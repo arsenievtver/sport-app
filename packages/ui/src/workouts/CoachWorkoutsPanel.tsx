@@ -266,7 +266,7 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
                   </div>
                 </div>
 
-                <label className="coach-workouts__field">
+                <div className="coach-workouts__field">
                   <span className="text-secondary">Активность</span>
                   <ActivityTypePicker
                     activityTypes={compendium}
@@ -276,7 +276,7 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
                     emptyLabel="Выберите из справочника"
                     onChange={(id) => updateInterval(item.key, { source_activity_type_id: id })}
                   />
-                </label>
+                </div>
 
                 <label className="coach-workouts__field">
                   <span className="text-secondary">Подпись этапа (необязательно)</span>

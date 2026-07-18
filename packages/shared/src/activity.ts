@@ -174,13 +174,39 @@ const ACTIVITY_SEARCH_ALIASES: Record<string, string[]> = {
   boxing: ["бокс", "груша"],
 };
 
+/** Terms used to seed a small pinned "часто выбирают" list without loading the full catalog. */
+const SUGGESTED_ACTIVITY_TERMS = [
+  "бег",
+  "ходьба",
+  "велосипед",
+  "плавание",
+  "йога",
+  "бокс",
+  "растяжка",
+  "эллипс",
+  "гребля",
+  "скакалка",
+  "футбол",
+  "силовая",
+] as const;
+
+export const SUGGESTED_ACTIVITY_TYPES_LABEL = "Часто выбирают";
+export const SUGGESTED_ACTIVITY_TYPES_MAX = 12;
+
+/**
+ * Strip noise for typeahead. Avoid `\p{L}` literals — some mobile WebViews fail module parse.
+ * Keep Latin, Cyrillic, digits, and light punctuation used in Compendium codes/names.
+ */
+const NON_SEARCH_CHARS = /[^a-zA-Zа-яА-ЯёЁ0-9\s.+-]+/g;
+
 export function normalizeActivitySearchText(value: string): string {
   return value
     .trim()
     .toLocaleLowerCase("ru-RU")
     .replace(/ё/g, "е")
-    .replace(/[^\p{L}\p{N}\s.+-]/gu, " ")
-    .replace(/\s+/g, " ");
+    .replace(NON_SEARCH_CHARS, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function buildActivitySearchHaystack(item: ActivityType): string {
@@ -205,4 +231,28 @@ export function filterActivityTypesBySearch(items: ActivityType[], query: string
   const trimmed = query.trim();
   if (!trimmed) return items;
   return items.filter((item) => activitySearchMatches(buildActivitySearchHaystack(item), trimmed));
+}
+
+/** One match per suggestion term — keeps the empty-query dropdown light on mobile. */
+export function pickSuggestedActivityTypes(
+  items: ActivityType[],
+  limit = SUGGESTED_ACTIVITY_TYPES_MAX,
+): ActivityType[] {
+  if (limit <= 0 || items.length === 0) return [];
+  const picked: ActivityType[] = [];
+  const seen = new Set<string>();
+
+  for (const term of SUGGESTED_ACTIVITY_TERMS) {
+    if (picked.length >= limit) break;
+    const match = items.find((item) => {
+      if (seen.has(item.id) || isCustomWorkoutActivity(item)) return false;
+      return activitySearchMatches(buildActivitySearchHaystack(item), term);
+    });
+    if (match) {
+      seen.add(match.id);
+      picked.push(match);
+    }
+  }
+
+  return picked;
 }

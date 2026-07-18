@@ -3,9 +3,11 @@ import type { ActivityType } from "@sport-app/shared";
 import {
   CUSTOM_WORKOUT_MAJOR_HEADING,
   RECENT_ACTIVITY_TYPES_LABEL,
+  SUGGESTED_ACTIVITY_TYPES_LABEL,
   activitySearchMatches,
   buildActivitySearchHaystack,
   groupActivityTypesByMajorHeading,
+  pickSuggestedActivityTypes,
 } from "@sport-app/shared";
 import { SelectPicker, type SelectPickerGroup, type SelectPickerOption } from "../select/SelectPicker";
 
@@ -57,18 +59,27 @@ export function ActivityTypePicker({
     [activityTypes, recentActivityTypeIds],
   );
 
-  const recentActivityTypeIdSet = useMemo(
-    () => new Set(recentActivityTypes.map((item) => item.id)),
-    [recentActivityTypes],
-  );
+  const suggestedActivityTypes = useMemo(() => {
+    // Constructor has no recent/custom pins — seed a short list so the dropdown is usable.
+    if (!compendiumOnly && recentActivityTypes.length > 0) return [];
+    return pickSuggestedActivityTypes(activityTypes);
+  }, [activityTypes, compendiumOnly, recentActivityTypes.length]);
+
+  const excludeIds = useMemo(() => {
+    const ids = new Set(recentActivityTypes.map((item) => item.id));
+    for (const item of suggestedActivityTypes) {
+      ids.add(item.id);
+    }
+    return ids;
+  }, [recentActivityTypes, suggestedActivityTypes]);
 
   const groupedActivityTypes = useMemo(
     () =>
       groupActivityTypesByMajorHeading(activityTypes, headingLabels, {
-        excludeIds: recentActivityTypeIdSet,
+        excludeIds,
         compendiumOnly,
       }),
-    [activityTypes, headingLabels, recentActivityTypeIdSet, compendiumOnly],
+    [activityTypes, headingLabels, excludeIds, compendiumOnly],
   );
 
   const groups = useMemo(() => {
@@ -83,6 +94,15 @@ export function ActivityTypePicker({
       });
     }
 
+    if (suggestedActivityTypes.length > 0) {
+      result.push({
+        id: "suggested",
+        label: SUGGESTED_ACTIVITY_TYPES_LABEL,
+        pinned: true,
+        options: suggestedActivityTypes.map(toOption),
+      });
+    }
+
     for (const group of groupedActivityTypes) {
       result.push({
         id: group.heading || "__ungrouped__",
@@ -93,7 +113,7 @@ export function ActivityTypePicker({
     }
 
     return result;
-  }, [recentActivityTypes, groupedActivityTypes, compendiumOnly]);
+  }, [recentActivityTypes, suggestedActivityTypes, groupedActivityTypes, compendiumOnly]);
 
   const matchOption = useCallback((option: SelectPickerOption, query: string) => {
     return activitySearchMatches(`${option.label} ${option.searchText ?? ""}`, query);
@@ -110,6 +130,7 @@ export function ActivityTypePicker({
       searchable={searchable}
       searchPlaceholder="Поиск: бег, boxing, йога…"
       searchRequireQueryAbove={20}
+      maxVisibleOptions={40}
       matchOption={matchOption}
       onChange={onChange}
     />

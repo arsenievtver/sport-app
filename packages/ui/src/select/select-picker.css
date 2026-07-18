@@ -81,6 +81,7 @@
   flex-shrink: 0;
   padding: var(--space-2);
   border-bottom: 1px solid var(--color-border-subtle, var(--color-border));
+  background: color-mix(in srgb, var(--color-surface, #151a22) 88%, transparent);
 }
 
 .select-picker__search-input {
@@ -88,8 +89,8 @@
   min-height: 44px;
   padding: 0.65rem 0.85rem;
   border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: color-mix(in srgb, var(--color-bg, #0c0f14) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary, #6aa1ff) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-bg, #0c0f14) 35%, var(--color-surface, #151a22));
   color: var(--color-text);
   font: inherit;
   font-size: var(--text-sm);

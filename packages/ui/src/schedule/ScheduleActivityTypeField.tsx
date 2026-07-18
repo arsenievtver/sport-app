@@ -17,7 +17,7 @@ export function ScheduleActivityTypeField({
   onChange,
 }: ScheduleActivityTypeFieldProps) {
   return (
-    <label className="schedule-sheet__field">
+    <div className="schedule-sheet__field">
       <span className="schedule-sheet__field-label text-secondary">Вид тренировки</span>
       <ActivityTypePicker
         activityTypes={activityTypes}
@@ -28,6 +28,6 @@ export function ScheduleActivityTypeField({
         triggerClassName="schedule-sheet__select select-picker__trigger"
         onChange={onChange}
       />
-    </label>
+    </div>
   );
 }
