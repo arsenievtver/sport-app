@@ -1,7 +1,7 @@
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, inspect, select
+from sqlalchemy import delete, func, inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -186,10 +186,19 @@ class CoachCustomWorkoutService:
         intervals: list[CustomWorkoutIntervalInput],
         sources: dict[UUID, ActivityType],
     ) -> None:
-        activity.workout_intervals.clear()
+        # Do not touch activity.workout_intervals here: on a freshly flushed
+        # ActivityType the collection is unloaded, and .clear() would lazy-load
+        # under AsyncSession → MissingGreenlet → 500.
+        await self.db.execute(
+            delete(CoachWorkoutInterval).where(
+                CoachWorkoutInterval.activity_type_id == activity.id
+            )
+        )
         await self.db.flush()
+        self.db.expire(activity, ["workout_intervals"])
         for index, item in enumerate(intervals):
-            activity.workout_intervals.append(
+            _ = sources[item.source_activity_type_id]
+            self.db.add(
                 CoachWorkoutInterval(
                     activity_type_id=activity.id,
                     source_activity_type_id=item.source_activity_type_id,
@@ -198,7 +207,6 @@ class CoachCustomWorkoutService:
                     label=item.label,
                 )
             )
-            _ = sources[item.source_activity_type_id]
 
     async def _is_referenced_in_schedule(self, activity_type_id: UUID) -> bool:
         template = await self.db.execute(
