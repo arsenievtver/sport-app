@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
-export type AdminPage = "users" | "meal-catalog" | "activities";
+export type AdminPage = "users" | "meal-catalog" | "activities" | "coach-workouts";
 
 const SIDEBAR_STORAGE_KEY = "sport-admin-sidebar-collapsed";
 
@@ -18,6 +18,7 @@ const NAV_ITEMS: { id: AdminPage; label: string }[] = [
   { id: "users", label: "Пользователи" },
   { id: "meal-catalog", label: "Каталог блюд" },
   { id: "activities", label: "Активности" },
+  { id: "coach-workouts", label: "Тренировки тренеров" },
 ];
 
 function readSidebarCollapsed(): boolean {

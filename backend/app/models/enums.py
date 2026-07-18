@@ -38,6 +38,7 @@ class ActivityCategory(str, enum.Enum):
     team_sport = "team_sport"
     combat = "combat"
     other = "other"
+    custom = "custom"
 
 
 class ProgramStatus(str, enum.Enum):

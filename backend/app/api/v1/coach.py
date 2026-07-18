@@ -33,8 +33,14 @@ from app.schemas.schedule import (
 from app.services.activity_type import ActivityTypeService
 from app.services.auth import user_to_response
 from app.services.coach import CoachService
+from app.services.coach_custom_workout import CoachCustomWorkoutService
 from app.services.media import save_avatar
 from app.services.schedule import ScheduleService
+from app.schemas.custom_workout import (
+    CustomWorkoutCreateRequest,
+    CustomWorkoutResponse,
+    CustomWorkoutUpdateRequest,
+)
 
 router = APIRouter(prefix="/coach")
 
@@ -269,4 +275,44 @@ async def list_activity_types(
     coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ActivityTypesListResponse:
-    return await ActivityTypeService(db).list_all()
+    return await ActivityTypeService(db).list_for_coach(coach_profile)
+
+
+@router.get("/custom-workouts", response_model=list[CustomWorkoutResponse])
+async def list_custom_workouts(
+    coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> list[CustomWorkoutResponse]:
+    return await CoachCustomWorkoutService(db).list_for_coach(coach_profile)
+
+
+@router.post(
+    "/custom-workouts",
+    response_model=CustomWorkoutResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_custom_workout(
+    data: CustomWorkoutCreateRequest,
+    coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> CustomWorkoutResponse:
+    return await CoachCustomWorkoutService(db).create(coach_profile, data)
+
+
+@router.put("/custom-workouts/{workout_id}", response_model=CustomWorkoutResponse)
+async def update_custom_workout(
+    workout_id: UUID,
+    data: CustomWorkoutUpdateRequest,
+    coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> CustomWorkoutResponse:
+    return await CoachCustomWorkoutService(db).update(coach_profile, workout_id, data)
+
+
+@router.delete("/custom-workouts/{workout_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_custom_workout(
+    workout_id: UUID,
+    coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    await CoachCustomWorkoutService(db).delete(coach_profile, workout_id)

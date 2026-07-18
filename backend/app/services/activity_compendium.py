@@ -142,7 +142,7 @@ class ActivityCompendiumService:
         page = max(1, page)
         page_size = min(100, max(1, page_size))
         resolved_sort_by, resolved_sort_dir = _resolve_sort(sort_by, sort_dir)
-        filters = []
+        filters = [ActivityType.owner_coach_id.is_(None)]
 
         if major_heading:
             filters.append(ActivityType.major_heading == major_heading)
@@ -474,7 +474,7 @@ class ActivityCompendiumService:
                         category=self._category_for_heading(item.major_heading),
                         met_value=item.met_value,
                         sort_order=int(item.compendium_code),
-                        is_active=False,
+                        is_active=True,
                     ),
                 )
                 imported += 1
@@ -608,21 +608,34 @@ class ActivityCompendiumService:
         return translated_total
 
     async def _get_by_id(self, activity_id: UUID) -> ActivityType:
-        result = await self.db.execute(select(ActivityType).where(ActivityType.id == activity_id))
+        result = await self.db.execute(
+            select(ActivityType).where(
+                ActivityType.id == activity_id,
+                ActivityType.owner_coach_id.is_(None),
+            )
+        )
         row = result.scalar_one_or_none()
         if row is None:
             raise LookupError("Activity not found")
         return row
 
     async def _count_all(self) -> int:
-        result = await self.db.execute(select(func.count()).select_from(ActivityType))
+        result = await self.db.execute(
+            select(func.count())
+            .select_from(ActivityType)
+            .where(ActivityType.owner_coach_id.is_(None)),
+        )
         return int(result.scalar_one())
 
     async def _count_translated(self) -> int:
         result = await self.db.execute(
             select(func.count())
             .select_from(ActivityType)
-            .where(ActivityType.name_ru != "", ActivityType.name_ru.is_not(None)),
+            .where(
+                ActivityType.owner_coach_id.is_(None),
+                ActivityType.name_ru != "",
+                ActivityType.name_ru.is_not(None),
+            ),
         )
         return int(result.scalar_one())
 
@@ -630,7 +643,10 @@ class ActivityCompendiumService:
         result = await self.db.execute(
             select(func.count())
             .select_from(ActivityType)
-            .where(or_(ActivityType.name_ru == "", ActivityType.name_ru.is_(None))),
+            .where(
+                ActivityType.owner_coach_id.is_(None),
+                or_(ActivityType.name_ru == "", ActivityType.name_ru.is_(None)),
+            ),
         )
         return int(result.scalar_one())
 
@@ -644,7 +660,10 @@ class ActivityCompendiumService:
     async def _list_major_headings(self) -> list[str]:
         from_activity = await self.db.execute(
             select(ActivityType.major_heading)
-            .where(ActivityType.major_heading.is_not(None))
+            .where(
+                ActivityType.major_heading.is_not(None),
+                ActivityType.owner_coach_id.is_(None),
+            )
             .distinct(),
         )
         from_labels = await self.db.execute(select(ActivityMajorHeadingLabel.heading))

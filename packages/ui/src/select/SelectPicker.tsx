@@ -6,12 +6,16 @@ import { useScrollableOverlayLock } from "../hooks/useScrollableOverlayLock";
 export interface SelectPickerOption {
   value: string;
   label: string;
+  /** Extra text used only for searchable filtering (e.g. EN name, aliases). */
+  searchText?: string;
 }
 
 export interface SelectPickerGroup {
   id: string;
   label: string;
   options: SelectPickerOption[];
+  /** Keep visible even when search is empty / other groups are collapsed. */
+  pinned?: boolean;
 }
 
 export interface SelectPickerProps {
@@ -22,12 +26,19 @@ export interface SelectPickerProps {
   disabled?: boolean;
   emptyLabel?: string;
   triggerClassName?: string;
+  /** Show typeahead filter inside the dropdown. */
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  /** When searchable and query empty, hide non-pinned groups if total options exceed this. */
+  searchRequireQueryAbove?: number;
+  matchOption?: (option: SelectPickerOption, query: string) => boolean;
   onChange: (value: string) => void;
 }
 
 const LIST_GAP_PX = 4;
-const LIST_MAX_HEIGHT_PX = 288;
+const LIST_MAX_HEIGHT_PX = 360;
 const LIST_MIN_SPACE_PX = 160;
+const DEFAULT_SEARCH_REQUIRE_ABOVE = 24;
 
 function findSelectedLabel(
   value: string,
@@ -49,9 +60,16 @@ function findSelectedLabel(
   return null;
 }
 
+function defaultMatchOption(option: SelectPickerOption, query: string): boolean {
+  const q = query.trim().toLocaleLowerCase("ru-RU");
+  if (!q) return true;
+  const haystack = `${option.label} ${option.searchText ?? ""}`.toLocaleLowerCase("ru-RU");
+  return q.split(/\s+/).filter(Boolean).every((word) => haystack.includes(word));
+}
+
 function getListStyle(trigger: HTMLButtonElement): CSSProperties {
   const rect = trigger.getBoundingClientRect();
-  const maxHeight = Math.min(LIST_MAX_HEIGHT_PX, window.innerHeight * 0.5);
+  const maxHeight = Math.min(LIST_MAX_HEIGHT_PX, window.innerHeight * 0.55);
   const spaceBelow = window.innerHeight - rect.bottom - LIST_GAP_PX;
   const spaceAbove = rect.top - LIST_GAP_PX;
   const openUp = spaceBelow < Math.min(maxHeight, LIST_MIN_SPACE_PX) && spaceAbove > spaceBelow;
@@ -60,8 +78,8 @@ function getListStyle(trigger: HTMLButtonElement): CSSProperties {
   return {
     position: "fixed",
     left: rect.left,
-    width: rect.width,
-    maxHeight: Math.max(120, Math.min(maxHeight, available)),
+    width: Math.max(rect.width, Math.min(420, window.innerWidth - rect.left - 12)),
+    maxHeight: Math.max(160, Math.min(maxHeight, available)),
     zIndex: 200,
     ...(openUp
       ? { bottom: window.innerHeight - rect.top + LIST_GAP_PX }
@@ -77,13 +95,20 @@ export function SelectPicker({
   disabled = false,
   emptyLabel = "Выберите",
   triggerClassName = "select-picker__trigger",
+  searchable = false,
+  searchPlaceholder = "Поиск…",
+  searchRequireQueryAbove = DEFAULT_SEARCH_REQUIRE_ABOVE,
+  matchOption = defaultMatchOption,
   onChange,
 }: SelectPickerProps) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const [listStyle, setListStyle] = useState<CSSProperties>({});
 
   useScrollableOverlayLock(listRef, open);
@@ -93,7 +118,40 @@ export function SelectPicker({
     [value, groups, options],
   );
 
-  const hasOptions = options.length > 0 || groups.some((group) => group.options.length > 0);
+  const totalOptions =
+    options.length + groups.reduce((sum, group) => sum + group.options.length, 0);
+  const hasOptions = totalOptions > 0;
+  const trimmedQuery = query.trim();
+  const requireQuery = searchable && !trimmedQuery && totalOptions > searchRequireQueryAbove;
+
+  const filteredOptions = useMemo(() => {
+    if (!searchable || !trimmedQuery) {
+      return requireQuery ? [] : options;
+    }
+    return options.filter((option) => matchOption(option, trimmedQuery));
+  }, [searchable, trimmedQuery, options, matchOption, requireQuery]);
+
+  const filteredGroups = useMemo(() => {
+    if (!searchable) return groups;
+
+    if (!trimmedQuery) {
+      if (!requireQuery) return groups;
+      return groups
+        .filter((group) => group.pinned)
+        .map((group) => ({ ...group, options: group.options }))
+        .filter((group) => group.options.length > 0);
+    }
+
+    return groups
+      .map((group) => ({
+        ...group,
+        options: group.options.filter((option) => matchOption(option, trimmedQuery)),
+      }))
+      .filter((group) => group.options.length > 0);
+  }, [searchable, trimmedQuery, groups, matchOption, requireQuery]);
+
+  const hasFiltered =
+    filteredOptions.length > 0 || filteredGroups.some((group) => group.options.length > 0);
 
   const updateListPosition = () => {
     if (!triggerRef.current) return;
@@ -103,7 +161,18 @@ export function SelectPicker({
   useLayoutEffect(() => {
     if (!open) return;
     updateListPosition();
-  }, [open]);
+  }, [open, filteredGroups, filteredOptions, query]);
+
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      return;
+    }
+    if (searchable) {
+      const frame = window.requestAnimationFrame(() => searchRef.current?.focus());
+      return () => window.cancelAnimationFrame(frame);
+    }
+  }, [open, searchable]);
 
   useEffect(() => {
     if (!open) return;
@@ -112,8 +181,7 @@ export function SelectPicker({
       const target = event.target;
       if (!(target instanceof Node)) return;
       if (rootRef.current?.contains(target)) return;
-      const list = document.getElementById(listId);
-      if (list?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
       setOpen(false);
     };
 
@@ -125,8 +193,7 @@ export function SelectPicker({
 
     const handleReposition = () => updateListPosition();
     const handleScroll = (event: Event) => {
-      const list = document.getElementById(listId);
-      if (list && event.target instanceof Node && list.contains(event.target)) {
+      if (panelRef.current && event.target instanceof Node && panelRef.current.contains(event.target)) {
         return;
       }
       setOpen(false);
@@ -145,7 +212,7 @@ export function SelectPicker({
       window.removeEventListener("resize", handleReposition);
       window.removeEventListener("scroll", handleScroll, true);
     };
-  }, [open, listId]);
+  }, [open]);
 
   const handleSelect = (nextValue: string) => {
     onChange(nextValue);
@@ -165,31 +232,70 @@ export function SelectPicker({
           onClick={() => handleSelect(option.value)}
         >
           <span className="select-picker__option-label">{option.label}</span>
-          {selected ? <span className="select-picker__check" aria-hidden="true">✓</span> : null}
+          {selected ? (
+            <span className="select-picker__check" aria-hidden="true">
+              ✓
+            </span>
+          ) : null}
         </button>
       </li>
     );
   };
 
-  const list = open ? (
-    <ul
-      ref={listRef}
+  const panel = open ? (
+    <div
+      ref={panelRef}
       id={listId}
-      className="select-picker__list select-picker__list--floating"
+      className="select-picker__panel select-picker__panel--floating"
       style={listStyle}
-      role="listbox"
-      data-overlay-scroll=""
+      role="presentation"
     >
-      {options.length > 0 ? options.map((option) => renderOption(option)) : null}
-      {groups.map((group) => (
-        <li key={group.id} role="presentation" className="select-picker__group">
-          <p className="select-picker__group-label">{group.label}</p>
-          <ul className="select-picker__group-list" role="presentation">
-            {group.options.map((option) => renderOption(option))}
-          </ul>
-        </li>
-      ))}
-    </ul>
+      {searchable ? (
+        <div className="select-picker__search">
+          <input
+            ref={searchRef}
+            type="search"
+            className="select-picker__search-input"
+            value={query}
+            placeholder={searchPlaceholder}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="search"
+            aria-label={searchPlaceholder}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.stopPropagation();
+                setOpen(false);
+              }
+            }}
+          />
+        </div>
+      ) : null}
+
+      <ul ref={listRef} className="select-picker__list" role="listbox" data-overlay-scroll="">
+        {requireQuery && !hasFiltered ? (
+          <li className="select-picker__hint text-muted" role="presentation">
+            Начните вводить: бег, boxing, йога…
+          </li>
+        ) : null}
+        {!requireQuery && searchable && trimmedQuery && !hasFiltered ? (
+          <li className="select-picker__hint text-muted" role="presentation">
+            Ничего не найдено
+          </li>
+        ) : null}
+        {filteredOptions.map((option) => renderOption(option))}
+        {filteredGroups.map((group) => (
+          <li key={group.id} role="presentation" className="select-picker__group">
+            <p className="select-picker__group-label">{group.label}</p>
+            <ul className="select-picker__group-list" role="presentation">
+              {group.options.map((option) => renderOption(option))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+    </div>
   ) : null;
 
   return (
@@ -209,7 +315,7 @@ export function SelectPicker({
         <span className="select-picker__chevron" aria-hidden="true" />
       </button>
 
-      {list ? createPortal(list, document.body) : null}
+      {panel ? createPortal(panel, document.body) : null}
     </div>
   );
 }

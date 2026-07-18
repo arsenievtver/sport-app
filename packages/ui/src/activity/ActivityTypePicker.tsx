@@ -1,10 +1,13 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { ActivityType } from "@sport-app/shared";
 import {
+  CUSTOM_WORKOUT_MAJOR_HEADING,
   RECENT_ACTIVITY_TYPES_LABEL,
+  activitySearchMatches,
+  buildActivitySearchHaystack,
   groupActivityTypesByMajorHeading,
 } from "@sport-app/shared";
-import { SelectPicker, type SelectPickerGroup } from "../select/SelectPicker";
+import { SelectPicker, type SelectPickerGroup, type SelectPickerOption } from "../select/SelectPicker";
 
 interface ActivityTypePickerProps {
   id?: string;
@@ -15,11 +18,22 @@ interface ActivityTypePickerProps {
   disabled?: boolean;
   emptyLabel?: string;
   triggerClassName?: string;
+  /** Hide coach-owned composite workouts (constructor interval picker). */
+  compendiumOnly?: boolean;
+  searchable?: boolean;
   onChange: (activityTypeId: string) => void;
 }
 
 function formatActivityLabel(item: ActivityType): string {
-  return `${item.name_ru} · MET ${item.met_value}`;
+  return `${item.name_ru || item.name_en} · MET ${item.met_value}`;
+}
+
+function toOption(item: ActivityType): SelectPickerOption {
+  return {
+    value: item.id,
+    label: formatActivityLabel(item),
+    searchText: buildActivitySearchHaystack(item),
+  };
 }
 
 export function ActivityTypePicker({
@@ -31,6 +45,8 @@ export function ActivityTypePicker({
   disabled = false,
   emptyLabel = "Выберите вид",
   triggerClassName = "select-picker__trigger",
+  compendiumOnly = false,
+  searchable = true,
   onChange,
 }: ActivityTypePickerProps) {
   const recentActivityTypes = useMemo(
@@ -50,21 +66,20 @@ export function ActivityTypePicker({
     () =>
       groupActivityTypesByMajorHeading(activityTypes, headingLabels, {
         excludeIds: recentActivityTypeIdSet,
+        compendiumOnly,
       }),
-    [activityTypes, headingLabels, recentActivityTypeIdSet],
+    [activityTypes, headingLabels, recentActivityTypeIdSet, compendiumOnly],
   );
 
   const groups = useMemo(() => {
     const result: SelectPickerGroup[] = [];
 
-    if (recentActivityTypes.length > 0) {
+    if (!compendiumOnly && recentActivityTypes.length > 0) {
       result.push({
         id: "recent",
         label: RECENT_ACTIVITY_TYPES_LABEL,
-        options: recentActivityTypes.map((item) => ({
-          value: item.id,
-          label: formatActivityLabel(item),
-        })),
+        pinned: true,
+        options: recentActivityTypes.map(toOption),
       });
     }
 
@@ -72,15 +87,17 @@ export function ActivityTypePicker({
       result.push({
         id: group.heading || "__ungrouped__",
         label: group.label,
-        options: group.items.map((item) => ({
-          value: item.id,
-          label: formatActivityLabel(item),
-        })),
+        pinned: group.heading === CUSTOM_WORKOUT_MAJOR_HEADING,
+        options: group.items.map(toOption),
       });
     }
 
     return result;
-  }, [recentActivityTypes, groupedActivityTypes]);
+  }, [recentActivityTypes, groupedActivityTypes, compendiumOnly]);
+
+  const matchOption = useCallback((option: SelectPickerOption, query: string) => {
+    return activitySearchMatches(`${option.label} ${option.searchText ?? ""}`, query);
+  }, []);
 
   return (
     <SelectPicker
@@ -90,6 +107,10 @@ export function ActivityTypePicker({
       disabled={disabled || activityTypes.length === 0}
       emptyLabel={emptyLabel}
       triggerClassName={triggerClassName}
+      searchable={searchable}
+      searchPlaceholder="Поиск: бег, boxing, йога…"
+      searchRequireQueryAbove={20}
+      matchOption={matchOption}
       onChange={onChange}
     />
   );

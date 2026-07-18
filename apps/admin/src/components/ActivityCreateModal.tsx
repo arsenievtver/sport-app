@@ -25,7 +25,7 @@ const EMPTY_FORM: FormState = {
   name_en: "",
   name_ru: "",
   met_value: "",
-  is_active: false,
+  is_active: true,
 };
 
 export function ActivityCreateModal({

@@ -2,20 +2,37 @@ import { useRef, useState } from "react";
 import { formatPhoneDisplay, resolveMediaUrl, uploadCoachAvatar } from "@sport-app/api-client";
 import type { UserResponse } from "@sport-app/shared";
 
+import { CoachWorkoutsPanel } from "../workouts/CoachWorkoutsPanel";
 import { AvatarCropModal } from "./AvatarCropModal";
 
 interface CoachSettingsProps {
   user: UserResponse;
   onUserUpdated: (user: UserResponse) => void;
   onLogout: () => void;
+  onViewChange?: (view: "settings" | "workouts") => void;
 }
 
-export function CoachSettings({ user, onUserUpdated, onLogout }: CoachSettingsProps) {
+export function CoachSettings({ user, onUserUpdated, onLogout, onViewChange }: CoachSettingsProps) {
   const profile = user.coach_profile;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [view, setView] = useState<"settings" | "workouts">("settings");
+
+  const openWorkouts = () => {
+    setView("workouts");
+    onViewChange?.("workouts");
+  };
+
+  const backToSettings = () => {
+    setView("settings");
+    onViewChange?.("settings");
+  };
+
+  if (view === "workouts") {
+    return <CoachWorkoutsPanel onBack={backToSettings} />;
+  }
 
   const displayName = profile?.display_name ?? "Тренер";
   const avatarUrl = resolveMediaUrl(profile?.avatar_url);
@@ -91,6 +108,10 @@ export function CoachSettings({ user, onUserUpdated, onLogout }: CoachSettingsPr
           ) : null}
         </div>
       </section>
+
+      <button type="button" className="settings-link" onClick={openWorkouts}>
+        Мои тренировки
+      </button>
 
       <button type="button" className="settings-link settings-link--danger" onClick={onLogout}>
         Выйти

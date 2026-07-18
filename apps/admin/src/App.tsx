@@ -4,6 +4,7 @@ import { AuthScreen, useAuthSession } from "@sport-app/ui";
 
 import { ActivityCompendiumPage } from "./components/ActivityCompendiumPage";
 import { AdminLayout, type AdminPage } from "./components/AdminLayout";
+import { CoachCustomWorkoutsPage } from "./components/CoachCustomWorkoutsPage";
 import { MealCatalogPage } from "./components/MealCatalogPage";
 import { UsersPage } from "./components/UsersPage";
 import "./admin.css";
@@ -48,10 +49,15 @@ export default function App() {
             title: "Справочник активностей",
             subtitle: "2024 Adult Compendium — MET, группы и перевод названий",
           }
-        : {
-            title: "Пользователи",
-            subtitle: "Тренеры, атлеты и связи между ними",
-          };
+        : page === "coach-workouts"
+          ? {
+              title: "Тренировки тренеров",
+              subtitle: "Составные тренировки из кабинета тренера — только просмотр",
+            }
+          : {
+              title: "Пользователи",
+              subtitle: "Тренеры, атлеты и связи между ними",
+            };
 
   return (
     <AdminLayout
@@ -65,6 +71,7 @@ export default function App() {
       {page === "users" && <UsersPage />}
       {page === "meal-catalog" && <MealCatalogPage />}
       {page === "activities" && <ActivityCompendiumPage />}
+      {page === "coach-workouts" && <CoachCustomWorkoutsPage />}
     </AdminLayout>
   );
 }

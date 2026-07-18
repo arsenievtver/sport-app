@@ -63,7 +63,7 @@ class AdminActivityCompendiumItemCreate(BaseModel):
     name_en: str
     name_ru: str | None = None
     met_value: float
-    is_active: bool = False
+    is_active: bool = True
 
 
 class AdminActivityCompendiumGroupRename(BaseModel):

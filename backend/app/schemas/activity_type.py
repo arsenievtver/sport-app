@@ -14,6 +14,7 @@ class ActivityTypeResponse(BaseModel):
     category: ActivityCategory
     met_value: float
     sort_order: int
+    owner_coach_id: UUID | None = None
 
     model_config = {"from_attributes": True}
 

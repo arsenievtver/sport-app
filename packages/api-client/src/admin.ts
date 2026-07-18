@@ -108,6 +108,11 @@ export async function deleteAdminMealCatalogDish(logmealId: number): Promise<voi
   await authenticatedFetchOk(`/admin/meal-catalog/dishes/${logmealId}`, { method: "DELETE" });
 }
 
+export async function fetchAdminCustomWorkouts(): Promise<import("@sport-app/shared").CustomWorkout[]> {
+  const res = await authenticatedFetchOk("/admin/custom-workouts");
+  return res.json() as Promise<import("@sport-app/shared").CustomWorkout[]>;
+}
+
 export async function fetchAdminActivityCompendiumStatus(): Promise<
   import("@sport-app/shared").AdminActivityCompendiumStatus
 > {

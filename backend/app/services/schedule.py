@@ -5,7 +5,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
-from sqlalchemy import delete, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -171,7 +171,7 @@ class ScheduleService:
 
         if data.athlete_id is not None:
             await self._ensure_athlete_belongs_to_coach(coach_profile, data.athlete_id)
-            await self._ensure_activity_type(data.activity_type_id)
+            await self._ensure_activity_type(data.activity_type_id, coach_profile)
 
         if data.occurrence_date is None:
             if data.athlete_id is not None:
@@ -465,18 +465,30 @@ class ScheduleService:
         if result.scalar_one_or_none() is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Атлет не найден")
 
-    async def _ensure_activity_type(self, activity_type_id: UUID | None) -> None:
+    async def _ensure_activity_type(
+        self,
+        activity_type_id: UUID | None,
+        coach_profile: CoachProfile | None = None,
+    ) -> None:
         if activity_type_id is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Укажите вид тренировки",
             )
-        result = await self.db.execute(
-            select(ActivityType.id).where(
-                ActivityType.id == activity_type_id,
-                ActivityType.is_active.is_(True),
+        conditions = [
+            ActivityType.id == activity_type_id,
+            ActivityType.is_active.is_(True),
+        ]
+        if coach_profile is not None:
+            conditions.append(
+                or_(
+                    ActivityType.owner_coach_id.is_(None),
+                    ActivityType.owner_coach_id == coach_profile.id,
+                )
             )
-        )
+        else:
+            conditions.append(ActivityType.owner_coach_id.is_(None))
+        result = await self.db.execute(select(ActivityType.id).where(*conditions))
         if result.scalar_one_or_none() is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -867,7 +879,7 @@ class ScheduleService:
             )
 
         link = await self._get_coach_athlete_link(coach_profile, data.athlete_id)
-        await self._ensure_activity_type(data.activity_type_id)
+        await self._ensure_activity_type(data.activity_type_id, coach_profile)
         activity_result = await self.db.execute(
             select(ActivityType).where(ActivityType.id == data.activity_type_id)
         )

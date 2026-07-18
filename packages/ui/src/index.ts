@@ -8,6 +8,7 @@ export {
   BottomNavIconSchedule,
   BottomNavIconSettings,
   BottomNavIconStats,
+  BottomNavIconWorkouts,
 } from "./BottomNav";
 export { CoachInvitePanel } from "./invite/CoachInvitePanel";
 export { usePendingCoachInvite } from "./invite/usePendingCoachInvite";
@@ -63,6 +64,7 @@ export { AthleteStubPanel } from "./plan/AthleteStubPanel";
 export { AthleteWorkoutsPanel } from "./plan/AthleteWorkoutsPanel";
 export { CoachSchedulePanel } from "./schedule/CoachSchedulePanel";
 export { CoachScheduleSettingsForm } from "./schedule/CoachScheduleSettingsForm";
+export { CoachWorkoutsPanel } from "./workouts/CoachWorkoutsPanel";
 export { ActivityTypePicker } from "./activity/ActivityTypePicker";
 export { SelectPicker } from "./select/SelectPicker";
 export type { SelectPickerGroup, SelectPickerOption, SelectPickerProps } from "./select/SelectPicker";

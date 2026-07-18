@@ -25,6 +25,7 @@ export default function App() {
   const { user, setUser, checking, logout } = useAuthSession("coach");
   const [tab, setTab] = useState<CoachTab>("home");
   const [athleteProfileId, setAthleteProfileId] = useState<string | null>(null);
+  const [settingsView, setSettingsView] = useState<"settings" | "workouts">("settings");
 
   let content: ReactNode;
 
@@ -87,14 +88,28 @@ export default function App() {
             ? "Атлеты"
             : tab === "invite"
               ? "Пригласить атлета"
-              : "Настройки";
+              : settingsView === "workouts"
+                ? "Мои тренировки"
+                : "Настройки";
 
     content = (
       <AppShell
         title={title}
         contentKey={tab}
         className={tab === "schedule" ? "app-shell--schedule-landscape" : undefined}
-        bottomNav={<BottomNav items={navItems} activeId={tab} onChange={(id) => setTab(id as CoachTab)} />}
+        bottomNav={
+          <BottomNav
+            items={navItems}
+            activeId={tab}
+            onChange={(id) => {
+              const next = id as CoachTab;
+              setTab(next);
+              if (next !== "settings") {
+                setSettingsView("settings");
+              }
+            }}
+          />
+        }
       >
         {tab === "home" ? (
           <CoachHomePanel
@@ -121,7 +136,12 @@ export default function App() {
             <p className="text-muted">Код приглашения недоступен. Обратись к администратору.</p>
           )
         ) : (
-          <CoachSettings user={user} onUserUpdated={setUser} onLogout={logout} />
+          <CoachSettings
+            user={user}
+            onUserUpdated={setUser}
+            onLogout={logout}
+            onViewChange={setSettingsView}
+          />
         )}
       </AppShell>
     );

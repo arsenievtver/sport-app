@@ -35,6 +35,8 @@ from app.schemas.meal_catalog import (
     AdminMealCatalogStatusResponse,
 )
 from app.services.activity_compendium import ActivityCompendiumService
+from app.services.coach_custom_workout import CoachCustomWorkoutService
+from app.schemas.custom_workout import CustomWorkoutResponse
 from app.services.activity_compendium_job import (
     ActivityCompendiumJobAlreadyRunningError,
     activity_compendium_job_runner,
@@ -419,3 +421,11 @@ async def translate_activity_compendium(_admin: AdminUser) -> dict[str, str]:
     except ActivityCompendiumJobAlreadyRunningError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Задача уже выполняется") from exc
     return {"status": "accepted"}
+
+
+@router.get("/custom-workouts", response_model=list[CustomWorkoutResponse])
+async def list_admin_custom_workouts(
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> list[CustomWorkoutResponse]:
+    return await CoachCustomWorkoutService(db).list_all_for_admin()

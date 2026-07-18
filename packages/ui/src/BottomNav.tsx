@@ -177,6 +177,18 @@ export function BottomNavIconStats() {
   ));
 }
 
+export function BottomNavIconWorkouts() {
+  return bottomNavIcon("bottom-nav__icon", (
+    <>
+      <path d="M6.5 8.5h3v7h-3z" />
+      <path d="M14.5 8.5h3v7h-3z" />
+      <path d="M9.5 12h5" />
+      <path d="M4.5 10v4" />
+      <path d="M19.5 10v4" />
+    </>
+  ));
+}
+
 export function BottomNavIconAdd() {
   return bottomNavIcon("bottom-nav__icon bottom-nav__icon--add", (
     <>

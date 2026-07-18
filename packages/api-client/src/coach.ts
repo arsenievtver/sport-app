@@ -6,6 +6,8 @@ import type {
   CoachAthleteSessionsResponse,
   CoachAthleteSummary,
   CoachAthleteWeightMeasurementResponse,
+  CustomWorkout,
+  CustomWorkoutUpsertPayload,
   UserResponse,
 } from "@sport-app/shared";
 
@@ -19,6 +21,34 @@ export async function fetchCoachAthletes(): Promise<CoachAthleteSummary[]> {
 export async function fetchCoachActivityTypes(): Promise<ActivityTypesList> {
   const res = await authenticatedFetchOk("/coach/activity-types");
   return res.json() as Promise<ActivityTypesList>;
+}
+
+export async function fetchCoachCustomWorkouts(): Promise<CustomWorkout[]> {
+  const res = await authenticatedFetchOk("/coach/custom-workouts");
+  return res.json() as Promise<CustomWorkout[]>;
+}
+
+export async function createCoachCustomWorkout(payload: CustomWorkoutUpsertPayload): Promise<CustomWorkout> {
+  const res = await authenticatedFetchOk("/coach/custom-workouts", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<CustomWorkout>;
+}
+
+export async function updateCoachCustomWorkout(
+  workoutId: string,
+  payload: CustomWorkoutUpsertPayload,
+): Promise<CustomWorkout> {
+  const res = await authenticatedFetchOk(`/coach/custom-workouts/${workoutId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<CustomWorkout>;
+}
+
+export async function deleteCoachCustomWorkout(workoutId: string): Promise<void> {
+  await authenticatedFetchOk(`/coach/custom-workouts/${workoutId}`, { method: "DELETE" });
 }
 
 export async function createManagedAthlete(payload: { display_name: string }): Promise<CoachAthleteSummary> {
