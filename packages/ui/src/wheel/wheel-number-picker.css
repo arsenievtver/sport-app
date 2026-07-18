@@ -3,12 +3,12 @@
 
   /* Do not stretch in flex parents — touch-action must stay wheel-width only. */
   display: inline-flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   align-self: flex-start;
   width: max-content;
   max-width: 100%;
-  gap: 1px;
+  gap: 0.55rem;
   user-select: none;
 }
 
@@ -18,10 +18,9 @@
 }
 
 .wheel-number-picker__unit {
-  font-size: 10px;
+  flex-shrink: 0;
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--color-text-secondary);
   line-height: 1;
 }

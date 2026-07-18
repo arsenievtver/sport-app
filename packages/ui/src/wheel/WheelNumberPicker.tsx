@@ -320,7 +320,6 @@ export function WheelNumberPicker({
         className ? ` ${className}` : ""
       }`}
     >
-      {unit ? <span className="wheel-number-picker__unit">{unit}</span> : null}
       <div
         ref={viewportRef}
         className={`wheel-number-picker__viewport${isDragging ? " wheel-number-picker__viewport--dragging" : ""}`}
@@ -360,6 +359,7 @@ export function WheelNumberPicker({
           ))}
         </div>
       </div>
+      {unit ? <span className="wheel-number-picker__unit">{unit}</span> : null}
     </div>
   );
 };

@@ -15,7 +15,12 @@ export function AdminSwitch({ checked, disabled = false, label, onChange }: Admi
       title={label}
       disabled={disabled}
       className={`admin-switch${checked ? " admin-switch--on" : ""}`}
-      onClick={() => onChange(!checked)}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (disabled) return;
+        onChange(!checked);
+      }}
     >
       <span className="admin-switch__thumb" aria-hidden="true" />
     </button>

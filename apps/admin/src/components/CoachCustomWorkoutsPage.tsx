@@ -88,7 +88,6 @@ export function CoachCustomWorkoutsPage() {
                         <ol style={{ margin: "0.5rem 0", paddingLeft: "1.25rem" }}>
                           {item.intervals.map((interval) => (
                             <li key={interval.id}>
-                              {interval.label ? <strong>{interval.label}: </strong> : null}
                               {interval.source_activity_name} · {interval.duration_min} мин · MET{" "}
                               {interval.source_met_value} · {interval.load_met_minutes} MET·мин
                             </li>

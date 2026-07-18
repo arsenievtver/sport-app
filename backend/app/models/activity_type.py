@@ -24,7 +24,7 @@ class ActivityType(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     category: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     met_value: Mapped[float] = mapped_column(Float, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     owner_coach_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("coach_profiles.id", ondelete="CASCADE"),

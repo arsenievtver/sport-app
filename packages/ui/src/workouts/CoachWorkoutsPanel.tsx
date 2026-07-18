@@ -21,7 +21,6 @@ interface IntervalDraft {
   key: string;
   source_activity_type_id: string;
   duration_min: number;
-  label: string;
 }
 
 function newIntervalKey(): string {
@@ -33,7 +32,6 @@ function emptyInterval(defaultActivityId = ""): IntervalDraft {
     key: newIntervalKey(),
     source_activity_type_id: defaultActivityId,
     duration_min: 10,
-    label: "",
   };
 }
 
@@ -42,7 +40,6 @@ function workoutToDrafts(workout: CustomWorkout): IntervalDraft[] {
     key: item.id,
     source_activity_type_id: item.source_activity_type_id,
     duration_min: item.duration_min,
-    label: item.label ?? "",
   }));
 }
 
@@ -161,7 +158,7 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
       intervals: intervals.map((item) => ({
         source_activity_type_id: item.source_activity_type_id,
         duration_min: item.duration_min,
-        label: item.label.trim() || null,
+        label: null,
       })),
     };
     try {
@@ -281,19 +278,7 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
                   />
                 </div>
 
-                <label className="coach-workouts__field">
-                  <span className="text-secondary">Подпись этапа (необязательно)</span>
-                  <input
-                    className="glass-input"
-                    value={item.label}
-                    maxLength={120}
-                    placeholder="Разминка, груша…"
-                    onChange={(event) => updateInterval(item.key, { label: event.target.value })}
-                  />
-                </label>
-
-                <div className="coach-workouts__field">
-                  <span className="text-secondary">Минуты</span>
+                <div className="coach-workouts__duration">
                   <WheelNumberPicker
                     value={item.duration_min}
                     min={ACTIVITY_DURATION_MIN_MIN}

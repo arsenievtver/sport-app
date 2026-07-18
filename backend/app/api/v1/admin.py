@@ -259,19 +259,14 @@ async def update_activity_compendium_item(
     if not payload:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нет полей для обновления")
     try:
-        row = await ActivityCompendiumService(db).update_admin(
-            activity_id,
-            major_heading=data.major_heading,
-            name_en=data.name_en,
-            name_ru=data.name_ru,
-            met_value=data.met_value,
-            is_active=data.is_active,
-        )
+        # Only apply fields present in the PATCH body (important for is_active=false).
+        row = await ActivityCompendiumService(db).update_admin(activity_id, **payload)
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Активность не найдена") from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     await db.commit()
+    await db.refresh(row)
     return AdminActivityCompendiumItem.model_validate(row)
 
 

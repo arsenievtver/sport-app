@@ -70,8 +70,18 @@ export function ActivityCompendiumTable({
   const [sortBy, setSortBy] = useState<ActivityCompendiumSortField>(ACTIVITY_COMPENDIUM_DEFAULT_SORT_BY);
   const [sortDir, setSortDir] = useState<ActivityCompendiumSortDir>(ACTIVITY_COMPENDIUM_DEFAULT_SORT_DIR);
   const loadGenerationRef = useRef(0);
+  /** Keeps in-flight list fetches from snapping the switch back to a stale is_active. */
+  const activeOverridesRef = useRef<Map<string, boolean>>(new Map());
 
   const totalPages = Math.max(1, Math.ceil(total / ACTIVITY_COMPENDIUM_PAGE_SIZE));
+
+  const applyActiveOverrides = useCallback((rows: AdminActivityCompendiumItem[]) => {
+    if (activeOverridesRef.current.size === 0) return rows;
+    return rows.map((row) => {
+      const override = activeOverridesRef.current.get(row.id);
+      return override === undefined ? row : { ...row, is_active: override };
+    });
+  }, []);
 
   const handleSort = (field: ActivityCompendiumSortField) => {
     setPage(1);
@@ -113,7 +123,7 @@ export function ActivityCompendiumTable({
         sortDir,
       });
       if (generation !== loadGenerationRef.current) return;
-      setItems(data.items);
+      setItems(applyActiveOverrides(data.items));
       setTotal(data.total);
       if (data.page !== page) {
         setPage(data.page);
@@ -126,7 +136,7 @@ export function ActivityCompendiumTable({
         setLoading(false);
       }
     }
-  }, [page, query, majorHeading, appFilter, sortBy, sortDir]);
+  }, [page, query, majorHeading, appFilter, sortBy, sortDir, applyActiveOverrides]);
 
   useEffect(() => {
     void loadActivities();
@@ -181,28 +191,33 @@ export function ActivityCompendiumTable({
   };
 
   const handleToggleActive = async (item: AdminActivityCompendiumItem, nextActive: boolean) => {
+    if (togglingId === item.id) return;
+
     setTogglingId(item.id);
     setError(null);
+    activeOverridesRef.current.set(item.id, nextActive);
     setItems((current) =>
       current.map((row) => (row.id === item.id ? { ...row, is_active: nextActive } : row)),
     );
 
     try {
       const updated = await updateAdminActivityCompendiumItem(item.id, { is_active: nextActive });
-      setItems((current) => current.map((row) => (row.id === updated.id ? updated : row)));
+      // Keep the clicked value even if a stale response/list fetch races back.
+      const merged = { ...updated, is_active: nextActive };
+      setItems((current) => current.map((row) => (row.id === merged.id ? merged : row)));
+      activeOverridesRef.current.delete(item.id);
       onDataChanged?.();
-      if (appFilter === "active" && !nextActive) {
-        await loadActivities();
-      } else if (appFilter === "inactive" && nextActive) {
+      if ((appFilter === "active" && !nextActive) || (appFilter === "inactive" && nextActive)) {
         await loadActivities();
       }
     } catch (err) {
+      activeOverridesRef.current.delete(item.id);
       setItems((current) =>
         current.map((row) => (row.id === item.id ? { ...row, is_active: item.is_active } : row)),
       );
       setError(err instanceof Error ? err.message : "Не удалось обновить видимость");
     } finally {
-      setTogglingId(null);
+      setTogglingId((current) => (current === item.id ? null : current));
     }
   };
 
