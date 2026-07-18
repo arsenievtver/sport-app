@@ -14,12 +14,16 @@ export function useScrollableOverlayLock(
   useEffect(() => {
     if (!active) return;
 
+    const isFormFieldTarget = (target: EventTarget | null) =>
+      target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable=true]"));
+
     const onWheel = (event: WheelEvent) => {
       const scrollEl = scrollRef.current;
       if (!scrollEl) return;
 
       if (!scrollEl.contains(event.target as Node)) {
-        if (strict) event.preventDefault();
+        // Keep typeahead/search inputs usable inside portaled panels.
+        if (strict && !isFormFieldTarget(event.target)) event.preventDefault();
         return;
       }
 
@@ -46,7 +50,7 @@ export function useScrollableOverlayLock(
 
       const target = event.target;
       if (!(target instanceof Node) || !scrollEl.contains(target)) {
-        if (strict) event.preventDefault();
+        if (strict && !isFormFieldTarget(target)) event.preventDefault();
         return;
       }
 

@@ -31,6 +31,8 @@ export interface SelectPickerProps {
   searchPlaceholder?: string;
   /** When searchable and query empty, hide non-pinned groups if total options exceed this. */
   searchRequireQueryAbove?: number;
+  /** Cap rendered matches so short queries cannot mount hundreds of DOM nodes on mobile. */
+  maxVisibleOptions?: number;
   matchOption?: (option: SelectPickerOption, query: string) => boolean;
   onChange: (value: string) => void;
 }
@@ -39,6 +41,7 @@ const LIST_GAP_PX = 4;
 const LIST_MAX_HEIGHT_PX = 360;
 const LIST_MIN_SPACE_PX = 160;
 const DEFAULT_SEARCH_REQUIRE_ABOVE = 24;
+const DEFAULT_MAX_VISIBLE_OPTIONS = 40;
 
 function findSelectedLabel(
   value: string,
@@ -77,14 +80,45 @@ function getListStyle(trigger: HTMLButtonElement): CSSProperties {
 
   return {
     position: "fixed",
-    left: rect.left,
-    width: Math.max(rect.width, Math.min(420, window.innerWidth - rect.left - 12)),
+    left: Math.max(12, Math.min(rect.left, window.innerWidth - 24)),
+    width: Math.max(rect.width, Math.min(420, window.innerWidth - 24)),
     maxHeight: Math.max(160, Math.min(maxHeight, available)),
     zIndex: 200,
     ...(openUp
       ? { bottom: window.innerHeight - rect.top + LIST_GAP_PX }
       : { top: rect.bottom + LIST_GAP_PX }),
   };
+}
+
+function limitGroupedOptions(
+  groups: SelectPickerGroup[],
+  flat: SelectPickerOption[],
+  maxVisible: number,
+): { groups: SelectPickerGroup[]; options: SelectPickerOption[]; hiddenCount: number } {
+  if (maxVisible <= 0) {
+    return { groups, options: flat, hiddenCount: 0 };
+  }
+
+  let remaining = maxVisible;
+  const limitedFlat: SelectPickerOption[] = [];
+  for (const option of flat) {
+    if (remaining <= 0) break;
+    limitedFlat.push(option);
+    remaining -= 1;
+  }
+
+  const limitedGroups: SelectPickerGroup[] = [];
+  for (const group of groups) {
+    if (remaining <= 0) break;
+    const options = group.options.slice(0, remaining);
+    if (options.length === 0) continue;
+    limitedGroups.push({ ...group, options });
+    remaining -= options.length;
+  }
+
+  const shown = limitedFlat.length + limitedGroups.reduce((sum, group) => sum + group.options.length, 0);
+  const total = flat.length + groups.reduce((sum, group) => sum + group.options.length, 0);
+  return { groups: limitedGroups, options: limitedFlat, hiddenCount: Math.max(0, total - shown) };
 }
 
 export function SelectPicker({
@@ -98,6 +132,7 @@ export function SelectPicker({
   searchable = false,
   searchPlaceholder = "Поиск…",
   searchRequireQueryAbove = DEFAULT_SEARCH_REQUIRE_ABOVE,
+  maxVisibleOptions = DEFAULT_MAX_VISIBLE_OPTIONS,
   matchOption = defaultMatchOption,
   onChange,
 }: SelectPickerProps) {
@@ -150,18 +185,38 @@ export function SelectPicker({
       .filter((group) => group.options.length > 0);
   }, [searchable, trimmedQuery, groups, matchOption, requireQuery]);
 
+  const visible = useMemo(() => {
+    // Empty-query pinned shortcuts stay uncapped; only search hits are limited.
+    if (!trimmedQuery) {
+      return { groups: filteredGroups, options: filteredOptions, hiddenCount: 0 };
+    }
+    return limitGroupedOptions(filteredGroups, filteredOptions, maxVisibleOptions);
+  }, [filteredGroups, filteredOptions, trimmedQuery, maxVisibleOptions]);
+
   const hasFiltered =
-    filteredOptions.length > 0 || filteredGroups.some((group) => group.options.length > 0);
+    visible.options.length > 0 || visible.groups.some((group) => group.options.length > 0);
 
   const updateListPosition = () => {
     if (!triggerRef.current) return;
-    setListStyle(getListStyle(triggerRef.current));
+    const next = getListStyle(triggerRef.current);
+    setListStyle((current) => {
+      if (
+        current.top === next.top &&
+        current.bottom === next.bottom &&
+        current.left === next.left &&
+        current.width === next.width &&
+        current.maxHeight === next.maxHeight
+      ) {
+        return current;
+      }
+      return next;
+    });
   };
 
   useLayoutEffect(() => {
     if (!open) return;
     updateListPosition();
-  }, [open, filteredGroups, filteredOptions, query]);
+  }, [open, visible.groups, visible.options, query]);
 
   useEffect(() => {
     if (!open) {
@@ -193,7 +248,12 @@ export function SelectPicker({
 
     const handleReposition = () => updateListPosition();
     const handleScroll = (event: Event) => {
-      if (panelRef.current && event.target instanceof Node && panelRef.current.contains(event.target)) {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (panelRef.current?.contains(target)) return;
+      // Mobile keyboard / visualViewport often scrolls document — reposition, don't close.
+      if (target === document || target === document.documentElement || target === document.body) {
+        updateListPosition();
         return;
       }
       setOpen(false);
@@ -277,16 +337,16 @@ export function SelectPicker({
       <ul ref={listRef} className="select-picker__list" role="listbox" data-overlay-scroll="">
         {requireQuery && !hasFiltered ? (
           <li className="select-picker__hint text-muted" role="presentation">
-            Начните вводить: бег, boxing, йога…
+            Введите название или синоним: бег, boxing, йога…
           </li>
         ) : null}
-        {!requireQuery && searchable && trimmedQuery && !hasFiltered ? (
+        {searchable && trimmedQuery && !hasFiltered ? (
           <li className="select-picker__hint text-muted" role="presentation">
             Ничего не найдено
           </li>
         ) : null}
-        {filteredOptions.map((option) => renderOption(option))}
-        {filteredGroups.map((group) => (
+        {visible.options.map((option) => renderOption(option))}
+        {visible.groups.map((group) => (
           <li key={group.id} role="presentation" className="select-picker__group">
             <p className="select-picker__group-label">{group.label}</p>
             <ul className="select-picker__group-list" role="presentation">
@@ -294,6 +354,11 @@ export function SelectPicker({
             </ul>
           </li>
         ))}
+        {visible.hiddenCount > 0 ? (
+          <li className="select-picker__hint text-muted" role="presentation">
+            Ещё {visible.hiddenCount} — уточните поиск
+          </li>
+        ) : null}
       </ul>
     </div>
   ) : null;
