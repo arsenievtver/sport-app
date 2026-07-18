@@ -40,8 +40,10 @@ export interface SelectPickerProps {
 const LIST_GAP_PX = 4;
 const LIST_MAX_HEIGHT_PX = 360;
 const LIST_MIN_SPACE_PX = 160;
+const VIEWPORT_INSET_PX = 12;
 const DEFAULT_SEARCH_REQUIRE_ABOVE = 24;
 const DEFAULT_MAX_VISIBLE_OPTIONS = 40;
+const SHEET_MQ = "(max-width: 720px), (pointer: coarse)";
 
 function findSelectedLabel(
   value: string,
@@ -70,23 +72,81 @@ function defaultMatchOption(option: SelectPickerOption, query: string): boolean 
   return q.split(/\s+/).filter(Boolean).every((word) => haystack.includes(word));
 }
 
-function getListStyle(trigger: HTMLButtonElement): CSSProperties {
+function prefersSheetLayout(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  return window.matchMedia(SHEET_MQ).matches;
+}
+
+function getViewportBox() {
+  const vv = window.visualViewport;
+  if (vv) {
+    return {
+      left: vv.offsetLeft,
+      top: vv.offsetTop,
+      width: vv.width,
+      height: vv.height,
+    };
+  }
+  return {
+    left: 0,
+    top: 0,
+    width: window.innerWidth,
+    height: window.innerHeight,
+  };
+}
+
+/** Anchored popover for desktop — keeps panel fully inside the visual viewport. */
+function getFloatingStyle(trigger: HTMLButtonElement): CSSProperties {
   const rect = trigger.getBoundingClientRect();
-  const maxHeight = Math.min(LIST_MAX_HEIGHT_PX, window.innerHeight * 0.55);
-  const spaceBelow = window.innerHeight - rect.bottom - LIST_GAP_PX;
-  const spaceAbove = rect.top - LIST_GAP_PX;
+  const viewport = getViewportBox();
+  const maxWidth = Math.min(420, viewport.width - VIEWPORT_INSET_PX * 2);
+  const width = Math.min(Math.max(rect.width, Math.min(320, maxWidth)), maxWidth);
+  const left = Math.min(
+    Math.max(viewport.left + VIEWPORT_INSET_PX, rect.left),
+    viewport.left + viewport.width - width - VIEWPORT_INSET_PX,
+  );
+
+  const maxHeight = Math.min(LIST_MAX_HEIGHT_PX, viewport.height * 0.55);
+  const spaceBelow = viewport.top + viewport.height - rect.bottom - LIST_GAP_PX;
+  const spaceAbove = rect.top - viewport.top - LIST_GAP_PX;
   const openUp = spaceBelow < Math.min(maxHeight, LIST_MIN_SPACE_PX) && spaceAbove > spaceBelow;
-  const available = openUp ? spaceAbove : spaceBelow;
+  const available = Math.max(140, openUp ? spaceAbove : spaceBelow);
 
   return {
     position: "fixed",
-    left: Math.max(12, Math.min(rect.left, window.innerWidth - 24)),
-    width: Math.max(rect.width, Math.min(420, window.innerWidth - 24)),
-    maxHeight: Math.max(160, Math.min(maxHeight, available)),
-    zIndex: 200,
+    left,
+    width,
+    maxWidth,
+    maxHeight: Math.min(maxHeight, available),
+    zIndex: 240,
     ...(openUp
-      ? { bottom: window.innerHeight - rect.top + LIST_GAP_PX }
-      : { top: rect.bottom + LIST_GAP_PX }),
+      ? { bottom: window.innerHeight - rect.top + LIST_GAP_PX, top: "auto" }
+      : { top: rect.bottom + LIST_GAP_PX, bottom: "auto" }),
+  };
+}
+
+/**
+ * Bottom sheet inside the visual viewport — stable on Android when the keyboard
+ * resizes/moves the visual viewport (no flip between above/below the trigger).
+ */
+function getSheetStyle(): CSSProperties {
+  const viewport = getViewportBox();
+  const width = Math.max(0, viewport.width - VIEWPORT_INSET_PX * 2);
+  const maxHeight = Math.min(LIST_MAX_HEIGHT_PX, viewport.height * 0.52);
+  const bottom = Math.max(
+    VIEWPORT_INSET_PX,
+    window.innerHeight - (viewport.top + viewport.height) + VIEWPORT_INSET_PX,
+  );
+
+  return {
+    position: "fixed",
+    left: viewport.left + VIEWPORT_INSET_PX,
+    width,
+    maxWidth: width,
+    bottom,
+    top: "auto",
+    maxHeight: Math.max(180, maxHeight),
+    zIndex: 240,
   };
 }
 
@@ -121,6 +181,17 @@ function limitGroupedOptions(
   return { groups: limitedGroups, options: limitedFlat, hiddenCount: Math.max(0, total - shown) };
 }
 
+function stylesEqual(a: CSSProperties, b: CSSProperties): boolean {
+  return (
+    a.top === b.top &&
+    a.bottom === b.bottom &&
+    a.left === b.left &&
+    a.width === b.width &&
+    a.maxWidth === b.maxWidth &&
+    a.maxHeight === b.maxHeight
+  );
+}
+
 export function SelectPicker({
   id,
   value,
@@ -145,6 +216,7 @@ export function SelectPicker({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [listStyle, setListStyle] = useState<CSSProperties>({});
+  const [sheetMode, setSheetMode] = useState(() => prefersSheetLayout());
 
   useScrollableOverlayLock(listRef, open);
 
@@ -197,20 +269,16 @@ export function SelectPicker({
     visible.options.length > 0 || visible.groups.some((group) => group.options.length > 0);
 
   const updateListPosition = () => {
+    const nextSheet = prefersSheetLayout();
+    setSheetMode(nextSheet);
+    if (nextSheet) {
+      const next = getSheetStyle();
+      setListStyle((current) => (stylesEqual(current, next) ? current : next));
+      return;
+    }
     if (!triggerRef.current) return;
-    const next = getListStyle(triggerRef.current);
-    setListStyle((current) => {
-      if (
-        current.top === next.top &&
-        current.bottom === next.bottom &&
-        current.left === next.left &&
-        current.width === next.width &&
-        current.maxHeight === next.maxHeight
-      ) {
-        return current;
-      }
-      return next;
-    });
+    const next = getFloatingStyle(triggerRef.current);
+    setListStyle((current) => (stylesEqual(current, next) ? current : next));
   };
 
   useLayoutEffect(() => {
@@ -223,7 +291,8 @@ export function SelectPicker({
       setQuery("");
       return;
     }
-    if (searchable) {
+    // Autofocus opens the Android keyboard and jumps the visual viewport — only on desktop.
+    if (searchable && !prefersSheetLayout()) {
       const frame = window.requestAnimationFrame(() => searchRef.current?.focus());
       return () => window.cancelAnimationFrame(frame);
     }
@@ -251,8 +320,13 @@ export function SelectPicker({
       const target = event.target;
       if (!(target instanceof Node)) return;
       if (panelRef.current?.contains(target)) return;
-      // Mobile keyboard / visualViewport often scrolls document — reposition, don't close.
-      if (target === document || target === document.documentElement || target === document.body) {
+      // Sheet mode: keep panel pinned to visual viewport while page/keyboard moves.
+      if (
+        sheetMode ||
+        target === document ||
+        target === document.documentElement ||
+        target === document.body
+      ) {
         updateListPosition();
         return;
       }
@@ -264,6 +338,8 @@ export function SelectPicker({
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("resize", handleReposition);
     window.addEventListener("scroll", handleScroll, true);
+    window.visualViewport?.addEventListener("resize", handleReposition);
+    window.visualViewport?.addEventListener("scroll", handleReposition);
 
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
@@ -271,8 +347,10 @@ export function SelectPicker({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("resize", handleReposition);
       window.removeEventListener("scroll", handleScroll, true);
+      window.visualViewport?.removeEventListener("resize", handleReposition);
+      window.visualViewport?.removeEventListener("scroll", handleReposition);
     };
-  }, [open]);
+  }, [open, sheetMode]);
 
   const handleSelect = (nextValue: string) => {
     onChange(nextValue);
@@ -306,10 +384,18 @@ export function SelectPicker({
     <div
       ref={panelRef}
       id={listId}
-      className="select-picker__panel select-picker__panel--floating"
+      className={`select-picker__panel${
+        sheetMode ? " select-picker__panel--sheet" : " select-picker__panel--floating"
+      }`}
       style={listStyle}
       role="presentation"
     >
+      {sheetMode ? (
+        <div className="select-picker__sheet-handle" aria-hidden="true">
+          <span />
+        </div>
+      ) : null}
+
       {searchable ? (
         <div className="select-picker__search">
           <input
@@ -322,6 +408,7 @@ export function SelectPicker({
             autoCorrect="off"
             spellCheck={false}
             enterKeyHint="search"
+            inputMode="search"
             aria-label={searchPlaceholder}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => {
@@ -337,7 +424,7 @@ export function SelectPicker({
       <ul ref={listRef} className="select-picker__list" role="listbox" data-overlay-scroll="">
         {requireQuery && !hasFiltered ? (
           <li className="select-picker__hint text-muted" role="presentation">
-            Введите название или синоним: бег, boxing, йога…
+            Введите: бег, велосипед, плавание, спорт…
           </li>
         ) : null}
         {searchable && trimmedQuery && !hasFiltered ? (
@@ -364,7 +451,12 @@ export function SelectPicker({
   ) : null;
 
   return (
-    <div ref={rootRef} className={`select-picker${open ? " select-picker--open" : ""}`}>
+    <div
+      ref={rootRef}
+      className={`select-picker${open ? " select-picker--open" : ""}${
+        sheetMode && open ? " select-picker--sheet" : ""
+      }`}
+    >
       <button
         ref={triggerRef}
         type="button"

@@ -96,7 +96,12 @@
 .coach-workouts__field {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 0.4rem;
+}
+
+.coach-workouts__field .wheel-number-picker {
+  align-self: flex-start;
 }
 
 .coach-workouts__field > span {

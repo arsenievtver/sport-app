@@ -1,11 +1,14 @@
 .wheel-number-picker {
   --wheel-item-height: 28px;
 
+  /* Do not stretch in flex parents — touch-action must stay wheel-width only. */
   display: inline-flex;
   flex-direction: column;
   align-items: center;
+  align-self: flex-start;
+  width: max-content;
+  max-width: 100%;
   gap: 1px;
-  touch-action: none;
   user-select: none;
 }
 
