@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -64,30 +65,47 @@ class YandexFoundationClient:
             "modelUri": self._model_uri("emb", model),
             "text": cleaned[:8000],
         }
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                YANDEX_EMBEDDING_URL,
-                headers=self._headers(),
-                json=payload,
-            )
-        if response.status_code >= 400:
-            logger.warning(
-                "Yandex embedding error %s: %s",
-                response.status_code,
-                response.text[:500],
-            )
-            raise YandexFoundationError(
-                f"Yandex embedding HTTP {response.status_code}: {response.text[:300]}"
-            )
-        data = response.json()
-        embedding = data.get("embedding")
-        if not isinstance(embedding, list) or not embedding:
-            raise YandexFoundationError("Yandex embedding: пустой ответ")
-        if len(embedding) != ACTIVITY_EMBEDDING_DIM:
-            raise YandexFoundationError(
-                f"Ожидали embedding dim={ACTIVITY_EMBEDDING_DIM}, получили {len(embedding)}"
-            )
-        return [float(x) for x in embedding]
+        # Yandex free/trial quota is often ~10 RPS; retry 429 with backoff.
+        last_error = ""
+        for attempt in range(8):
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    YANDEX_EMBEDDING_URL,
+                    headers=self._headers(),
+                    json=payload,
+                )
+            if response.status_code == 429:
+                wait_s = min(8.0, 0.4 * (2**attempt))
+                last_error = response.text[:300]
+                logger.warning(
+                    "Yandex embedding 429, retry in %.1fs (attempt %s)",
+                    wait_s,
+                    attempt + 1,
+                )
+                await asyncio.sleep(wait_s)
+                continue
+            if response.status_code >= 400:
+                logger.warning(
+                    "Yandex embedding error %s: %s",
+                    response.status_code,
+                    response.text[:500],
+                )
+                raise YandexFoundationError(
+                    f"Yandex embedding HTTP {response.status_code}: {response.text[:300]}"
+                )
+            data = response.json()
+            embedding = data.get("embedding")
+            if not isinstance(embedding, list) or not embedding:
+                raise YandexFoundationError("Yandex embedding: пустой ответ")
+            if len(embedding) != ACTIVITY_EMBEDDING_DIM:
+                raise YandexFoundationError(
+                    f"Ожидали embedding dim={ACTIVITY_EMBEDDING_DIM}, получили {len(embedding)}"
+                )
+            return [float(x) for x in embedding]
+
+        raise YandexFoundationError(
+            f"Yandex embedding HTTP 429 after retries: {last_error}"
+        )
 
     async def complete(
         self,

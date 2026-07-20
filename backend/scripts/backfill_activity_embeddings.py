@@ -7,6 +7,7 @@ not in git. Same script + same API key works for both environments.
 Usage:
   cd backend && python scripts/backfill_activity_embeddings.py
   cd backend && python scripts/backfill_activity_embeddings.py --force
+  cd backend && python scripts/backfill_activity_embeddings.py --sleep 0.2
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ from app.services.activity_embedding import ActivityEmbeddingService  # noqa: E4
 from app.services.yandex_foundation import YandexFoundationError  # noqa: E402
 
 
-async def run(*, force: bool) -> None:
+async def run(*, force: bool, sleep_s: float) -> None:
     async with async_session_factory() as db:
         service = ActivityEmbeddingService(db)
         if not service.client.is_configured():
@@ -34,9 +35,13 @@ async def run(*, force: bool) -> None:
                 "(or YANDEX_TRANSLATE_API_KEY + YANDEX_TRANSLATE_FOLDER_ID)"
             )
         try:
-            updated = await service.backfill_picker_activities(force=force)
+            updated = await service.backfill_picker_activities(
+                force=force,
+                sleep_s=sleep_s,
+            )
         except YandexFoundationError as exc:
             raise SystemExit(str(exc)) from exc
+        # Service already commits periodically; final commit is harmless.
         await db.commit()
     print(f"Updated embeddings for {updated} activities.")
 
@@ -48,8 +53,14 @@ def main() -> None:
         action="store_true",
         help="Re-embed rows that already have a vector",
     )
+    parser.add_argument(
+        "--sleep",
+        type=float,
+        default=0.15,
+        help="Pause between requests in seconds (default 0.15 ≈ under 10 RPS quota)",
+    )
     args = parser.parse_args()
-    asyncio.run(run(force=args.force))
+    asyncio.run(run(force=args.force, sleep_s=args.sleep))
 
 
 if __name__ == "__main__":

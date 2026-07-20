@@ -9,6 +9,7 @@ RUN apt-get update \
 COPY backend/pyproject.toml backend/alembic.ini ./
 COPY backend/app ./app
 COPY backend/alembic ./alembic
+COPY backend/scripts ./scripts
 COPY scripts/create_admin.py scripts/grant-roles.py /app/scripts/
 
 RUN pip install --no-cache-dir .

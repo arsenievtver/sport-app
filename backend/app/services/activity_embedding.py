@@ -35,9 +35,14 @@ class ActivityEmbeddingService:
         self,
         *,
         force: bool = False,
-        sleep_s: float = 0.05,
+        sleep_s: float = 0.15,
+        commit_every: int = 25,
     ) -> int:
-        """Embed allowlisted Compendium activities. Returns number of rows updated."""
+        """Embed allowlisted Compendium activities. Returns number of rows updated.
+
+        Default sleep keeps us under Yandex ~10 RPS quota.
+        Commits periodically so a rate-limit crash does not lose progress.
+        """
         if not self.client.is_configured():
             raise YandexFoundationError("Yandex AI не настроен для embeddings")
 
@@ -64,10 +69,11 @@ class ActivityEmbeddingService:
             updated += 1
             if sleep_s > 0 and index + 1 < len(rows):
                 await asyncio.sleep(sleep_s)
-            if updated % 25 == 0:
-                await self.db.flush()
+            if commit_every > 0 and updated % commit_every == 0:
+                await self.db.commit()
                 logger.info("Embedded %s / %s activities", updated, len(rows))
-        await self.db.flush()
+                print(f"Embedded {updated} / {len(rows)}", flush=True)
+        await self.db.commit()
         return updated
 
     async def ensure_picker_embeddings(self) -> int:
