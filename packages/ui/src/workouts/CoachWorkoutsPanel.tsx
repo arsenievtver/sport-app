@@ -326,6 +326,14 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
               ))}
             </ul>
 
+            {aiDraft.warnings.length > 0 ? (
+              <ul className="coach-workouts__ai-warnings text-muted">
+                {aiDraft.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            ) : null}
+
             <div className="coach-workouts__footer">
               <button
                 type="button"

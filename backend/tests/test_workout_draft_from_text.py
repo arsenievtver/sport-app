@@ -1,4 +1,8 @@
-from app.services.workout_draft_from_text import _extract_json, split_coach_text
+from app.services.workout_draft_from_text import (
+    _extract_json,
+    expand_query_for_embedding,
+    split_coach_text,
+)
 
 
 def test_split_coach_text_by_potom_and_durations() -> None:
@@ -14,6 +18,26 @@ def test_split_coach_text_by_potom_and_durations() -> None:
 def test_split_coach_text_newlines() -> None:
     segments = split_coach_text("разминка 10\nбег 20\nзаминка 5")
     assert [s.duration_min for s in segments] == [10, 20, 5]
+
+
+def test_split_coach_text_multiline_minutes() -> None:
+    text = (
+        "Суставная разминка 10 минут\n"
+        "Гребля на тренажере 10 минут\n"
+        "Работа на тренажерах 30 минут\n"
+        "Заминка и растяжка 10 минут"
+    )
+    segments = split_coach_text(text)
+    assert len(segments) == 4
+    assert [s.duration_min for s in segments] == [10, 10, 30, 10]
+    assert "Гребля" in segments[1].phrase
+
+
+def test_expand_query_adds_hints_for_warmup() -> None:
+    expanded = expand_query_for_embedding("Суставная разминка")
+    assert "Суставная разминка" in expanded
+    assert "mobility" in expanded
+    assert "stretching" in expanded
 
 
 def test_extract_json_ignores_trailing_text() -> None:

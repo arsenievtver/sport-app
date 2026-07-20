@@ -207,3 +207,13 @@
 .coach-workouts__ai-intervals strong {
   font-weight: 600;
 }
+
+.coach-workouts__ai-warnings {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}

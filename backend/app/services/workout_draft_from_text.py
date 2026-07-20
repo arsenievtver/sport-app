@@ -24,7 +24,7 @@ from app.services.yandex_foundation import YandexFoundationClient, YandexFoundat
 logger = logging.getLogger(__name__)
 
 SEGMENT_SPLIT_RE = re.compile(
-    r"(?:\n+|;\s*|(?:,\s*)?(?:потом|затем|далее)\s+|→|->)",
+    r"(?:\r?\n+|;\s*|(?:,\s*)?(?:потом|затем|далее)\s+|→|->)",
     re.IGNORECASE,
 )
 DURATION_WITH_UNIT_RE = re.compile(
@@ -33,17 +33,29 @@ DURATION_WITH_UNIT_RE = re.compile(
 )
 TRAILING_MINUTES_RE = re.compile(r"(\d+)\s*$")
 
+# Expand coach slang before embedding so retrieval finds Compendium names.
+QUERY_HINTS: tuple[tuple[str, str], ...] = (
+    ("суставн", "warm-up mobility joint calisthenics stretching flexibility light conditioning"),
+    ("разминк", "warm-up calisthenics stretching light conditioning"),
+    ("заминк", "cool-down stretching flexibility"),
+    ("растяж", "stretching flexibility yoga"),
+    ("гребл", "rowing ergometer rower machine"),
+    ("тренажер", "resistance machines weight training strength conditioning gym"),
+    ("тренажёр", "resistance machines weight training strength conditioning gym"),
+    ("бегов", "running treadmill jog"),
+    ("велосипед", "bicycling cycling stationary bike"),
+    ("плаван", "swimming water"),
+)
+
 SYSTEM_PROMPT = """Ты помощник тренера по фитнесу.
-По тексту тренировки и кандидатам из справочника Compendium выбери активность для каждого этапа.
-Ответь одним JSON-объектом и больше ничем: без markdown, без пояснений до или после.
-Формат:
-{"name":"краткое название","intervals":[{"source_activity_type_id":"uuid","duration_min":10,"label":"фраза этапа"}]}
+Для КАЖДОГО этапа выбери ровно один id из списка кандидатов этого этапа.
+Ответь одним JSON-объектом и больше ничем (без markdown и пояснений):
+{"name":"краткое название","picks":[{"stage":1,"source_activity_type_id":"uuid"},{"stage":2,"source_activity_type_id":"uuid"}]}
 Правила:
-- source_activity_type_id бери ТОЛЬКО из списка кандидатов указанного этапа (поле id).
-- duration_min — целое от 5 до 120; если в тексте нет минут, используй suggested_duration_min этапа.
-- label — короткая фраза тренера для этапа (можно из текста).
-- Не выдумывай uuid. Если для этапа нет подходящего кандидата — пропусти этап.
-- Хотя бы один interval обязателен.
+- В picks должно быть ровно столько элементов, сколько этапов во входных данных.
+- stage — номер этапа (1, 2, 3, …).
+- source_activity_type_id только из кандидатов ЭТОГО stage.
+- Не пропускай этапы. Не выдумывай uuid.
 """
 
 
@@ -51,6 +63,18 @@ SYSTEM_PROMPT = """Ты помощник тренера по фитнесу.
 class _Segment:
     phrase: str
     duration_min: int
+
+
+def expand_query_for_embedding(phrase: str) -> str:
+    """Append English/Compendium hints for common Russian coach phrases."""
+    lower = phrase.lower()
+    hints: list[str] = []
+    for needle, hint in QUERY_HINTS:
+        if needle in lower and hint not in hints:
+            hints.append(hint)
+    if not hints:
+        return phrase
+    return f"{phrase} / {' / '.join(hints)}"
 
 
 def _parse_segment(part: str) -> _Segment:
@@ -77,7 +101,6 @@ def split_coach_text(text: str) -> list[_Segment]:
     cleaned = text.strip()
     parts = [p.strip(" ,.-–—") for p in SEGMENT_SPLIT_RE.split(cleaned) if p and p.strip()]
     if len(parts) <= 1 and "," in cleaned:
-        # "разминка 10, бег 20, растяжка 10"
         maybe = [p.strip(" ,.-–—") for p in cleaned.split(",") if p.strip()]
         if len(maybe) > 1 and sum(
             1 for p in maybe if DURATION_WITH_UNIT_RE.search(p) or TRAILING_MINUTES_RE.search(p)
@@ -90,7 +113,6 @@ def split_coach_text(text: str) -> list[_Segment]:
 
 def _extract_json(raw: str) -> dict:
     text = raw.strip()
-    # Strip markdown fences anywhere (YandexGPT often wraps JSON).
     text = re.sub(r"```(?:json)?\s*", "", text, flags=re.IGNORECASE)
     text = text.replace("```", "").strip()
     start = text.find("{")
@@ -103,6 +125,10 @@ def _extract_json(raw: str) -> dict:
     if not isinstance(data, dict):
         raise ValueError("JSON должен быть объектом")
     return data
+
+
+def _snap_duration(minutes: int) -> int:
+    return max(5, min(120, round(minutes / 5) * 5))
 
 
 class WorkoutDraftFromTextService:
@@ -135,7 +161,8 @@ class WorkoutDraftFromTextService:
         per_stage: list[tuple[_Segment, list[ActivityType]]] = []
         try:
             for segment in segments:
-                hits = await self.embeddings.search_similar(segment.phrase, limit=8)
+                query = expand_query_for_embedding(segment.phrase)
+                hits = await self.embeddings.search_similar(query, limit=8)
                 per_stage.append((segment, hits))
         except YandexFoundationError as exc:
             raise HTTPException(
@@ -149,25 +176,31 @@ class WorkoutDraftFromTextService:
                 detail="Не удалось найти похожие активности. Сначала прогоните embeddings.",
             )
 
-        user_prompt = self._build_user_prompt(data.text, per_stage)
+        parsed: dict = {}
+        raw = ""
         try:
-            raw = await self.client.complete(system=SYSTEM_PROMPT, user=user_prompt)
+            raw = await self.client.complete(
+                system=SYSTEM_PROMPT,
+                user=self._build_user_prompt(data.text, per_stage),
+                max_tokens=2000,
+            )
             parsed = _extract_json(raw)
         except (YandexFoundationError, ValueError, json.JSONDecodeError) as exc:
-            logger.warning("Draft LLM failed: %s", exc)
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Не удалось разобрать ответ модели: {exc}",
-            ) from exc
+            logger.warning("Draft LLM failed, falling back to top embedding hits: %s", exc)
+            parsed = {}
 
-        return await self._to_response(parsed, per_stage)
+        return await self._to_response(parsed, per_stage, llm_raw=raw)
 
     def _build_user_prompt(
         self,
         original: str,
         per_stage: list[tuple[_Segment, list[ActivityType]]],
     ) -> str:
-        lines = [f"Текст тренера:\n{original.strip()}\n", "Этапы и кандидаты:"]
+        lines = [
+            f"Текст тренера:\n{original.strip()}\n",
+            f"Всего этапов: {len(per_stage)}. Верни picks для каждого stage от 1 до {len(per_stage)}.",
+            "Этапы и кандидаты:",
+        ]
         for index, (segment, hits) in enumerate(per_stage, start=1):
             lines.append(
                 f"\nЭтап {index}: phrase={segment.phrase!r}, "
@@ -181,59 +214,86 @@ class WorkoutDraftFromTextService:
                     f"  - id={hit.id} | {hit.name_ru} | {hit.name_en} | "
                     f"MET {hit.met_value} | {hit.major_heading}"
                 )
-        lines.append("\nВерни JSON с name и intervals.")
+        lines.append(
+            f'\nВерни JSON: {{"name":"...","picks":[{{"stage":1,"source_activity_type_id":"..."}},...]}} '
+            f"с {len(per_stage)} picks."
+        )
         return "\n".join(lines)
+
+    def _llm_pick_by_stage(
+        self,
+        parsed: dict,
+        per_stage: list[tuple[_Segment, list[ActivityType]]],
+    ) -> dict[int, UUID]:
+        """Map stage number → activity id chosen by LLM (only if id is in that stage's candidates)."""
+        picks_raw = parsed.get("picks")
+        if not isinstance(picks_raw, list):
+            # Backward-compatible: old "intervals" list in order.
+            picks_raw = parsed.get("intervals")
+        if not isinstance(picks_raw, list):
+            return {}
+
+        by_stage: dict[int, UUID] = {}
+        for index, item in enumerate(picks_raw):
+            if not isinstance(item, dict):
+                continue
+            stage_num = item.get("stage")
+            if stage_num is None:
+                stage_num = index + 1
+            try:
+                stage = int(stage_num)
+            except (TypeError, ValueError):
+                continue
+            if stage < 1 or stage > len(per_stage):
+                continue
+            try:
+                activity_id = UUID(str(item.get("source_activity_type_id")))
+            except (TypeError, ValueError):
+                continue
+            allowed_ids = {hit.id for hit in per_stage[stage - 1][1]}
+            if activity_id in allowed_ids:
+                by_stage[stage] = activity_id
+        return by_stage
 
     async def _to_response(
         self,
         parsed: dict,
         per_stage: list[tuple[_Segment, list[ActivityType]]],
+        *,
+        llm_raw: str = "",
     ) -> CustomWorkoutDraftResponse:
-        allowed: set[UUID] = set()
-        for _, hits in per_stage:
-            for hit in hits:
-                allowed.add(hit.id)
-
         name = str(parsed.get("name") or "").strip() or "Тренировка из текста"
         name = name[:200]
-        raw_intervals = parsed.get("intervals")
-        if not isinstance(raw_intervals, list) or not raw_intervals:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Модель не вернула этапы",
-            )
+        llm_picks = self._llm_pick_by_stage(parsed, per_stage)
+        warnings: list[str] = []
 
-        chosen_ids: list[UUID] = []
         draft_rows: list[tuple[UUID, int, str | None]] = []
-        for item in raw_intervals:
-            if not isinstance(item, dict):
+        for index, (segment, hits) in enumerate(per_stage, start=1):
+            if not hits:
+                warnings.append(f"Этап {index}: нет кандидатов для «{segment.phrase}»")
                 continue
-            raw_id = item.get("source_activity_type_id")
-            try:
-                activity_id = UUID(str(raw_id))
-            except (TypeError, ValueError):
-                continue
-            if activity_id not in allowed:
-                continue
-            try:
-                duration = int(item.get("duration_min"))
-            except (TypeError, ValueError):
-                duration = 10
-            duration = max(5, min(120, duration))
-            # Snap to 5-min steps like the UI wheel.
-            duration = max(5, min(120, round(duration / 5) * 5))
-            label = item.get("label")
-            label_str = str(label).strip()[:120] if label else None
-            draft_rows.append((activity_id, duration, label_str or None))
-            chosen_ids.append(activity_id)
+            chosen = llm_picks.get(index)
+            if chosen is None:
+                chosen = hits[0].id
+                warnings.append(
+                    f"Этап {index}: модель не выбрала id — взят ближайший по смыслу "
+                    f"«{hits[0].name_ru}»"
+                )
+            draft_rows.append((chosen, _snap_duration(segment.duration_min), segment.phrase))
 
         if not draft_rows:
+            logger.warning("Draft empty. LLM raw (truncated): %s", llm_raw[:800])
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Модель выбрала id вне списка кандидатов",
+                detail="Не удалось сопоставить ни одного этапа",
             )
 
-        activities = await self.embeddings.get_by_ids(set(chosen_ids))
+        if len(draft_rows) < len(per_stage):
+            warnings.append(
+                f"Собрано {len(draft_rows)} из {len(per_stage)} этапов — часть без кандидатов"
+            )
+
+        activities = await self.embeddings.get_by_ids({row[0] for row in draft_rows})
         intervals: list[CustomWorkoutDraftInterval] = []
         met_durations: list[tuple[float, int]] = []
         for activity_id, duration, label in draft_rows:
@@ -266,5 +326,5 @@ class WorkoutDraftFromTextService:
             total_duration_min=total_duration,
             total_load_met_minutes=total_load,
             intervals=intervals,
-            warnings=[],
+            warnings=warnings,
         )
