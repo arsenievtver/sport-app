@@ -7,6 +7,7 @@ import type {
   CoachAthleteSummary,
   CoachAthleteWeightMeasurementResponse,
   CustomWorkout,
+  CustomWorkoutDraft,
   CustomWorkoutUpsertPayload,
   UserResponse,
 } from "@sport-app/shared";
@@ -26,6 +27,14 @@ export async function fetchCoachActivityTypes(): Promise<ActivityTypesList> {
 export async function fetchCoachCustomWorkouts(): Promise<CustomWorkout[]> {
   const res = await authenticatedFetchOk("/coach/custom-workouts");
   return res.json() as Promise<CustomWorkout[]>;
+}
+
+export async function draftCoachCustomWorkoutFromText(text: string): Promise<CustomWorkoutDraft> {
+  const res = await authenticatedFetchOk("/coach/custom-workouts/draft-from-text", {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
+  return res.json() as Promise<CustomWorkoutDraft>;
 }
 
 export async function createCoachCustomWorkout(payload: CustomWorkoutUpsertPayload): Promise<CustomWorkout> {

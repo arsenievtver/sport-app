@@ -38,9 +38,12 @@ from app.services.media import save_avatar
 from app.services.schedule import ScheduleService
 from app.schemas.custom_workout import (
     CustomWorkoutCreateRequest,
+    CustomWorkoutDraftFromTextRequest,
+    CustomWorkoutDraftResponse,
     CustomWorkoutResponse,
     CustomWorkoutUpdateRequest,
 )
+from app.services.workout_draft_from_text import WorkoutDraftFromTextService
 
 router = APIRouter(prefix="/coach")
 
@@ -284,6 +287,19 @@ async def list_custom_workouts(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> list[CustomWorkoutResponse]:
     return await CoachCustomWorkoutService(db).list_for_coach(coach_profile)
+
+
+@router.post(
+    "/custom-workouts/draft-from-text",
+    response_model=CustomWorkoutDraftResponse,
+)
+async def draft_custom_workout_from_text(
+    data: CustomWorkoutDraftFromTextRequest,
+    coach_profile: Annotated[CoachProfile, Depends(get_current_coach_profile)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> CustomWorkoutDraftResponse:
+    _ = coach_profile
+    return await WorkoutDraftFromTextService(db).draft(data)
 
 
 @router.post(

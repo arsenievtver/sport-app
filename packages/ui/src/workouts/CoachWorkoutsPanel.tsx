@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createCoachCustomWorkout,
   deleteCoachCustomWorkout,
+  draftCoachCustomWorkoutFromText,
   fetchCoachActivityTypes,
   fetchCoachCustomWorkouts,
   updateCoachCustomWorkout,
@@ -13,6 +14,7 @@ import {
   filterActivityTypesForPicker,
   type ActivityType,
   type CustomWorkout,
+  type CustomWorkoutDraft,
 } from "@sport-app/shared";
 import { ActivityTypePicker } from "../activity/ActivityTypePicker";
 import { WheelNumberPicker } from "../wheel/WheelNumberPicker";
@@ -49,12 +51,16 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
   const [headingLabels, setHeadingLabels] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<"list" | "edit">("list");
+  const [mode, setMode] = useState<"list" | "edit" | "ai">("list");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [intervals, setIntervals] = useState<IntervalDraft[]>([emptyInterval()]);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [aiText, setAiText] = useState("");
+  const [aiDraft, setAiDraft] = useState<CustomWorkoutDraft | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiConfirming, setAiConfirming] = useState(false);
 
   const activityById = useMemo(() => {
     const map = new Map<string, ActivityType>();
@@ -107,6 +113,13 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
     setMode("edit");
   };
 
+  const openAi = () => {
+    setAiText("");
+    setAiDraft(null);
+    setError(null);
+    setMode("ai");
+  };
+
   const openEdit = (workout: CustomWorkout) => {
     setEditingId(workout.id);
     setName(workout.name);
@@ -118,6 +131,7 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
   const backToList = () => {
     setMode("list");
     setEditingId(null);
+    setAiDraft(null);
     setError(null);
   };
 
@@ -192,8 +206,150 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
     }
   };
 
+  const handleAiDraft = async () => {
+    const trimmed = aiText.trim();
+    if (trimmed.length < 3) {
+      setError("Опишите тренировку текстом");
+      return;
+    }
+    setAiLoading(true);
+    setError(null);
+    setAiDraft(null);
+    try {
+      const draft = await draftCoachCustomWorkoutFromText(trimmed);
+      setAiDraft(draft);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось собрать черновик");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAiConfirm = async () => {
+    if (!aiDraft) return;
+    setAiConfirming(true);
+    setError(null);
+    try {
+      await createCoachCustomWorkout({
+        name: aiDraft.name,
+        intervals: aiDraft.intervals.map((item) => ({
+          source_activity_type_id: item.source_activity_type_id,
+          duration_min: item.duration_min,
+          label: item.label ?? null,
+        })),
+      });
+      await load();
+      backToList();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось сохранить");
+    } finally {
+      setAiConfirming(false);
+    }
+  };
+
+  const handleAiReject = () => {
+    setAiDraft(null);
+    setError(null);
+  };
+
   if (loading && mode === "list") {
     return <p className="text-muted">Загрузка…</p>;
+  }
+
+  if (mode === "ai") {
+    return (
+      <div className="coach-workouts">
+        <button type="button" className="coach-workouts__back text-secondary" onClick={backToList}>
+          ← К списку
+        </button>
+
+        <p className="text-secondary coach-workouts__hint">
+          Опишите тренировку своими словами. Система подберёт активности из справочника — подтвердите или
+          отклоните результат.
+        </p>
+
+        <label className="coach-workouts__field">
+          <span className="text-secondary">Текст тренировки</span>
+          <textarea
+            className="glass-input coach-workouts__ai-text"
+            value={aiText}
+            rows={5}
+            maxLength={4000}
+            placeholder={"Например:\nсуставная разминка 10 мин\nлёгкий бег 20\nрастяжка 10"}
+            disabled={aiLoading || aiConfirming}
+            onChange={(event) => setAiText(event.target.value)}
+          />
+        </label>
+
+        {!aiDraft ? (
+          <button
+            type="button"
+            className="coach-btn coach-btn--primary"
+            disabled={aiLoading || aiText.trim().length < 3}
+            onClick={() => void handleAiDraft()}
+          >
+            {aiLoading ? "Собираем черновик…" : "Собрать черновик"}
+          </button>
+        ) : null}
+
+        {aiDraft ? (
+          <div className="coach-workouts__ai-draft">
+            <div className="coach-workouts__summary glass glass--panel">
+              <div className="coach-workouts__summary-met">
+                <span className="coach-workouts__summary-value">{aiDraft.average_met}</span>
+                <span className="coach-workouts__summary-unit text-muted">средний MET</span>
+              </div>
+              <div className="coach-workouts__summary-meta text-secondary">
+                <span>{aiDraft.name}</span>
+                <span aria-hidden="true">·</span>
+                <span>{aiDraft.total_duration_min} мин</span>
+                <span aria-hidden="true">·</span>
+                <span>{aiDraft.total_load_met_minutes} MET·мин</span>
+                <span aria-hidden="true">·</span>
+                <span>
+                  {aiDraft.intervals.length} этап
+                  {aiDraft.intervals.length === 1 ? "" : aiDraft.intervals.length < 5 ? "а" : "ов"}
+                </span>
+              </div>
+            </div>
+
+            <ul className="coach-workouts__ai-intervals">
+              {aiDraft.intervals.map((item, index) => (
+                <li key={`${item.source_activity_type_id}-${index}`} className="glass glass--panel">
+                  <span className="text-muted">Этап {index + 1}</span>
+                  <strong>{item.source_activity_name}</strong>
+                  <span className="text-secondary">
+                    {item.duration_min} мин · MET {item.source_met_value}
+                    {item.label ? ` · ${item.label}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="coach-workouts__footer">
+              <button
+                type="button"
+                className="coach-btn coach-btn--primary"
+                disabled={aiConfirming}
+                onClick={() => void handleAiConfirm()}
+              >
+                {aiConfirming ? "Сохранение…" : "Подтвердить"}
+              </button>
+              <button
+                type="button"
+                className="coach-btn coach-btn--muted"
+                disabled={aiConfirming}
+                onClick={handleAiReject}
+              >
+                Отклонить
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {error ? <p className="auth-error">{error}</p> : null}
+      </div>
+    );
   }
 
   if (mode === "edit") {
@@ -343,11 +499,16 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
       ) : null}
       <div className="coach-workouts__list-head">
         <p className="text-secondary coach-workouts__hint">
-          Соберите тренировку из справочника: этапы с минутами и средний MET для расписания.
+          Соберите тренировку из справочника или опишите текстом — система подберёт этапы.
         </p>
-        <button type="button" className="coach-btn coach-btn--primary" onClick={openCreate}>
-          Создать
-        </button>
+        <div className="coach-workouts__list-actions">
+          <button type="button" className="coach-btn coach-btn--muted" onClick={openAi}>
+            Из текста
+          </button>
+          <button type="button" className="coach-btn coach-btn--primary" onClick={openCreate}>
+            Создать
+          </button>
+        </div>
       </div>
 
       {error ? <p className="auth-error">{error}</p> : null}

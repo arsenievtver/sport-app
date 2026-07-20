@@ -67,3 +67,33 @@ class CustomWorkoutResponse(BaseModel):
     coach_name: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class CustomWorkoutDraftFromTextRequest(BaseModel):
+    text: str = Field(min_length=3, max_length=4000)
+
+    @field_validator("text")
+    @classmethod
+    def normalize_text(cls, value: str) -> str:
+        trimmed = value.strip()
+        if len(trimmed) < 3:
+            raise ValueError("Опишите тренировку хотя бы несколькими словами")
+        return trimmed
+
+
+class CustomWorkoutDraftInterval(BaseModel):
+    source_activity_type_id: UUID
+    source_activity_name: str
+    source_met_value: float
+    duration_min: int
+    label: str | None = None
+    load_met_minutes: float
+
+
+class CustomWorkoutDraftResponse(BaseModel):
+    name: str
+    average_met: float
+    total_duration_min: int
+    total_load_met_minutes: float
+    intervals: list[CustomWorkoutDraftInterval]
+    warnings: list[str] = Field(default_factory=list)

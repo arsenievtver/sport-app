@@ -170,6 +170,24 @@ export interface CustomWorkout {
   coach_name?: string | null;
 }
 
+export interface CustomWorkoutDraftInterval {
+  source_activity_type_id: string;
+  source_activity_name: string;
+  source_met_value: number;
+  duration_min: number;
+  label?: string | null;
+  load_met_minutes: number;
+}
+
+export interface CustomWorkoutDraft {
+  name: string;
+  average_met: number;
+  total_duration_min: number;
+  total_load_met_minutes: number;
+  intervals: CustomWorkoutDraftInterval[];
+  warnings: string[];
+}
+
 /** Duration-weighted average MET from interval drafts (Compendium MET × minutes). */
 export function calculateCustomWorkoutSummary(
   intervals: Array<{ met_value: number; duration_min: number }>,

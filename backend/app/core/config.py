@@ -54,5 +54,14 @@ class Settings(BaseSettings):
     food_translation_target_lang: str = "ru"
     logmeal_catalog_sync_max_age_days: int = 7
 
+    # Yandex Foundation Models (embeddings + YandexGPT). Falls back to Translate key/folder.
+    # API key needs scope yc.ai.foundationModels.execute.
+    yandex_ai_api_key: str | None = None
+    yandex_ai_folder_id: str | None = None
+    yandex_gpt_model: str = "yandexgpt-lite/latest"
+    # emb://… model suffixes (256-dim)
+    yandex_embedding_doc_model: str = "text-search-doc/latest"
+    yandex_embedding_query_model: str = "text-search-query/latest"
+
 
 settings = Settings()
