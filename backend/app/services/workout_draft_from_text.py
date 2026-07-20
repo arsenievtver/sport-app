@@ -32,11 +32,11 @@ DURATION_WITH_UNIT_RE = re.compile(
     re.IGNORECASE,
 )
 TRAILING_MINUTES_RE = re.compile(r"(\d+)\s*$")
-JSON_BLOCK_RE = re.compile(r"\{[\s\S]*\}")
 
 SYSTEM_PROMPT = """Ты помощник тренера по фитнесу.
 По тексту тренировки и кандидатам из справочника Compendium выбери активность для каждого этапа.
-Ответь ТОЛЬКО валидным JSON без markdown:
+Ответь одним JSON-объектом и больше ничем: без markdown, без пояснений до или после.
+Формат:
 {"name":"краткое название","intervals":[{"source_activity_type_id":"uuid","duration_min":10,"label":"фраза этапа"}]}
 Правила:
 - source_activity_type_id бери ТОЛЬКО из списка кандидатов указанного этапа (поле id).
@@ -90,13 +90,16 @@ def split_coach_text(text: str) -> list[_Segment]:
 
 def _extract_json(raw: str) -> dict:
     text = raw.strip()
-    if text.startswith("```"):
-        text = re.sub(r"^```(?:json)?\s*", "", text)
-        text = re.sub(r"\s*```$", "", text)
-    match = JSON_BLOCK_RE.search(text)
-    if not match:
+    # Strip markdown fences anywhere (YandexGPT often wraps JSON).
+    text = re.sub(r"```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+    text = text.replace("```", "").strip()
+    start = text.find("{")
+    if start < 0:
         raise ValueError("В ответе модели нет JSON")
-    data = json.loads(match.group(0))
+    try:
+        data, _end = json.JSONDecoder().raw_decode(text[start:])
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Не удалось разобрать JSON: {exc}") from exc
     if not isinstance(data, dict):
         raise ValueError("JSON должен быть объектом")
     return data
