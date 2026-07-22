@@ -103,3 +103,10 @@ class MessageContextType(str, enum.Enum):
     workout_log = "workout_log"
     goal = "goal"
     substitution = "substitution"
+
+
+class AiChatMessageRole(str, enum.Enum):
+    user = "user"
+    assistant = "assistant"
+    system = "system"
+    tool = "tool"

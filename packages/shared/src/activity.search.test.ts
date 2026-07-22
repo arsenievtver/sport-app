@@ -6,6 +6,7 @@ import {
   activitySearchMatches,
   buildActivitySearchHaystack,
   filterActivityTypesForPicker,
+  groupActivityTypesByMajorHeading,
   isPickerAllowedMajorHeading,
   normalizeActivitySearchText,
   pickSuggestedActivityTypes,
@@ -82,6 +83,10 @@ assert(
   filtered.some((item) => item.id === "6"),
   "picker filter keeps custom workouts",
 );
+
+const groups = groupActivityTypesByMajorHeading(filtered, { custom: "Мои тренировки" });
+assert(groups[0]?.heading === "custom", "custom workouts group sorts first");
+assert(groups[0]?.items.some((item) => item.id === "6"), "custom group contains workout");
 
 const suggested = pickSuggestedActivityTypes(items, 4);
 assert(suggested.length >= 3, "suggested returns several pins");

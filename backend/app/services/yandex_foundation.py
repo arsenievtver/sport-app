@@ -3,18 +3,23 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import re
+import uuid
 from typing import Any
 
 import httpx
 
 from app.core.config import settings
 from app.models.activity_type import ACTIVITY_EMBEDDING_DIM
+from app.services.llm_chat import LlmChatResult, LlmMessage, LlmToolCall, LlmToolSpec
 
 logger = logging.getLogger(__name__)
 
 YANDEX_EMBEDDING_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/textEmbedding"
 YANDEX_COMPLETION_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
+YANDEX_CHAT_COMPLETIONS_URL = "https://llm.api.cloud.yandex.net/v1/chat/completions"
 
 
 class YandexFoundationError(RuntimeError):
@@ -65,7 +70,6 @@ class YandexFoundationClient:
             "modelUri": self._model_uri("emb", model),
             "text": cleaned[:8000],
         }
-        # Yandex free/trial quota is often ~10 RPS; retry 429 with backoff.
         last_error = ""
         for attempt in range(8):
             async with httpx.AsyncClient(timeout=60.0) as client:
@@ -150,3 +154,230 @@ class YandexFoundationClient:
         if not isinstance(text, str) or not text.strip():
             raise YandexFoundationError("YandexGPT: пустой ответ")
         return text.strip()
+
+    async def complete_chat(
+        self,
+        messages: list[LlmMessage],
+        tools: list[LlmToolSpec] | None = None,
+        *,
+        temperature: float = 0.1,
+        max_tokens: int = 1500,
+    ) -> LlmChatResult:
+        """Multi-turn chat with optional tools (OpenAI-compatible + JSON fallback)."""
+        tools = tools or []
+        try:
+            return await self._complete_chat_openai(messages, tools, temperature, max_tokens)
+        except YandexFoundationError as exc:
+            logger.info("Yandex chat completions failed (%s); using JSON tool protocol", exc)
+            return await self._complete_chat_json_protocol(
+                messages, tools, temperature=temperature, max_tokens=max_tokens
+            )
+
+    async def _complete_chat_openai(
+        self,
+        messages: list[LlmMessage],
+        tools: list[LlmToolSpec],
+        temperature: float,
+        max_tokens: int,
+    ) -> LlmChatResult:
+        payload: dict[str, Any] = {
+            "model": self._model_uri("gpt", settings.yandex_gpt_model),
+            "messages": [_to_openai_message(m) for m in messages],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        if tools:
+            payload["tools"] = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": t.name,
+                        "description": t.description,
+                        "parameters": t.parameters,
+                    },
+                }
+                for t in tools
+            ]
+            payload["tool_choice"] = "auto"
+
+        async with httpx.AsyncClient(timeout=90.0) as client:
+            response = await client.post(
+                YANDEX_CHAT_COMPLETIONS_URL,
+                headers=self._headers(),
+                json=payload,
+            )
+        if response.status_code >= 400:
+            raise YandexFoundationError(
+                f"Yandex chat completions HTTP {response.status_code}: {response.text[:300]}"
+            )
+        data = response.json()
+        try:
+            choice = data["choices"][0]["message"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise YandexFoundationError("Yandex chat: unexpected response") from exc
+
+        content = choice.get("content")
+        if isinstance(content, list):
+            content = " ".join(
+                part.get("text", "") if isinstance(part, dict) else str(part) for part in content
+            )
+        tool_calls_raw = choice.get("tool_calls") or []
+        tool_calls = [_parse_openai_tool_call(tc) for tc in tool_calls_raw]
+        tool_calls = [tc for tc in tool_calls if tc is not None]
+
+        if not tool_calls and isinstance(content, str):
+            parsed = _parse_tool_protocol_text(content)
+            if parsed.tool_calls:
+                return parsed
+
+        return LlmChatResult(
+            content=content.strip() if isinstance(content, str) and content.strip() else None,
+            tool_calls=tool_calls,
+        )
+
+    async def _complete_chat_json_protocol(
+        self,
+        messages: list[LlmMessage],
+        tools: list[LlmToolSpec],
+        *,
+        temperature: float,
+        max_tokens: int,
+    ) -> LlmChatResult:
+        tools_blob = json.dumps(
+            [{"name": t.name, "description": t.description, "parameters": t.parameters} for t in tools],
+            ensure_ascii=False,
+        )
+        protocol = (
+            "Reply with JSON only. To call tools: "
+            '{"tool_calls":[{"name":"...","arguments":{...}}]}. '
+            'To answer user: {"answer":"..."}. Never invent numbers; use tools.'
+        )
+        system_parts = [protocol, f"Tools: {tools_blob}"]
+        for m in messages:
+            if m.role == "system" and m.content:
+                system_parts.append(m.content)
+        system = "\n".join(system_parts)[:4000]
+
+        transcript: list[str] = []
+        for m in messages:
+            if m.role == "system":
+                continue
+            if m.role == "tool":
+                transcript.append(f"TOOL[{m.name or m.tool_call_id}]: {m.content}")
+            elif m.tool_calls:
+                transcript.append(
+                    "ASSISTANT_TOOLS: "
+                    + json.dumps(
+                        [{"name": tc.name, "arguments": tc.arguments} for tc in m.tool_calls],
+                        ensure_ascii=False,
+                    )
+                )
+            else:
+                transcript.append(f"{m.role.upper()}: {m.content}")
+        user = "\n".join(transcript)[-12000:]
+        if not user.strip():
+            user = "Hello"
+
+        text = await self.complete(
+            system=system,
+            user=user,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        return _parse_tool_protocol_text(text)
+
+
+def _to_openai_message(message: LlmMessage) -> dict[str, Any]:
+    if message.role == "tool":
+        return {
+            "role": "tool",
+            "tool_call_id": message.tool_call_id or "tool",
+            "content": message.content,
+            **({"name": message.name} if message.name else {}),
+        }
+    if message.tool_calls:
+        return {
+            "role": "assistant",
+            "content": message.content or None,
+            "tool_calls": [
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {
+                        "name": tc.name,
+                        "arguments": json.dumps(tc.arguments, ensure_ascii=False),
+                    },
+                }
+                for tc in message.tool_calls
+            ],
+        }
+    return {"role": message.role, "content": message.content}
+
+
+def _parse_openai_tool_call(raw: Any) -> LlmToolCall | None:
+    if not isinstance(raw, dict):
+        return None
+    fn = raw.get("function") or {}
+    name = fn.get("name") or raw.get("name")
+    if not name:
+        return None
+    args_raw = fn.get("arguments") or raw.get("arguments") or "{}"
+    if isinstance(args_raw, dict):
+        arguments = args_raw
+    else:
+        try:
+            arguments = json.loads(args_raw) if args_raw else {}
+        except json.JSONDecodeError:
+            arguments = {}
+    if not isinstance(arguments, dict):
+        arguments = {}
+    return LlmToolCall(
+        id=str(raw.get("id") or uuid.uuid4()),
+        name=str(name),
+        arguments=arguments,
+    )
+
+
+def _parse_tool_protocol_text(text: str) -> LlmChatResult:
+    cleaned = text.strip()
+    fence = re.search(r"```(?:json)?\s*([\s\S]*?)```", cleaned)
+    if fence:
+        cleaned = fence.group(1).strip()
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    if start >= 0 and end > start:
+        cleaned = cleaned[start : end + 1]
+    try:
+        data = json.loads(cleaned)
+    except json.JSONDecodeError:
+        return LlmChatResult(content=text.strip() or None)
+
+    if isinstance(data, dict) and "answer" in data and "tool_calls" not in data:
+        answer = data.get("answer")
+        return LlmChatResult(content=str(answer).strip() if answer is not None else None)
+
+    calls_raw = None
+    if isinstance(data, dict):
+        if "tool_calls" in data:
+            calls_raw = data["tool_calls"]
+        elif "tool" in data or "name" in data:
+            calls_raw = [data]
+
+    if isinstance(calls_raw, list) and calls_raw:
+        tool_calls: list[LlmToolCall] = []
+        for item in calls_raw:
+            if not isinstance(item, dict):
+                continue
+            name = item.get("name") or item.get("tool")
+            if not name:
+                continue
+            args = item.get("arguments") or item.get("args") or {}
+            if not isinstance(args, dict):
+                args = {}
+            tool_calls.append(
+                LlmToolCall(id=str(item.get("id") or uuid.uuid4()), name=str(name), arguments=args)
+            )
+        if tool_calls:
+            return LlmChatResult(tool_calls=tool_calls)
+
+    return LlmChatResult(content=text.strip() or None)

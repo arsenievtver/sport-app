@@ -14,3 +14,4 @@ export * from "./plan";
 export * from "./meals";
 export * from "./meal-catalog";
 export * from "./activity-compendium";
+export * from "./athlete-chat";

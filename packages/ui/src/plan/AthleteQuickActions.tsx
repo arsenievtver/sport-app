@@ -3,7 +3,7 @@ import { IconDumbbell } from "../icons/AthleteMetricIcons";
 import { ICON_VIEW_BOX, iconStrokeProps } from "../icons/iconProps";
 import "./athlete-plan.css";
 
-export type AthleteQuickActionId = "my-plan" | "nutrition" | "workouts";
+export type AthleteQuickActionId = "my-plan" | "nutrition" | "workouts" | "assistant";
 
 interface AthleteQuickActionsProps {
   onAction: (action: AthleteQuickActionId) => void;
@@ -28,6 +28,15 @@ function IconNutrition() {
   );
 }
 
+function IconAssistant() {
+  return (
+    <svg viewBox={ICON_VIEW_BOX} aria-hidden="true" {...iconStrokeProps}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      <path d="M8 9h8M8 13h5" />
+    </svg>
+  );
+}
+
 const ACTIONS: Array<{
   id: AthleteQuickActionId;
   label: string;
@@ -37,6 +46,7 @@ const ACTIONS: Array<{
   { id: "my-plan", label: "Мой план", hint: "Настроить", Icon: IconMyPlan },
   { id: "nutrition", label: "Питание", hint: "Записать", Icon: IconNutrition },
   { id: "workouts", label: "Тренировки", hint: "Открыть", Icon: IconDumbbell },
+  { id: "assistant", label: "Ассистент", hint: "Спросить", Icon: IconAssistant },
 ];
 
 export function AthleteQuickActions({ onAction }: AthleteQuickActionsProps) {

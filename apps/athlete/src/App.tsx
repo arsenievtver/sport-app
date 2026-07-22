@@ -32,6 +32,7 @@ import {
 import { WhoopOAuthListener } from "./components/WhoopOAuthListener";
 import { AthleteDataTabPanel } from "./components/AthleteDataTabPanel";
 import { AthleteNutritionPanel } from "./components/AthleteNutritionPanel";
+import { AthleteChatPanel } from "./components/AthleteChatPanel";
 import { BottomNavIconData } from "./components/BottomNavIconData";
 import { WhoopSettingsPanel } from "./components/WhoopSettingsPanel";
 import { AthleteUpcomingSessionsPanel } from "./components/AthleteUpcomingSessionsPanel";
@@ -46,6 +47,7 @@ const HOME_OVERLAY_TITLES: Record<Exclude<HomeOverlay, null>, string> = {
   "my-plan": "Мой план",
   nutrition: "Питание",
   workouts: "Тренировки",
+  assistant: "Ассистент",
 };
 
 const TAB_TITLES: Record<AthleteTab, string | ((name: string) => string)> = {
@@ -195,6 +197,8 @@ export default function App() {
               <AthleteNutritionPanel />
             ) : homeOverlay === "workouts" ? (
               <AthleteWorkoutsPanel refreshKey={sessionsCompleted} />
+            ) : homeOverlay === "assistant" ? (
+              <AthleteChatPanel />
             ) : (
               <PullToRefresh
                 onRefresh={async () => {

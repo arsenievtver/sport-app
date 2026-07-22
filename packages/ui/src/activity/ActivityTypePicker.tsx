@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import type { ActivityType } from "@sport-app/shared";
 import {
+  CUSTOM_WORKOUT_HEADING_LABEL,
   CUSTOM_WORKOUT_MAJOR_HEADING,
   PICKER_ALLOWED_MAJOR_HEADINGS,
   RECENT_ACTIVITY_TYPES_LABEL,
@@ -9,6 +10,7 @@ import {
   buildActivitySearchHaystack,
   filterActivityTypesForPicker,
   groupActivityTypesByMajorHeading,
+  isCustomWorkoutActivity,
   pickSuggestedActivityTypes,
 } from "@sport-app/shared";
 import { SelectPicker, type SelectPickerGroup, type SelectPickerOption } from "../select/SelectPicker";
@@ -55,6 +57,15 @@ export function ActivityTypePicker({
 }: ActivityTypePickerProps) {
   const catalog = useMemo(() => filterActivityTypesForPicker(activityTypes), [activityTypes]);
 
+  const customWorkouts = useMemo(
+    () =>
+      catalog
+        .filter((item) => !compendiumOnly && isCustomWorkoutActivity(item))
+        .slice()
+        .sort((a, b) => (a.name_ru || a.name_en).localeCompare(b.name_ru || b.name_en, "ru")),
+    [catalog, compendiumOnly],
+  );
+
   const recentActivityTypes = useMemo(
     () =>
       recentActivityTypeIds
@@ -74,8 +85,11 @@ export function ActivityTypePicker({
     for (const item of suggestedActivityTypes) {
       ids.add(item.id);
     }
+    for (const item of customWorkouts) {
+      ids.add(item.id);
+    }
     return ids;
-  }, [recentActivityTypes, suggestedActivityTypes]);
+  }, [recentActivityTypes, suggestedActivityTypes, customWorkouts]);
 
   const groupedActivityTypes = useMemo(
     () =>
@@ -89,6 +103,16 @@ export function ActivityTypePicker({
 
   const groups = useMemo(() => {
     const result: SelectPickerGroup[] = [];
+
+    // Coach-composed workouts first when assigning (schedule / home complete).
+    if (customWorkouts.length > 0) {
+      result.push({
+        id: CUSTOM_WORKOUT_MAJOR_HEADING,
+        label: headingLabels[CUSTOM_WORKOUT_MAJOR_HEADING] ?? CUSTOM_WORKOUT_HEADING_LABEL,
+        pinned: true,
+        options: customWorkouts.map(toOption),
+      });
+    }
 
     if (!compendiumOnly && recentActivityTypes.length > 0) {
       result.push({
@@ -109,16 +133,24 @@ export function ActivityTypePicker({
     }
 
     for (const group of groupedActivityTypes) {
+      if (group.heading === CUSTOM_WORKOUT_MAJOR_HEADING) continue;
       result.push({
         id: group.heading || "__ungrouped__",
         label: group.label,
-        pinned: group.heading === CUSTOM_WORKOUT_MAJOR_HEADING,
+        pinned: false,
         options: group.items.map(toOption),
       });
     }
 
     return result;
-  }, [recentActivityTypes, suggestedActivityTypes, groupedActivityTypes, compendiumOnly]);
+  }, [
+    customWorkouts,
+    recentActivityTypes,
+    suggestedActivityTypes,
+    groupedActivityTypes,
+    compendiumOnly,
+    headingLabels,
+  ]);
 
   const matchOption = useCallback((option: SelectPickerOption, query: string) => {
     return activitySearchMatches(`${option.label} ${option.searchText ?? ""}`, query);

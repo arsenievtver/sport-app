@@ -48,7 +48,12 @@ class ActivityTypeService:
                     ActivityType.owner_coach_id == coach.id,
                 ),
             )
-            .order_by(nulls_last(ActivityType.major_heading.asc()), ActivityType.name_ru.asc())
+            .order_by(
+                # Coach custom workouts first, then Compendium by heading/name.
+                ActivityType.owner_coach_id.is_(None).asc(),
+                nulls_last(ActivityType.major_heading.asc()),
+                ActivityType.name_ru.asc(),
+            )
         )
         items = [ActivityTypeResponse.model_validate(item) for item in result.scalars().all()]
         return await self._build_list_response(items, [], include_custom_label=True)

@@ -1,0 +1,163 @@
+.athlete-chat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+}
+
+.athlete-chat--conversation {
+  height: min(70vh, 640px);
+}
+
+.athlete-chat__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.athlete-chat__hint {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.athlete-chat__new-btn,
+.athlete-chat__back-btn,
+.athlete-chat__send {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+}
+
+.athlete-chat__new-btn:active,
+.athlete-chat__back-btn:active,
+.athlete-chat__send:active {
+  transform: scale(0.98);
+}
+
+.athlete-chat__send:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.athlete-chat__error {
+  margin: 0;
+  color: var(--color-danger, #b42318);
+  font-size: var(--text-sm);
+}
+
+.athlete-chat__empty {
+  display: grid;
+  gap: var(--space-3);
+  place-items: center;
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.athlete-chat__thread-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.athlete-chat__thread-item {
+  width: 100%;
+  display: grid;
+  gap: var(--space-1);
+  text-align: left;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  padding: var(--space-3);
+}
+
+.athlete-chat__thread-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.athlete-chat__thread-date {
+  font-size: var(--text-xs);
+}
+
+.athlete-chat__messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+}
+
+.athlete-chat__empty-hint {
+  margin: var(--space-4) 0;
+  text-align: center;
+  font-size: var(--text-sm);
+}
+
+.athlete-chat__bubble {
+  max-width: 88%;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.athlete-chat__bubble--user {
+  align-self: flex-end;
+  background: color-mix(in srgb, var(--color-primary) 18%, var(--color-surface));
+  color: var(--color-text);
+}
+
+.athlete-chat__bubble--assistant {
+  align-self: flex-start;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.athlete-chat__typing {
+  opacity: 0.75;
+  font-style: italic;
+}
+
+.athlete-chat__composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-2);
+  align-items: end;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.athlete-chat__input {
+  width: 100%;
+  resize: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-3);
+  min-height: 52px;
+}
+
+.athlete-chat__input:focus {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  outline-offset: 1px;
+}

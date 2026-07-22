@@ -105,7 +105,9 @@ export function groupActivityTypesByMajorHeading(
     if (options?.compendiumOnly && isCustomWorkoutActivity(item)) {
       continue;
     }
-    const heading = item.major_heading?.trim() ?? "";
+    const heading = isCustomWorkoutActivity(item)
+      ? CUSTOM_WORKOUT_MAJOR_HEADING
+      : (item.major_heading?.trim() ?? "");
     if (
       allowedHeadings &&
       !isCustomWorkoutActivity(item) &&

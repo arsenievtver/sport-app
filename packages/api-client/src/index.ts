@@ -12,6 +12,7 @@ export {
 } from "./fetch";
 export * from "./admin";
 export * from "./athlete";
+export * from "./athlete-chat";
 export * from "./coach";
 export * from "./schedule";
 export * from "./whoop";

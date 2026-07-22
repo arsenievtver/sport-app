@@ -14,6 +14,7 @@ from app.models.activity_major_heading_label import ActivityMajorHeadingLabel
 from app.models.activity_type import ActivityType
 from app.models.coach_workout_interval import CoachWorkoutInterval
 from app.models.athlete_weight import AthleteWeightEntry
+from app.models.athlete_ai_chat import AthleteAiChatMessage, AthleteAiChatThread
 from app.models.food_name_translation import FoodNameTranslation
 from app.models.logmeal_dish_catalog import LogMealCatalogSync, LogMealDishCatalog
 from app.models.meal_entry import AthleteMealEntry
@@ -33,6 +34,8 @@ __all__ = [
     "ActivityMajorHeadingLabel",
     "AthleteWeightEntry",
     "AthleteMealEntry",
+    "AthleteAiChatThread",
+    "AthleteAiChatMessage",
     "FoodNameTranslation",
     "LogMealDishCatalog",
     "LogMealCatalogSync",
