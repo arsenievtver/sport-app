@@ -162,16 +162,24 @@ class YandexFoundationClient:
         *,
         temperature: float = 0.1,
         max_tokens: int = 1500,
+        known_tool_names: set[str] | None = None,
     ) -> LlmChatResult:
-        """Multi-turn chat with optional tools (OpenAI-compatible + JSON fallback)."""
+        """Multi-turn chat with tools via JSON protocol (reliable on YandexGPT-lite)."""
         tools = tools or []
-        try:
-            return await self._complete_chat_openai(messages, tools, temperature, max_tokens)
-        except YandexFoundationError as exc:
-            logger.info("Yandex chat completions failed (%s); using JSON tool protocol", exc)
-            return await self._complete_chat_json_protocol(
-                messages, tools, temperature=temperature, max_tokens=max_tokens
-            )
+        # Native OpenAI-style tool_calls are flaky on lite: the model narrates
+        # "[Использование функции ...]" instead of structured calls. Prefer JSON.
+        result = await self._complete_chat_json_protocol(
+            messages, tools, temperature=temperature, max_tokens=max_tokens
+        )
+        if result.tool_calls:
+            return result
+        if result.content and (known_tool_names or {t.name for t in tools}):
+            names = known_tool_names or {t.name for t in tools}
+            prose = _parse_tool_protocol_text(result.content, known_tools=names)
+            if prose.tool_calls:
+                return prose
+        return result
+
 
     async def _complete_chat_openai(
         self,
@@ -248,9 +256,10 @@ class YandexFoundationClient:
             ensure_ascii=False,
         )
         protocol = (
-            "Reply with JSON only. To call tools: "
-            '{"tool_calls":[{"name":"...","arguments":{...}}]}. '
-            'To answer user: {"answer":"..."}. Never invent numbers; use tools.'
+            "You MUST reply with a single JSON object and nothing else. "
+            'Call tools: {"tool_calls":[{"name":"get_session_history","arguments":{"days":30}}]}. '
+            'Final answer: {"answer":"..."}. '
+            "Never narrate tool use in Russian. Never invent numbers; use tools first."
         )
         system_parts = [protocol, f"Tools: {tools_blob}"]
         for m in messages:
@@ -284,7 +293,8 @@ class YandexFoundationClient:
             temperature=temperature,
             max_tokens=max_tokens,
         )
-        return _parse_tool_protocol_text(text)
+        known = {t.name for t in tools}
+        return _parse_tool_protocol_text(text, known_tools=known or None)
 
 
 def _to_openai_message(message: LlmMessage) -> dict[str, Any]:
@@ -338,19 +348,26 @@ def _parse_openai_tool_call(raw: Any) -> LlmToolCall | None:
     )
 
 
-def _parse_tool_protocol_text(text: str) -> LlmChatResult:
+def _parse_tool_protocol_text(
+    text: str,
+    *,
+    known_tools: set[str] | None = None,
+) -> LlmChatResult:
     cleaned = text.strip()
     fence = re.search(r"```(?:json)?\s*([\s\S]*?)```", cleaned)
     if fence:
         cleaned = fence.group(1).strip()
+
+    # Prefer JSON object if present
     start = cleaned.find("{")
     end = cleaned.rfind("}")
+    json_candidate = cleaned
     if start >= 0 and end > start:
-        cleaned = cleaned[start : end + 1]
+        json_candidate = cleaned[start : end + 1]
     try:
-        data = json.loads(cleaned)
+        data = json.loads(json_candidate)
     except json.JSONDecodeError:
-        return LlmChatResult(content=text.strip() or None)
+        data = None
 
     if isinstance(data, dict) and "answer" in data and "tool_calls" not in data:
         answer = data.get("answer")
@@ -364,20 +381,119 @@ def _parse_tool_protocol_text(text: str) -> LlmChatResult:
             calls_raw = [data]
 
     if isinstance(calls_raw, list) and calls_raw:
-        tool_calls: list[LlmToolCall] = []
-        for item in calls_raw:
-            if not isinstance(item, dict):
-                continue
-            name = item.get("name") or item.get("tool")
-            if not name:
-                continue
-            args = item.get("arguments") or item.get("args") or {}
-            if not isinstance(args, dict):
-                args = {}
-            tool_calls.append(
-                LlmToolCall(id=str(item.get("id") or uuid.uuid4()), name=str(name), arguments=args)
-            )
+        tool_calls = _tool_calls_from_raw_list(calls_raw)
         if tool_calls:
             return LlmChatResult(tool_calls=tool_calls)
 
+    prose_calls = _extract_prose_tool_calls(text, known_tools=known_tools)
+    if prose_calls:
+        return LlmChatResult(tool_calls=prose_calls)
+
     return LlmChatResult(content=text.strip() or None)
+
+
+def _tool_calls_from_raw_list(calls_raw: list[Any]) -> list[LlmToolCall]:
+    tool_calls: list[LlmToolCall] = []
+    for item in calls_raw:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name") or item.get("tool")
+        if not name:
+            continue
+        args = item.get("arguments") or item.get("args") or {}
+        if not isinstance(args, dict):
+            args = {}
+        tool_calls.append(
+            LlmToolCall(id=str(item.get("id") or uuid.uuid4()), name=str(name), arguments=args)
+        )
+    return tool_calls
+
+
+def _extract_prose_tool_calls(
+    text: str,
+    *,
+    known_tools: set[str] | None = None,
+) -> list[LlmToolCall]:
+    """Parse Yandex narrations like [Использование функции 'get_session_history' ...]."""
+    calls: list[LlmToolCall] = []
+    seen: set[str] = set()
+
+    def add(name: str, arguments: dict[str, Any]) -> None:
+        if known_tools and name not in known_tools:
+            return
+        key = f"{name}:{json.dumps(arguments, sort_keys=True, ensure_ascii=False)}"
+        if key in seen:
+            return
+        seen.add(key)
+        calls.append(LlmToolCall(id=str(uuid.uuid4()), name=name, arguments=arguments))
+
+    # [Использование функции 'NAME' с параметром 'days: 30']
+    for match in re.finditer(
+        r"Использование функции\s+['\"]([a-zA-Z_][\w]*)['\"]"
+        r"(?:\s+с\s+параметр\w*\s+['\"]([^'\"]+)['\"])?",
+        text,
+        flags=re.IGNORECASE,
+    ):
+        name = match.group(1)
+        args = _parse_loose_args(match.group(2) or "")
+        add(name, args)
+
+    # NAME(days=30) / NAME({"days": 30})
+    for match in re.finditer(r"\b([a-zA-Z_][\w]*)\s*\(([^)]*)\)", text):
+        name = match.group(1)
+        if known_tools and name not in known_tools:
+            continue
+        if name in {"json", "dict", "list"}:
+            continue
+        args = _parse_loose_args(match.group(2) or "")
+        add(name, args)
+
+    # Bare known tool mention + waiting language → call with empty/default args
+    if not calls and known_tools:
+        lower = text.lower()
+        waiting = any(
+            marker in lower
+            for marker in (
+                "подожд",
+                "загружа",
+                "получен",
+                "сейчас запрошу",
+                "нужно получить",
+                "using function",
+                "calling tool",
+            )
+        )
+        if waiting:
+            for name in known_tools:
+                if re.search(rf"\b{re.escape(name)}\b", text):
+                    add(name, {})
+                    break
+
+    return calls
+
+
+def _parse_loose_args(raw: str) -> dict[str, Any]:
+    raw = raw.strip()
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, dict):
+            return parsed
+    except json.JSONDecodeError:
+        pass
+
+    args: dict[str, Any] = {}
+    # days: 30 | days=30 | 'days: 30'
+    for match in re.finditer(
+        r"['\"]?([a-zA-Z_][\w]*)['\"]?\s*[:=]\s*['\"]?([^,'\"}\s]+)['\"]?",
+        raw,
+    ):
+        key = match.group(1)
+        value: Any = match.group(2)
+        if re.fullmatch(r"-?\d+", value):
+            value = int(value)
+        elif re.fullmatch(r"-?\d+\.\d+", value):
+            value = float(value)
+        args[key] = value
+    return args

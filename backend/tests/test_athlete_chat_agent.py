@@ -16,7 +16,15 @@ class FakeLlm:
     def is_configured(self) -> bool:
         return True
 
-    async def complete_chat(self, messages, tools=None, *, temperature=0.1, max_tokens=1500):
+    async def complete_chat(
+        self,
+        messages,
+        tools=None,
+        *,
+        temperature=0.1,
+        max_tokens=1500,
+        known_tool_names=None,
+    ):
         self.calls += 1
         if not self.turns:
             return LlmChatResult(content="fallback")
@@ -32,6 +40,27 @@ async def test_agent_calls_tool_then_answers() -> None:
                 tool_calls=[
                     LlmToolCall(id="1", name="get_profile", arguments={}),
                 ]
+            ),
+            LlmChatResult(content="Тебя зовут Алекс."),
+        ]
+    )
+    agent = AthleteChatAgent(build_stub_registry(), llm=llm)
+    answer = await agent.run(profile, [LlmMessage(role="user", content="Как меня зовут?")])
+    assert "Алекс" in answer
+    assert llm.calls == 2
+
+
+@pytest.mark.asyncio
+async def test_agent_recovers_russian_tool_narration() -> None:
+    profile = SimpleNamespace(id="11111111-1111-1111-1111-111111111111", display_name="Алекс")
+    llm = FakeLlm(
+        [
+            LlmChatResult(
+                content=(
+                    "Для анализа нагрузки мне нужно получить данные.\n"
+                    "[Использование функции 'get_profile' с параметром '_unused: x']\n"
+                    "Подождите, пожалуйста..."
+                )
             ),
             LlmChatResult(content="Тебя зовут Алекс."),
         ]
@@ -77,3 +106,17 @@ def test_parse_tool_protocol_tool_calls() -> None:
     )
     assert len(result.tool_calls) == 1
     assert result.tool_calls[0].name == "get_plan"
+
+
+def test_parse_russian_function_narration() -> None:
+    text = (
+        "Для анализа нагрузки за последний месяц мне нужно получить данные о ваших тренировках. "
+        "[Использование функции 'get_session_history' с параметром 'days: 30'] "
+        "Подождите, пожалуйста, идёт получение данных..."
+    )
+    result = _parse_tool_protocol_text(
+        text, known_tools={"get_session_history", "get_plan"}
+    )
+    assert len(result.tool_calls) == 1
+    assert result.tool_calls[0].name == "get_session_history"
+    assert result.tool_calls[0].arguments.get("days") == 30
