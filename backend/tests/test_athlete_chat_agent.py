@@ -2,7 +2,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.services.athlete_chat_agent import AthleteChatAgent, AthleteChatAgentError
+from app.services.athlete_chat_agent import (
+    AthleteChatAgent,
+    AthleteChatAgentError,
+    _needs_tool_retry,
+)
 from app.services.athlete_chat_tools import build_stub_registry
 from app.services.llm_chat import LlmChatResult, LlmMessage, LlmToolCall
 from app.services.yandex_foundation import _parse_tool_protocol_text
@@ -72,6 +76,34 @@ async def test_agent_recovers_russian_tool_narration() -> None:
 
 
 @pytest.mark.asyncio
+async def test_agent_recovers_meta_tool_excuse() -> None:
+    profile = SimpleNamespace(id="11111111-1111-1111-1111-111111111111", display_name="Алекс")
+    llm = FakeLlm(
+        [
+            LlmChatResult(
+                content=(
+                    "Для получения ответа на ваш вопрос необходимо использовать инструменты "
+                    "для анализа прогресса тренировок. Пожалуйста, выполните запрос."
+                )
+            ),
+            LlmChatResult(
+                content=(
+                    "По плану цель ясна. Сейчас прогресс умеренный — держи ритм "
+                    "и закрой пробел по активности на этой неделе."
+                )
+            ),
+        ]
+    )
+    agent = AthleteChatAgent(build_stub_registry(), llm=llm)
+    answer = await agent.run(
+        profile, [LlmMessage(role="user", content="У меня хороший показатель тренировок?")]
+    )
+    assert "инструмент" not in answer.lower()
+    assert "выполните запрос" not in answer.lower()
+    assert llm.calls == 2
+
+
+@pytest.mark.asyncio
 async def test_agent_direct_answer_without_tools() -> None:
     profile = SimpleNamespace(display_name="Алекс")
     llm = FakeLlm([LlmChatResult(content="Привет!")])
@@ -92,6 +124,15 @@ async def test_agent_requires_configured_llm() -> None:
     agent = AthleteChatAgent(build_stub_registry(), llm=Unconfigured())
     with pytest.raises(AthleteChatAgentError):
         await agent.run(SimpleNamespace(display_name="x"), [LlmMessage(role="user", content="hi")])
+
+
+def test_needs_tool_retry_detects_meta_excuse() -> None:
+    assert _needs_tool_retry(
+        "Для получения ответа на ваш вопрос необходимо использовать инструменты "
+        "для анализа прогресса тренировок. Пожалуйста, выполните запрос."
+    )
+    assert _needs_tool_retry("Необходимо больше данных. Пожалуйста, используйте инструменты.")
+    assert not _needs_tool_retry("По плану 2 тренировки в неделю — ты близко к цели.")
 
 
 def test_parse_tool_protocol_answer() -> None:

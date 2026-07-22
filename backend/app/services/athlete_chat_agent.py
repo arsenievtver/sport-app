@@ -7,7 +7,7 @@ from typing import Protocol
 
 from app.models.user import AthleteProfile
 from app.services.athlete_chat_tools import AthleteToolRegistry
-from app.services.llm_chat import LlmChatResult, LlmMessage, LlmToolSpec
+from app.services.llm_chat import LlmChatResult, LlmMessage, LlmToolCall, LlmToolSpec
 from app.services.yandex_foundation import (
     YandexFoundationClient,
     YandexFoundationError,
@@ -18,13 +18,31 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_MAX_TOOL_ITERATIONS = 5
 
+# Always loaded so answers can compare actuals vs goals/plan.
+BASELINE_TOOL_NAMES = (
+    "get_profile",
+    "get_plan",
+    "get_week_progress",
+    "get_weight_dynamics",
+    "get_sessions_stats",
+)
+
 ATHLETE_CHAT_SYSTEM_PROMPT = (
-    "You are a sports assistant for one authenticated athlete. "
-    "For any facts about plan, workouts, weight, meals, schedule, WHOOP — call tools first. "
-    "Never invent numbers or dates. Never say you will fetch data later — call the tool now. "
-    "Never narrate tool usage; only JSON tool_calls or a final answer. "
-    "Reply to the athlete in Russian, briefly and clearly. "
-    "Do not give medical diagnoses or prescriptions."
+    "You are a professional sports coach assistant for one athlete. "
+    "Use only CONTEXT and tool results; never invent numbers or dates. "
+    "Never ask the athlete to use tools, fetch stats, or 'выполнить запрос' — you call tools yourself. "
+    "Every answer must: (1) use their goals/plan (workouts/week, activity, calories, weight targets, personal goal), "
+    "(2) compare current data to those targets, (3) give a clear conclusion to THEIR question, "
+    "(4) add 1-2 concrete next steps. "
+    "Tone: useful, professional, concise Russian. No medical diagnoses."
+)
+
+ANSWER_NUDGE = (
+    "CONTEXT with goals/plan is already available. "
+    "If you need more facts, reply with JSON tool_calls. "
+    "Otherwise reply with JSON {\"answer\":\"...\"}: answer the athlete question, "
+    "compare to goals/desired load, give a conclusion and 1-2 next steps. "
+    "Never tell the user to use tools."
 )
 
 
@@ -70,12 +88,21 @@ class AthleteChatAgent:
                 "AI не настроен: задайте YANDEX_AI_API_KEY и YANDEX_AI_FOLDER_ID"
             )
 
+        baseline = await self._load_baseline_context(profile)
         messages: list[LlmMessage] = [
             LlmMessage(role="system", content=self.system_prompt),
+            LlmMessage(
+                role="system",
+                content=(
+                    "CONTEXT (goals, plan, week progress, weight, session totals) — already loaded:\n"
+                    f"{baseline}"
+                ),
+            ),
             *history,
         ]
         tools = self.registry.specs()
         known_names = {t.name for t in tools}
+        tools_already_used = set(BASELINE_TOOL_NAMES) & known_names
 
         for _ in range(self.max_tool_iterations):
             try:
@@ -98,6 +125,7 @@ class AthleteChatAgent:
                     )
                 )
                 for call in result.tool_calls:
+                    tools_already_used.add(call.name)
                     tool_result = await self.registry.call(call.name, profile, call.arguments)
                     messages.append(
                         LlmMessage(
@@ -110,21 +138,31 @@ class AthleteChatAgent:
                 continue
 
             answer = (result.content or "").strip()
-            if answer and not _looks_like_pending_tool_narration(answer, known_names):
+            if answer and not _needs_tool_retry(answer):
                 return answer
+
             if answer:
-                # Model stalled on "please wait" — nudge it to call tools as JSON.
                 messages.append(LlmMessage(role="assistant", content=answer))
-                messages.append(
-                    LlmMessage(
-                        role="user",
-                        content=(
-                            'Do not wait. Reply with JSON tool_calls now, e.g. '
-                            '{"tool_calls":[{"name":"get_session_history","arguments":{"days":30}}]}'
-                        ),
-                    )
-                )
+                # Auto-fetch useful extras once if the model stalled on meta-excuse.
+                extra = await self._fetch_extra_tools(profile, tools_already_used)
+                if extra:
+                    for name, payload in extra:
+                        tools_already_used.add(name)
+                        call = LlmToolCall(id=f"auto-{name}", name=name, arguments={})
+                        messages.append(
+                            LlmMessage(role="assistant", content="", tool_calls=[call])
+                        )
+                        messages.append(
+                            LlmMessage(
+                                role="tool",
+                                content=payload,
+                                tool_call_id=call.id,
+                                name=name,
+                            )
+                        )
+                messages.append(LlmMessage(role="user", content=ANSWER_NUDGE))
                 continue
+
             raise AthleteChatAgentError("Пустой ответ ассистента")
 
         try:
@@ -138,7 +176,50 @@ class AthleteChatAgent:
         answer = (result.content or "").strip()
         if not answer:
             raise AthleteChatAgentError("Ассистент не завершил ответ после вызова инструментов")
+        if _needs_tool_retry(answer):
+            # Last resort: don't return the meta-excuse to the athlete.
+            raise AthleteChatAgentError(
+                "Не удалось сформировать ответ по данным. Попробуйте переформулировать вопрос."
+            )
         return answer
+
+    async def _load_baseline_context(self, profile: AthleteProfile) -> str:
+        chunks: list[str] = []
+        for name in BASELINE_TOOL_NAMES:
+            if self.registry.get(name) is None:
+                continue
+            payload = await self.registry.call(name, profile, {})
+            chunks.append(f"{name}={payload}")
+        return "\n".join(chunks) if chunks else "{}"
+
+    async def _fetch_extra_tools(
+        self,
+        profile: AthleteProfile,
+        already: set[str],
+    ) -> list[tuple[str, str]]:
+        extras = (
+            "get_session_history",
+            "get_upcoming_schedule",
+            "get_meals",
+            "get_whoop_summary",
+        )
+        out: list[tuple[str, str]] = []
+        for name in extras:
+            if name in already or self.registry.get(name) is None:
+                continue
+            args: dict = {}
+            if name == "get_session_history":
+                args = {"days": 30}
+            elif name == "get_meals":
+                args = {"days": 7}
+            elif name == "get_upcoming_schedule":
+                args = {"days": 7}
+            payload = await self.registry.call(name, profile, args)
+            out.append((name, payload))
+            # One extra batch is enough to unblock a stuck turn.
+            if len(out) >= 2:
+                break
+        return out
 
     def _coerce_tool_calls(
         self, result: LlmChatResult, known_names: set[str]
@@ -153,21 +234,28 @@ class AthleteChatAgent:
         return result
 
 
-def _looks_like_pending_tool_narration(text: str, known_names: set[str]) -> bool:
+def _needs_tool_retry(text: str) -> bool:
+    """True when the model stalled instead of answering the athlete."""
     lower = text.lower()
-    waiting = any(
-        marker in lower
-        for marker in (
-            "подожд",
-            "загружа",
-            "получен",
-            "сейчас запрошу",
-            "нужно получить",
-            "использование функции",
-            "идёт получение",
-            "идет получение",
-        )
+    markers = (
+        "используйте инструмент",
+        "использовать инструмент",
+        "необходимо использовать",
+        "необходимо больше данных",
+        "нужно больше данных",
+        "выполните запрос",
+        "пожалуйста, используйте",
+        "пожалуйста, выполните",
+        "для получения ответа",
+        "для получения данных",
+        "нужно получить данные",
+        "необходимо получить",
+        "подожд",
+        "загружа",
+        "использование функции",
+        "идёт получение",
+        "идет получение",
+        "please use the tool",
+        "please fetch",
     )
-    if not waiting:
-        return False
-    return any(name in text for name in known_names) or "функц" in lower
+    return any(marker in lower for marker in markers)

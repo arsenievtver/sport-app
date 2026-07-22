@@ -256,10 +256,12 @@ class YandexFoundationClient:
             ensure_ascii=False,
         )
         protocol = (
-            "You MUST reply with a single JSON object and nothing else. "
-            'Call tools: {"tool_calls":[{"name":"get_session_history","arguments":{"days":30}}]}. '
-            'Final answer: {"answer":"..."}. '
-            "Never narrate tool use in Russian. Never invent numbers; use tools first."
+            "Reply with ONE JSON object only. "
+            'Need more facts: {"tool_calls":[{"name":"get_session_history","arguments":{"days":30}}]}. '
+            'Final reply: {"answer":"..."}. '
+            "answer must compare to goals/plan from CONTEXT, conclude on the user question, "
+            "and give 1-2 next steps in Russian. "
+            "Never invent numbers. Never ask the user to use tools or fetch data."
         )
         system_parts = [protocol, f"Tools: {tools_blob}"]
         for m in messages:
