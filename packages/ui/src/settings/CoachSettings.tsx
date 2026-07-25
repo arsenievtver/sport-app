@@ -109,11 +109,14 @@ export function CoachSettings({ user, onUserUpdated, onLogout, onViewChange }: C
         </div>
       </section>
 
-      <button type="button" className="settings-link" onClick={openWorkouts}>
-        Мои тренировки
-      </button>
+      <section className="settings-section glass glass--panel">
+        <button type="button" className="settings-nav-row" onClick={openWorkouts}>
+          <span className="settings-nav-row__label">Мои тренировки</span>
+          <span className="settings-nav-row__chevron" aria-hidden="true" />
+        </button>
+      </section>
 
-      <button type="button" className="settings-link settings-link--danger" onClick={onLogout}>
+      <button type="button" className="btn btn-outline btn-outline--danger btn--block" onClick={onLogout}>
         Выйти
       </button>
 

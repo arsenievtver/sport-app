@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 
 import { useScrollableOverlayLock } from "../hooks/useScrollableOverlayLock";
@@ -41,6 +41,9 @@ const LIST_GAP_PX = 4;
 const LIST_MAX_HEIGHT_PX = 360;
 const LIST_MIN_SPACE_PX = 160;
 const VIEWPORT_INSET_PX = 12;
+const SHEET_MIN_HEIGHT_PX = 180;
+const SHEET_DEFAULT_HEIGHT_RATIO = 0.52;
+const SHEET_EXPANDED_HEIGHT_RATIO = 0.9;
 const DEFAULT_SEARCH_REQUIRE_ABOVE = 24;
 const DEFAULT_MAX_VISIBLE_OPTIONS = 40;
 const SHEET_MQ = "(max-width: 720px), (pointer: coarse)";
@@ -125,18 +128,38 @@ function getFloatingStyle(trigger: HTMLButtonElement): CSSProperties {
   };
 }
 
+function sheetHeightBounds() {
+  const viewport = getViewportBox();
+  const defaultHeight = Math.max(
+    SHEET_MIN_HEIGHT_PX,
+    Math.min(LIST_MAX_HEIGHT_PX, viewport.height * SHEET_DEFAULT_HEIGHT_RATIO),
+  );
+  const maxHeight = Math.max(
+    defaultHeight,
+    Math.min(
+      viewport.height * SHEET_EXPANDED_HEIGHT_RATIO,
+      viewport.height - VIEWPORT_INSET_PX * 2,
+    ),
+  );
+  return { viewport, defaultHeight, maxHeight };
+}
+
 /**
  * Bottom sheet inside the visual viewport — stable on Android when the keyboard
  * resizes/moves the visual viewport (no flip between above/below the trigger).
+ * Optional heightPx is used after the user drags the sheet handle.
  */
-function getSheetStyle(): CSSProperties {
-  const viewport = getViewportBox();
+function getSheetStyle(heightPx: number | null = null): CSSProperties {
+  const { viewport, defaultHeight, maxHeight } = sheetHeightBounds();
   const width = Math.max(0, viewport.width - VIEWPORT_INSET_PX * 2);
-  const maxHeight = Math.min(LIST_MAX_HEIGHT_PX, viewport.height * 0.52);
   const bottom = Math.max(
     VIEWPORT_INSET_PX,
     window.innerHeight - (viewport.top + viewport.height) + VIEWPORT_INSET_PX,
   );
+  const height =
+    heightPx == null
+      ? defaultHeight
+      : Math.max(SHEET_MIN_HEIGHT_PX, Math.min(heightPx, maxHeight));
 
   return {
     position: "fixed",
@@ -145,7 +168,8 @@ function getSheetStyle(): CSSProperties {
     maxWidth: width,
     bottom,
     top: "auto",
-    maxHeight: Math.max(180, maxHeight),
+    height,
+    maxHeight,
     zIndex: 240,
   };
 }
@@ -188,6 +212,7 @@ function stylesEqual(a: CSSProperties, b: CSSProperties): boolean {
     a.left === b.left &&
     a.width === b.width &&
     a.maxWidth === b.maxWidth &&
+    a.height === b.height &&
     a.maxHeight === b.maxHeight
   );
 }
@@ -213,6 +238,10 @@ export function SelectPicker({
   const panelRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const sheetHeightRef = useRef<number | null>(null);
+  const sheetDragRef = useRef<{ pointerId: number; startY: number; startHeight: number } | null>(
+    null,
+  );
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [listStyle, setListStyle] = useState<CSSProperties>({});
@@ -272,10 +301,11 @@ export function SelectPicker({
     const nextSheet = prefersSheetLayout();
     setSheetMode(nextSheet);
     if (nextSheet) {
-      const next = getSheetStyle();
+      const next = getSheetStyle(sheetHeightRef.current);
       setListStyle((current) => (stylesEqual(current, next) ? current : next));
       return;
     }
+    sheetHeightRef.current = null;
     if (!triggerRef.current) return;
     const next = getFloatingStyle(triggerRef.current);
     setListStyle((current) => (stylesEqual(current, next) ? current : next));
@@ -289,6 +319,8 @@ export function SelectPicker({
   useEffect(() => {
     if (!open) {
       setQuery("");
+      sheetHeightRef.current = null;
+      sheetDragRef.current = null;
       return;
     }
     // Autofocus opens the Android keyboard and jumps the visual viewport — only on desktop.
@@ -357,6 +389,41 @@ export function SelectPicker({
     setOpen(false);
   };
 
+  const onSheetHandlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!sheetMode || !panelRef.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const startHeight = panelRef.current.getBoundingClientRect().height;
+    sheetDragRef.current = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startHeight,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const onSheetHandlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = sheetDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const { maxHeight } = sheetHeightBounds();
+    const delta = drag.startY - event.clientY;
+    const nextHeight = Math.round(
+      Math.max(SHEET_MIN_HEIGHT_PX, Math.min(maxHeight, drag.startHeight + delta)),
+    );
+    sheetHeightRef.current = nextHeight;
+    const next = getSheetStyle(nextHeight);
+    setListStyle((current) => (stylesEqual(current, next) ? current : next));
+  };
+
+  const onSheetHandlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = sheetDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    sheetDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
   const renderOption = (option: SelectPickerOption) => {
     const selected = option.value === value;
     return (
@@ -391,7 +458,16 @@ export function SelectPicker({
       role="presentation"
     >
       {sheetMode ? (
-        <div className="select-picker__sheet-handle" aria-hidden="true">
+        <div
+          className="select-picker__sheet-handle"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Изменить высоту"
+          onPointerDown={onSheetHandlePointerDown}
+          onPointerMove={onSheetHandlePointerMove}
+          onPointerUp={onSheetHandlePointerUp}
+          onPointerCancel={onSheetHandlePointerUp}
+        >
           <span />
         </div>
       ) : null}

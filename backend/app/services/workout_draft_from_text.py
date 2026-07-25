@@ -32,6 +32,14 @@ DURATION_WITH_UNIT_RE = re.compile(
     re.IGNORECASE,
 )
 TRAILING_MINUTES_RE = re.compile(r"(\d+)\s*$")
+BARE_NUMBER_RE = re.compile(r"(?<!\d)(\d{1,3})(?!\d)")
+
+BARE_DURATION_UNITS_HINT = (
+    "Не понял, где заканчивается одно упражнение и начинается другое. "
+    "После каждого времени пишите «мин» "
+    "(беговая дорожка 5 мин суставная разминка 3 мин) "
+    "или каждую часть тренировки — с новой строки."
+)
 
 # Expand coach slang before embedding so retrieval finds Compendium names.
 QUERY_HINTS: tuple[tuple[str, str], ...] = (
@@ -97,6 +105,47 @@ def _parse_segment(part: str) -> _Segment:
     return _Segment(phrase=phrase, duration_min=duration)
 
 
+def _split_by_duration_tokens(text: str) -> list[str] | None:
+    """Split continuous dictation on «N мин/минут» when there are 2+ duration markers."""
+    matches = list(DURATION_WITH_UNIT_RE.finditer(text))
+    if len(matches) < 2:
+        return None
+
+    strip_chars = " ,.-–—"
+    time_first = not text[: matches[0].start()].strip()
+    parts: list[str] = []
+
+    if time_first:
+        for index, match in enumerate(matches):
+            end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+            part = text[match.start() : end].strip(strip_chars)
+            if part:
+                parts.append(part)
+    else:
+        start = 0
+        for match in matches:
+            part = text[start : match.end()].strip(strip_chars)
+            if part:
+                parts.append(part)
+            start = match.end()
+        trailing = text[start:].strip(strip_chars)
+        if trailing:
+            parts.append(trailing)
+
+    return parts if len(parts) > 1 else None
+
+
+def has_ambiguous_bare_durations(text: str) -> bool:
+    """True when continuous text has 2+ bare numbers that look like durations without «мин»."""
+    without_units = DURATION_WITH_UNIT_RE.sub(" ", text)
+    plausible = [
+        int(match.group(1))
+        for match in BARE_NUMBER_RE.finditer(without_units)
+        if 1 <= int(match.group(1)) <= 120
+    ]
+    return len(plausible) >= 2
+
+
 def split_coach_text(text: str) -> list[_Segment]:
     cleaned = text.strip()
     parts = [p.strip(" ,.-–—") for p in SEGMENT_SPLIT_RE.split(cleaned) if p and p.strip()]
@@ -106,9 +155,24 @@ def split_coach_text(text: str) -> list[_Segment]:
             1 for p in maybe if DURATION_WITH_UNIT_RE.search(p) or TRAILING_MINUTES_RE.search(p)
         ) >= 2:
             parts = maybe
+    if len(parts) <= 1:
+        by_duration = _split_by_duration_tokens(cleaned)
+        if by_duration:
+            parts = by_duration
     if not parts:
         parts = [cleaned]
     return [_parse_segment(part) for part in parts]
+
+
+def ensure_coach_text_splittable(text: str, segments: list[_Segment] | None = None) -> list[_Segment]:
+    """Split text, or raise 422 with a clear instruction when bare numbers block splitting."""
+    resolved = segments if segments is not None else split_coach_text(text)
+    if len(resolved) <= 1 and has_ambiguous_bare_durations(text):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=BARE_DURATION_UNITS_HINT,
+        )
+    return resolved
 
 
 def _extract_json(raw: str) -> dict:
@@ -157,7 +221,7 @@ class WorkoutDraftFromTextService:
                 detail=str(exc),
             ) from exc
 
-        segments = split_coach_text(data.text)
+        segments = ensure_coach_text_splittable(data.text)
         per_stage: list[tuple[_Segment, list[ActivityType]]] = []
         try:
             for segment in segments:
@@ -270,14 +334,13 @@ class WorkoutDraftFromTextService:
         draft_rows: list[tuple[UUID, int, str | None]] = []
         for index, (segment, hits) in enumerate(per_stage, start=1):
             if not hits:
-                warnings.append(f"Этап {index}: нет кандидатов для «{segment.phrase}»")
+                warnings.append(f"Блок {index}: нет подходящей нагрузки для «{segment.phrase}»")
                 continue
             chosen = llm_picks.get(index)
             if chosen is None:
                 chosen = hits[0].id
                 warnings.append(
-                    f"Этап {index}: модель не выбрала id — взят ближайший по смыслу "
-                    f"«{hits[0].name_ru}»"
+                    f"Блок {index}: взят ближайший по смыслу «{hits[0].name_ru}»"
                 )
             draft_rows.append((chosen, _snap_duration(segment.duration_min), segment.phrase))
 
@@ -285,12 +348,12 @@ class WorkoutDraftFromTextService:
             logger.warning("Draft empty. LLM raw (truncated): %s", llm_raw[:800])
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Не удалось сопоставить ни одного этапа",
+                detail="Не удалось подобрать нагрузки по тексту",
             )
 
         if len(draft_rows) < len(per_stage):
             warnings.append(
-                f"Собрано {len(draft_rows)} из {len(per_stage)} этапов — часть без кандидатов"
+                f"Собрано {len(draft_rows)} из {len(per_stage)} блоков — часть без подходящей нагрузки"
             )
 
         activities = await self.embeddings.get_by_ids({row[0] for row in draft_rows})
@@ -316,7 +379,7 @@ class WorkoutDraftFromTextService:
         if not intervals:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Не удалось сопоставить этапы с активностями",
+                detail="Не удалось подобрать нагрузки по тексту",
             )
 
         average_met, total_duration, total_load = calculate_weighted_average_met(met_durations)

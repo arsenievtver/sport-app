@@ -132,6 +132,16 @@
   color: var(--color-text);
 }
 
+.btn-outline--danger {
+  color: var(--color-danger);
+  background: transparent;
+  border-color: color-mix(in srgb, var(--color-danger) 42%, var(--color-border));
+}
+
+.btn-outline--danger:hover:not(:disabled) {
+  background: var(--color-danger-muted);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .btn {
     transition: none;

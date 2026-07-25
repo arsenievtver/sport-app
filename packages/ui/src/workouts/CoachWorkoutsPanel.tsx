@@ -45,6 +45,35 @@ function workoutToDrafts(workout: CustomWorkout): IntervalDraft[] {
   }));
 }
 
+const BARE_DURATION_UNITS_HINT =
+  "Не понял, где заканчивается одно упражнение и начинается другое. " +
+  "После каждого времени пишите «мин» " +
+  "(беговая дорожка 5 мин суставная разминка 3 мин) " +
+  "или каждую часть тренировки — с новой строки.";
+
+function formatBlockCount(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${count} блок`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return `${count} блока`;
+  return `${count} блоков`;
+}
+
+/** Mirror backend ensure_coach_text_splittable for fast client-side feedback. */
+function coachTextNeedsDurationUnits(text: string): boolean {
+  if (/(?:\r?\n|;|(?:потом|затем|далее)|→|->)/i.test(text)) return false;
+  if ((text.match(/\d+\s*(?:мин(?:ут[ыа]?)?|min(?:utes?)?)/gi) ?? []).length >= 2) return false;
+  if (text.includes(",")) {
+    const parts = text.split(",").map((part) => part.trim()).filter(Boolean);
+    if (parts.length > 1 && parts.filter((part) => /\d/.test(part)).length >= 2) return false;
+  }
+  const withoutUnits = text.replace(/\d+\s*(?:мин(?:ут[ыа]?)?|min(?:utes?)?)/gi, " ");
+  const bare = [...withoutUnits.matchAll(/(?<!\d)(\d{1,3})(?!\d)/g)]
+    .map((match) => Number(match[1]))
+    .filter((n) => n >= 1 && n <= 120);
+  return bare.length >= 2;
+}
+
 export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
   const [workouts, setWorkouts] = useState<CustomWorkout[]>([]);
   const [compendium, setCompendium] = useState<ActivityType[]>([]);
@@ -114,6 +143,7 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
   };
 
   const openAi = () => {
+    setName("");
     setAiText("");
     setAiDraft(null);
     setError(null);
@@ -162,7 +192,7 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
       return;
     }
     if (intervals.some((item) => !item.source_activity_type_id)) {
-      setError("Выберите активность для каждого этапа");
+      setError("Выберите нагрузку для каждого блока");
       return;
     }
     setSaving(true);
@@ -207,9 +237,18 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
   };
 
   const handleAiDraft = async () => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setError("Укажите название тренировки");
+      return;
+    }
     const trimmed = aiText.trim();
     if (trimmed.length < 3) {
       setError("Опишите тренировку текстом");
+      return;
+    }
+    if (coachTextNeedsDurationUnits(trimmed)) {
+      setError(BARE_DURATION_UNITS_HINT);
       return;
     }
     setAiLoading(true);
@@ -217,9 +256,9 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
     setAiDraft(null);
     try {
       const draft = await draftCoachCustomWorkoutFromText(trimmed);
-      setAiDraft(draft);
+      setAiDraft({ ...draft, name: trimmedName });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось собрать черновик");
+      setError(err instanceof Error ? err.message : "Не удалось разобрать тренировку");
     } finally {
       setAiLoading(false);
     }
@@ -227,11 +266,16 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
 
   const handleAiConfirm = async () => {
     if (!aiDraft) return;
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setError("Укажите название тренировки");
+      return;
+    }
     setAiConfirming(true);
     setError(null);
     try {
       await createCoachCustomWorkout({
-        name: aiDraft.name,
+        name: trimmedName,
         intervals: aiDraft.intervals.map((item) => ({
           source_activity_type_id: item.source_activity_type_id,
           duration_min: item.duration_min,
@@ -263,32 +307,49 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
           ← К списку
         </button>
 
-        <p className="text-secondary coach-workouts__hint">
-          Опишите тренировку своими словами. Система подберёт активности из справочника — подтвердите или
-          отклоните результат.
-        </p>
+        <label className="coach-workouts__field">
+          <span className="coach-workouts__field-label">Название</span>
+          <input
+            className="glass-input"
+            value={name}
+            maxLength={200}
+            placeholder="Например: Бокс + силовая"
+            disabled={aiLoading || aiConfirming}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </label>
 
         <label className="coach-workouts__field">
-          <span className="text-secondary">Текст тренировки</span>
+          <span className="coach-workouts__field-label">План тренировки</span>
           <textarea
             className="glass-input coach-workouts__ai-text"
             value={aiText}
             rows={5}
             maxLength={4000}
-            placeholder={"Например:\nсуставная разминка 10 мин\nлёгкий бег 20\nрастяжка 10"}
+            placeholder={
+              "Например:\nсуставная разминка 10 мин\nлёгкий бег 20 мин\nрастяжка 10 мин"
+            }
             disabled={aiLoading || aiConfirming}
             onChange={(event) => setAiText(event.target.value)}
           />
+          <p className="coach-workouts__field-tip">
+            <span className="coach-workouts__field-tip-mark" aria-hidden="true">
+              *
+            </span>
+            Можно надиктовать с клавиатуры. Пишите как обычно говорите: что делаете и сколько
+            минут. После каждого времени — «мин» (беговая дорожка 5 мин разминка 3 мин), либо
+            каждая часть с новой строки.
+          </p>
         </label>
 
         {!aiDraft ? (
           <button
             type="button"
             className="coach-btn coach-btn--primary"
-            disabled={aiLoading || aiText.trim().length < 3}
+            disabled={aiLoading || !name.trim() || aiText.trim().length < 3}
             onClick={() => void handleAiDraft()}
           >
-            {aiLoading ? "Собираем черновик…" : "Собрать черновик"}
+            {aiLoading ? "Разбираем…" : "Разобрать тренировку"}
           </button>
         ) : null}
 
@@ -300,23 +361,20 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
                 <span className="coach-workouts__summary-unit text-muted">средний MET</span>
               </div>
               <div className="coach-workouts__summary-meta text-secondary">
-                <span>{aiDraft.name}</span>
+                <span>{name.trim() || aiDraft.name}</span>
                 <span aria-hidden="true">·</span>
                 <span>{aiDraft.total_duration_min} мин</span>
                 <span aria-hidden="true">·</span>
                 <span>{aiDraft.total_load_met_minutes} MET·мин</span>
                 <span aria-hidden="true">·</span>
-                <span>
-                  {aiDraft.intervals.length} этап
-                  {aiDraft.intervals.length === 1 ? "" : aiDraft.intervals.length < 5 ? "а" : "ов"}
-                </span>
+                <span>{formatBlockCount(aiDraft.intervals.length)}</span>
               </div>
             </div>
 
             <ul className="coach-workouts__ai-intervals">
               {aiDraft.intervals.map((item, index) => (
                 <li key={`${item.source_activity_type_id}-${index}`} className="glass glass--panel">
-                  <span className="text-muted">Этап {index + 1}</span>
+                  <span className="text-muted">Блок {index + 1}</span>
                   <strong>{item.source_activity_name}</strong>
                   <span className="text-secondary">
                     {item.duration_min} мин · MET {item.source_met_value}
@@ -377,12 +435,12 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
             <span aria-hidden="true">·</span>
             <span>{summary.total_load_met_minutes} MET·мин</span>
             <span aria-hidden="true">·</span>
-            <span>{intervals.length} этап{intervals.length === 1 ? "" : intervals.length < 5 ? "а" : "ов"}</span>
+            <span>{formatBlockCount(intervals.length)}</span>
           </div>
         </div>
 
         <label className="coach-workouts__field">
-          <span className="text-secondary">Название</span>
+          <span className="coach-workouts__field-label">Название</span>
           <input
             className="glass-input"
             value={name}
@@ -399,7 +457,7 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
             return (
               <div key={item.key} className="coach-workouts__interval glass glass--panel">
                 <div className="coach-workouts__interval-head">
-                  <span className="coach-workouts__interval-index text-muted">Этап {index + 1}</span>
+                  <span className="coach-workouts__interval-index text-muted">Блок {index + 1}</span>
                   <div className="coach-workouts__interval-actions">
                     <button
                       type="button"
@@ -431,13 +489,13 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
                 </div>
 
                 <div className="coach-workouts__field">
-                  <span className="text-secondary">Активность</span>
+                  <span className="coach-workouts__field-label">Нагрузка</span>
                   <ActivityTypePicker
                     activityTypes={compendium}
                     headingLabels={headingLabels}
                     value={item.source_activity_type_id}
                     compendiumOnly
-                    emptyLabel="Выберите из справочника"
+                    emptyLabel="Выберите из списка"
                     onChange={(id) => updateInterval(item.key, { source_activity_type_id: id })}
                   />
                 </div>
@@ -449,13 +507,13 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
                     max={Math.min(120, ACTIVITY_DURATION_MIN_MAX)}
                     step={5}
                     unit="мин"
-                    ariaLabel={`Длительность этапа ${index + 1}`}
+                    ariaLabel={`Длительность блока ${index + 1}`}
                     onChange={(duration_min) => updateInterval(item.key, { duration_min })}
                   />
                 </div>
 
                 <p className="coach-workouts__interval-load text-muted">
-                  {source ? `MET ${source.met_value} · ${load} MET·мин` : "Выберите активность"}
+                  {source ? `MET ${source.met_value} · ${load} MET·мин` : "Выберите нагрузку"}
                 </p>
               </div>
             );
@@ -469,7 +527,7 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
             setIntervals((current) => [...current, emptyInterval(compendium[0]?.id ?? "")])
           }
         >
-          + Добавить этап
+          + Добавить блок
         </button>
 
         {error ? <p className="auth-error">{error}</p> : null}
@@ -507,14 +565,15 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
       ) : null}
       <div className="coach-workouts__list-head">
         <p className="text-secondary coach-workouts__hint">
-          Соберите тренировку из справочника или опишите текстом — система подберёт этапы.
+          Составьте тренировку из списка нагрузок или дайте план словами — разложим, какая общая
+          нагрузка в MET будет.
         </p>
         <div className="coach-workouts__list-actions">
           <button type="button" className="coach-btn coach-btn--muted" onClick={openAi}>
-            Из текста
+            Текстом
           </button>
           <button type="button" className="coach-btn coach-btn--primary" onClick={openCreate}>
-            Создать
+            Составить
           </button>
         </div>
       </div>
@@ -522,7 +581,7 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
       {error ? <p className="auth-error">{error}</p> : null}
 
       {workouts.length === 0 ? (
-        <p className="text-muted">Пока нет своих тренировок. Создайте первую.</p>
+        <p className="text-muted">Пока нет своих тренировок. Составьте первую.</p>
       ) : (
         <ul className="coach-workouts__list">
           {workouts.map((workout) => (
@@ -530,8 +589,8 @@ export function CoachWorkoutsPanel({ onBack }: { onBack?: () => void } = {}) {
               <button type="button" className="coach-workouts__card glass glass--panel" onClick={() => openEdit(workout)}>
                 <span className="coach-workouts__card-name">{workout.name}</span>
                 <span className="coach-workouts__card-meta text-secondary">
-                  MET {workout.average_met} · {workout.total_duration_min} мин · {workout.intervals.length} этап
-                  {workout.intervals.length === 1 ? "" : workout.intervals.length < 5 ? "а" : "ов"}
+                  MET {workout.average_met} · {workout.total_duration_min} мин ·{" "}
+                  {formatBlockCount(workout.intervals.length)}
                 </span>
               </button>
             </li>

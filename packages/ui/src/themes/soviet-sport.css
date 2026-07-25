@@ -305,11 +305,13 @@
 [data-theme="soviet-sport"] .app-shell__back,
 [data-theme="soviet-sport"] .athlete-week-progress__metric-icon,
 [data-theme="soviet-sport"] .settings-section__chevron,
+[data-theme="soviet-sport"] .settings-nav-row__chevron,
 [data-theme="soviet-sport"] .whoop-refresh-icon {
   color: var(--color-primary);
 }
 
-[data-theme="soviet-sport"] .settings-section__chevron {
+[data-theme="soviet-sport"] .settings-section__chevron,
+[data-theme="soviet-sport"] .settings-nav-row__chevron {
   border-right-color: var(--color-primary);
   border-bottom-color: var(--color-primary);
 }
