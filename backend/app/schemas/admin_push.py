@@ -35,6 +35,7 @@ class AdminPushSendResponse(BaseModel):
     users_targeted: int
     users_sent: int
     devices_sent: int
+    errors: list[str] = Field(default_factory=list)
 
 
 class AdminScheduledPushCreate(BaseModel):

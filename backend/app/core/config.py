@@ -69,11 +69,12 @@ class Settings(BaseSettings):
     vapid_subject: str = "mailto:admin@athlete-app.ru"
     push_reminder_minutes_before: int = 60
 
-    @field_validator("vapid_private_key", mode="before")
+    @field_validator("vapid_public_key", "vapid_private_key", mode="before")
     @classmethod
-    def normalize_vapid_private_key(cls, value: object) -> object:
+    def normalize_vapid_keys(cls, value: object) -> object:
         if isinstance(value, str):
-            return value.replace("\\n", "\n").strip() or None
+            cleaned = value.strip().strip("'").strip('"').replace("\\n", "\n").strip()
+            return cleaned or None
         return value
 
 

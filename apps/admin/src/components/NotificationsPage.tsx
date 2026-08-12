@@ -81,9 +81,14 @@ export function NotificationsPage() {
           body,
           url: url.trim() || "/",
         });
-        setSuccess(
-          `Отправлено: ${result.users_sent} из ${result.users_targeted} пользователей (${result.devices_sent} устройств)`,
-        );
+        const summary = `Отправлено: ${result.users_sent} из ${result.users_targeted} пользователей (${result.devices_sent} устройств)`;
+        if (result.devices_sent === 0) {
+          const detail = result.errors?.length ? result.errors.join(" ") : "Проверьте логи API и VAPID-ключи.";
+          setError(`${summary}. ${detail}`);
+          setSuccess(null);
+        } else {
+          setSuccess(summary);
+        }
       } else {
         const local = new Date(sendAt);
         if (Number.isNaN(local.getTime())) {

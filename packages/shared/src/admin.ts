@@ -120,6 +120,7 @@ export interface AdminPushSendResult {
   users_targeted: number;
   users_sent: number;
   devices_sent: number;
+  errors?: string[];
 }
 
 export type AdminScheduledPushStatus = "pending" | "sent" | "cancelled" | "failed";

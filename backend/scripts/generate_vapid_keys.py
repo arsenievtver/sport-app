@@ -2,6 +2,8 @@
 
 Usage:
   cd backend && .venv/bin/python scripts/generate_vapid_keys.py
+
+Outputs docker-friendly single-line keys for infra/prod/.env.
 """
 
 from __future__ import annotations
@@ -16,12 +18,9 @@ def main() -> None:
     private_key = ec.generate_private_key(ec.SECP256R1())
     public_key = private_key.public_key()
 
-    private_pem = private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
-    ).decode("ascii")
-    private_oneline = private_pem.replace("\n", "\\n")
+    # Raw 32-byte private key — preferred by pywebpush Vapid.from_string
+    private_raw = private_key.private_numbers().private_value.to_bytes(32, "big")
+    private_b64 = base64.urlsafe_b64encode(private_raw).decode("ascii").rstrip("=")
 
     public_raw = public_key.public_bytes(
         encoding=serialization.Encoding.X962,
@@ -29,10 +28,12 @@ def main() -> None:
     )
     public_b64 = base64.urlsafe_b64encode(public_raw).decode("ascii").rstrip("=")
 
-    print("# Add to backend/.env (and infra/prod/.env):")
+    print("# Add to /opt/sport-app/infra/prod/.env (single-line values, no quotes needed):")
     print(f"VAPID_PUBLIC_KEY={public_b64}")
-    print(f'VAPID_PRIVATE_KEY="{private_oneline}"')
+    print(f"VAPID_PRIVATE_KEY={private_b64}")
     print("VAPID_SUBJECT=mailto:admin@athlete-app.ru")
+    print()
+    print("# After changing keys: restart api+worker, then re-enable notifications in athlete PWA.")
 
 
 if __name__ == "__main__":

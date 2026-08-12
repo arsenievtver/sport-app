@@ -100,7 +100,10 @@ async def _process_user(
             body=body,
             payload=payload,
         )
-        if sent <= 0:
+        devices_sent, errors = sent
+        if devices_sent <= 0:
+            if errors:
+                logger.warning("Session reminder not delivered: %s", "; ".join(errors[:3]))
             return 0
 
         if redis is not None:
@@ -113,6 +116,6 @@ async def _process_user(
             session.occurrence_date,
             session.start_time,
         )
-        return sent
+        return devices_sent
 
     return 0

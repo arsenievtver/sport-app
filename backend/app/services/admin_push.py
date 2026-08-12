@@ -77,8 +77,9 @@ class AdminPushService:
         payload = {"type": "admin_broadcast", "url": data.url or "/"}
         users_sent = 0
         devices_sent = 0
+        errors: list[str] = []
         for user_id in user_ids:
-            sent = await self.push.send_to_user(
+            sent, send_errors = await self.push.send_to_user(
                 user_id,
                 title=data.title,
                 body=data.body,
@@ -87,11 +88,19 @@ class AdminPushService:
             if sent > 0:
                 users_sent += 1
                 devices_sent += sent
+            errors.extend(send_errors)
+
+        # Keep unique messages, preserve order
+        unique_errors: list[str] = []
+        for item in errors:
+            if item not in unique_errors:
+                unique_errors.append(item)
 
         return AdminPushSendResponse(
             users_targeted=len(user_ids),
             users_sent=users_sent,
             devices_sent=devices_sent,
+            errors=unique_errors[:5],
         )
 
     def _to_response(self, row: ScheduledPush) -> AdminScheduledPushResponse:
@@ -184,7 +193,7 @@ class AdminPushService:
                 devices_sent = 0
                 payload = row.payload if isinstance(row.payload, dict) else {"type": "admin_broadcast", "url": "/"}
                 for user_id in user_ids:
-                    sent = await self.push.send_to_user(
+                    sent, _errors = await self.push.send_to_user(
                         user_id,
                         title=row.title,
                         body=row.body,
