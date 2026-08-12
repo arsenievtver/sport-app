@@ -97,6 +97,13 @@ class NotificationChannel(str, enum.Enum):
     email = "email"
 
 
+class ScheduledPushStatus(str, enum.Enum):
+    pending = "pending"
+    sent = "sent"
+    cancelled = "cancelled"
+    failed = "failed"
+
+
 class MessageContextType(str, enum.Enum):
     general = "general"
     workout = "workout"

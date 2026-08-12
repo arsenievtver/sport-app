@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
-export type AdminPage = "users" | "meal-catalog" | "activities" | "coach-workouts";
+export type AdminPage = "users" | "meal-catalog" | "activities" | "coach-workouts" | "notifications";
 
 const SIDEBAR_STORAGE_KEY = "sport-admin-sidebar-collapsed";
 
@@ -16,6 +16,7 @@ interface AdminLayoutProps {
 
 const NAV_ITEMS: { id: AdminPage; label: string }[] = [
   { id: "users", label: "Пользователи" },
+  { id: "notifications", label: "Оповещения" },
   { id: "meal-catalog", label: "Каталог блюд" },
   { id: "activities", label: "Активности" },
   { id: "coach-workouts", label: "Тренировки тренеров" },

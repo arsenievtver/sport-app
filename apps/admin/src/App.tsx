@@ -6,6 +6,7 @@ import { ActivityCompendiumPage } from "./components/ActivityCompendiumPage";
 import { AdminLayout, type AdminPage } from "./components/AdminLayout";
 import { CoachCustomWorkoutsPage } from "./components/CoachCustomWorkoutsPage";
 import { MealCatalogPage } from "./components/MealCatalogPage";
+import { NotificationsPage } from "./components/NotificationsPage";
 import { UsersPage } from "./components/UsersPage";
 import "./admin.css";
 
@@ -54,10 +55,15 @@ export default function App() {
               title: "Тренировки тренеров",
               subtitle: "Составные тренировки из кабинета тренера — только просмотр",
             }
-          : {
-              title: "Пользователи",
-              subtitle: "Тренеры, атлеты и связи между ними",
-            };
+          : page === "notifications"
+            ? {
+                title: "Оповещения",
+                subtitle: "Web Push: статистика подписок и рассылка атлетам",
+              }
+            : {
+                title: "Пользователи",
+                subtitle: "Тренеры, атлеты и связи между ними",
+              };
 
   return (
     <AdminLayout
@@ -69,6 +75,7 @@ export default function App() {
       subtitle={pageMeta.subtitle}
     >
       {page === "users" && <UsersPage />}
+      {page === "notifications" && <NotificationsPage />}
       {page === "meal-catalog" && <MealCatalogPage />}
       {page === "activities" && <ActivityCompendiumPage />}
       {page === "coach-workouts" && <CoachCustomWorkoutsPage />}

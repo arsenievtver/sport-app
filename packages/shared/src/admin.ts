@@ -96,3 +96,58 @@ export const LINK_STATUS_LABELS: Record<CoachAthleteLinkStatus, string> = {
   paused: "Пауза",
   ended: "Завершена",
 };
+
+export interface AdminPushDayStat {
+  date: string;
+  subscription_count: number;
+}
+
+export interface AdminPushStats {
+  vapid_configured: boolean;
+  subscription_count: number;
+  user_count: number;
+  pending_scheduled_count: number;
+  by_day: AdminPushDayStat[];
+}
+
+export interface AdminPushSendPayload {
+  title: string;
+  body: string;
+  url?: string | null;
+}
+
+export interface AdminPushSendResult {
+  users_targeted: number;
+  users_sent: number;
+  devices_sent: number;
+}
+
+export type AdminScheduledPushStatus = "pending" | "sent" | "cancelled" | "failed";
+
+export interface AdminScheduledPush {
+  id: string;
+  title: string;
+  body: string;
+  url: string | null;
+  send_at: string;
+  status: AdminScheduledPushStatus;
+  created_at: string;
+  sent_at: string | null;
+  error: string | null;
+  users_sent: number;
+  devices_sent: number;
+}
+
+export interface AdminScheduledPushCreatePayload {
+  title: string;
+  body: string;
+  send_at: string;
+  url?: string | null;
+}
+
+export const SCHEDULED_PUSH_STATUS_LABELS: Record<AdminScheduledPushStatus, string> = {
+  pending: "Ожидает",
+  sent: "Отправлено",
+  cancelled: "Отменено",
+  failed: "Ошибка",
+};

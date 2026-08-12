@@ -47,8 +47,16 @@ from app.services.activity_compendium_job import (
 # Hidden from admin UI after initial server load; use for full Compendium refresh only.
 from app.services.compendium_parser import parse_compendium_pdf_bytes
 from app.services.admin import AdminService
+from app.services.admin_push import AdminPushService
 from app.services.logmeal_catalog import LogMealCatalogService
 from app.services.logmeal_catalog_job import CatalogJobAlreadyRunningError, catalog_job_runner
+from app.schemas.admin_push import (
+    AdminPushSendRequest,
+    AdminPushSendResponse,
+    AdminPushStatsResponse,
+    AdminScheduledPushCreate,
+    AdminScheduledPushResponse,
+)
 
 router = APIRouter(prefix="/admin")
 
@@ -424,3 +432,46 @@ async def list_admin_custom_workouts(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> list[CustomWorkoutResponse]:
     return await CoachCustomWorkoutService(db).list_all_for_admin()
+
+
+@router.get("/push/stats", response_model=AdminPushStatsResponse)
+async def get_push_stats(
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AdminPushStatsResponse:
+    return await AdminPushService(db).get_stats()
+
+
+@router.post("/push/send", response_model=AdminPushSendResponse)
+async def send_push_now(
+    data: AdminPushSendRequest,
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AdminPushSendResponse:
+    return await AdminPushService(db).send_now(data)
+
+
+@router.get("/push/scheduled", response_model=list[AdminScheduledPushResponse])
+async def list_scheduled_pushes(
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> list[AdminScheduledPushResponse]:
+    return await AdminPushService(db).list_scheduled()
+
+
+@router.post("/push/scheduled", response_model=AdminScheduledPushResponse, status_code=status.HTTP_201_CREATED)
+async def create_scheduled_push(
+    data: AdminScheduledPushCreate,
+    admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AdminScheduledPushResponse:
+    return await AdminPushService(db).create_scheduled(data, created_by_user_id=admin.id)
+
+
+@router.delete("/push/scheduled/{push_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def cancel_scheduled_push(
+    push_id: UUID,
+    _admin: AdminUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    await AdminPushService(db).cancel_scheduled(push_id)

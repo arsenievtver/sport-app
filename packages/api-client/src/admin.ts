@@ -232,3 +232,39 @@ export async function importAdminActivityCompendiumPdf(file: File): Promise<{ ac
 export async function startAdminActivityCompendiumTranslate(): Promise<void> {
   await authenticatedFetchOk("/admin/activity-compendium/translate", { method: "POST" });
 }
+
+export async function fetchAdminPushStats(): Promise<import("@sport-app/shared").AdminPushStats> {
+  const res = await authenticatedFetchOk("/admin/push/stats");
+  return res.json() as Promise<import("@sport-app/shared").AdminPushStats>;
+}
+
+export async function sendAdminPushNow(
+  payload: import("@sport-app/shared").AdminPushSendPayload,
+): Promise<import("@sport-app/shared").AdminPushSendResult> {
+  const res = await authenticatedFetchOk("/admin/push/send", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<import("@sport-app/shared").AdminPushSendResult>;
+}
+
+export async function fetchAdminScheduledPushes(): Promise<
+  import("@sport-app/shared").AdminScheduledPush[]
+> {
+  const res = await authenticatedFetchOk("/admin/push/scheduled");
+  return res.json() as Promise<import("@sport-app/shared").AdminScheduledPush[]>;
+}
+
+export async function createAdminScheduledPush(
+  payload: import("@sport-app/shared").AdminScheduledPushCreatePayload,
+): Promise<import("@sport-app/shared").AdminScheduledPush> {
+  const res = await authenticatedFetchOk("/admin/push/scheduled", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<import("@sport-app/shared").AdminScheduledPush>;
+}
+
+export async function cancelAdminScheduledPush(pushId: string): Promise<void> {
+  await authenticatedFetchOk(`/admin/push/scheduled/${pushId}`, { method: "DELETE" });
+}

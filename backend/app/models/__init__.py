@@ -5,6 +5,7 @@ from app.models.goal import Goal
 from app.models.messaging import Message, MessageThread
 from app.models.notification import Notification
 from app.models.push_subscription import PushSubscription
+from app.models.scheduled_push import ScheduledPush
 from app.models.program import Program, ProgramWeek
 from app.models.health import HealthConnection
 from app.models.progress import AnalyticsEvent, ProgressSnapshot
@@ -61,4 +62,5 @@ __all__ = [
     "Message",
     "Notification",
     "PushSubscription",
+    "ScheduledPush",
 ]
