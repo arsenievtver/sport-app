@@ -75,6 +75,7 @@ export function AthleteUpcomingSessionsPanel({ refreshKey }: { refreshKey?: stri
     () => (sessions[0] ? formatAthleteUpcomingSessionDay(sessions[0]) : ""),
     [sessions],
   );
+  const isRelativeDay = dayLabel === "Сегодня" || dayLabel === "Завтра";
   const sectionTitle = sessions.length > 1 ? "Следующие тренировки" : "Следующая тренировка";
 
   return (
@@ -83,7 +84,13 @@ export function AthleteUpcomingSessionsPanel({ refreshKey }: { refreshKey?: stri
         className={`athlete-home-section__title${dayLabel ? " athlete-home-section__title--split" : ""}`}
       >
         <span>{sectionTitle}</span>
-        {dayLabel ? <span className="athlete-home-section__when">{dayLabel}</span> : null}
+        {dayLabel ? (
+          <span
+            className={`athlete-home-section__when${isRelativeDay ? " athlete-home-section__when--relative" : ""}`}
+          >
+            {dayLabel}
+          </span>
+        ) : null}
       </h2>
 
       {loading ? (

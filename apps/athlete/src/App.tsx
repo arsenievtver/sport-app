@@ -8,7 +8,6 @@ import {
 } from "@sport-app/shared";
 import {
   AppShell,
-  AthleteMyPlanPanel,
   AthleteOnboarding,
   AthleteQuickActions,
   AthleteSettings,
@@ -21,6 +20,7 @@ import {
   BottomNavIconSettings,
   isThemePreviewMode,
   PwaInstallBanner,
+  PwaNotificationBanner,
   ThemePreview,
   useAuthSession,
   usePendingCoachInvite,
@@ -28,6 +28,7 @@ import {
   useAthleteSessionsStats,
   WorkoutsCompletedBadge,
   type AthleteQuickActionId,
+  type AthleteSettingsView,
 } from "@sport-app/ui";
 import { WhoopOAuthListener } from "./components/WhoopOAuthListener";
 import { AthleteDataTabPanel } from "./components/AthleteDataTabPanel";
@@ -44,7 +45,7 @@ type AthleteTab = "home" | "data" | "settings";
 type HomeOverlay = AthleteQuickActionId | null;
 
 const HOME_OVERLAY_TITLES: Record<Exclude<HomeOverlay, null>, string> = {
-  "my-plan": "Мой план",
+  "hall-of-fame": "Зал славы",
   nutrition: "Питание",
   workouts: "Тренировки",
   assistant: "Ассистент",
@@ -65,6 +66,7 @@ export default function App() {
   });
   const [addWorkoutOpen, setAddWorkoutOpen] = useState(false);
   const [homeOverlay, setHomeOverlay] = useState<HomeOverlay>(null);
+  const [settingsView, setSettingsView] = useState<AthleteSettingsView>("settings");
   const [weekProgressRefreshKey, setWeekProgressRefreshKey] = useState(0);
   const [openWeightFormSignal, setOpenWeightFormSignal] = useState(0);
   const [returnToWorkoutAfterWeight, setReturnToWorkoutAfterWeight] = useState(false);
@@ -145,13 +147,21 @@ export default function App() {
     const title =
       tab === "home" && homeOverlay
         ? HOME_OVERLAY_TITLES[homeOverlay]
-        : typeof titleEntry === "function"
-          ? titleEntry(displayName)
-          : titleEntry;
+        : tab === "settings" && settingsView === "my-plan"
+          ? "Мой план"
+          : typeof titleEntry === "function"
+            ? titleEntry(displayName)
+            : titleEntry;
     const shellSubtitle =
       tab === "home" && homeOverlay === "workouts"
         ? `*последние ${SESSION_HISTORY_DAYS} дн`
         : undefined;
+    const onShellBack =
+      tab === "home" && homeOverlay
+        ? () => setHomeOverlay(null)
+        : tab === "settings" && settingsView === "my-plan"
+          ? () => setSettingsView("settings")
+          : undefined;
 
     content = (
       <>
@@ -160,8 +170,14 @@ export default function App() {
           className="app-shell--athlete"
           title={title}
           subtitle={shellSubtitle}
-          onBack={tab === "home" && homeOverlay ? () => setHomeOverlay(null) : undefined}
-          contentKey={homeOverlay ? `home-${homeOverlay}` : tab}
+          onBack={onShellBack}
+          contentKey={
+            homeOverlay
+              ? `home-${homeOverlay}`
+              : tab === "settings"
+                ? `settings-${settingsView}`
+                : tab
+          }
           headerEnd={
             <WorkoutsCompletedBadge count={sessionsCompleted} animate={!sessionsStatsLoading} />
           }
@@ -174,6 +190,9 @@ export default function App() {
                 const next = id as AthleteTab;
                 if (next === "home") {
                   setHomeOverlay(null);
+                }
+                if (next !== "settings") {
+                  setSettingsView("settings");
                 }
                 setTab(next);
               }}
@@ -188,11 +207,14 @@ export default function App() {
           }
         >
           {tab === "home" ? (
-            homeOverlay === "my-plan" ? (
-              <AthleteMyPlanPanel
-                onBack={() => setHomeOverlay(null)}
-                onSaved={() => setWeekProgressRefreshKey((value) => value + 1)}
-              />
+            homeOverlay === "hall-of-fame" ? (
+              <div className="athlete-overlay-screen">
+                <section className="athlete-stub glass glass--panel">
+                  <p className="athlete-stub__message text-secondary">
+                    Скоро: ваши достижения и личные рекорды.
+                  </p>
+                </section>
+              </div>
             ) : homeOverlay === "nutrition" ? (
               <AthleteNutritionPanel />
             ) : homeOverlay === "workouts" ? (
@@ -236,6 +258,9 @@ export default function App() {
               onOpenThemes={() => setShowThemes(true)}
               onLogout={logout}
               whoopSection={<WhoopSettingsPanel />}
+              view={settingsView}
+              onViewChange={setSettingsView}
+              onPlanSaved={() => setWeekProgressRefreshKey((value) => value + 1)}
             />
           ) : null}
         </AppShell>
@@ -262,6 +287,7 @@ export default function App() {
     <>
       {content}
       {user ? <PwaInstallBanner appName="Атлет" /> : null}
+      {user && onboardingComplete ? <PwaNotificationBanner /> : null}
       {!checking && !user ? (
         <button
           type="button"

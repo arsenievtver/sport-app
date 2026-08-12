@@ -17,7 +17,10 @@ import type {
   AthleteUpcomingSession,
   AthleteWeekProgress,
   JoinCoachPayload,
+  PushSubscriptionCreatePayload,
+  PushSubscriptionStatus,
   UserResponse,
+  VapidPublicKeyResponse,
 } from "@sport-app/shared";
 import { SESSION_HISTORY_DAYS, WORKOUT_WEEKLY_CHART_WEEKS } from "@sport-app/shared";
 
@@ -149,6 +152,30 @@ export async function updateAthletePlan(payload: AthletePlanUpdatePayload): Prom
 export async function fetchAthleteWeekProgress(): Promise<AthleteWeekProgress> {
   const res = await authenticatedFetchOk("/athlete/plan/week-progress");
   return res.json() as Promise<AthleteWeekProgress>;
+}
+
+export async function fetchVapidPublicKey(): Promise<VapidPublicKeyResponse> {
+  const res = await authenticatedFetchOk("/athlete/push/vapid-public-key");
+  return res.json() as Promise<VapidPublicKeyResponse>;
+}
+
+export async function fetchPushSubscriptionStatus(): Promise<PushSubscriptionStatus> {
+  const res = await authenticatedFetchOk("/athlete/push/status");
+  return res.json() as Promise<PushSubscriptionStatus>;
+}
+
+export async function createPushSubscription(payload: PushSubscriptionCreatePayload): Promise<void> {
+  await authenticatedFetchOk("/athlete/push/subscriptions", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deletePushSubscription(endpoint: string): Promise<void> {
+  await authenticatedFetchOk("/athlete/push/subscriptions", {
+    method: "DELETE",
+    body: JSON.stringify({ endpoint }),
+  });
 }
 
 export function resolveMediaUrl(path: string | null | undefined): string | null {

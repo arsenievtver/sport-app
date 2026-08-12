@@ -111,7 +111,7 @@ export function CoachSettings({ user, onUserUpdated, onLogout, onViewChange }: C
 
       <section className="settings-section glass glass--panel">
         <button type="button" className="settings-nav-row" onClick={openWorkouts}>
-          <span className="settings-nav-row__label">Мои тренировки</span>
+          <span className="settings-section__title">Мои тренировки</span>
           <span className="settings-nav-row__chevron" aria-hidden="true" />
         </button>
       </section>

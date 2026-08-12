@@ -40,6 +40,12 @@ from app.schemas.athlete_plan import (
     AthleteWorkoutWeeklyDynamicsResponse,
 )
 from app.schemas.auth import UserResponse
+from app.schemas.push import (
+    PushSubscriptionCreateRequest,
+    PushSubscriptionDeleteRequest,
+    PushSubscriptionStatusResponse,
+    VapidPublicKeyResponse,
+)
 from app.schemas.schedule import AthleteUpcomingSessionResponse
 from app.services.activity_type import ActivityTypeService
 from app.services.athlete import AthleteService
@@ -48,7 +54,9 @@ from app.services.athlete_meals import AthleteMealsService
 from app.services.athlete_plan import AthletePlanService
 from app.services.auth import user_to_response
 from app.services.media import prepare_meal_photo, save_avatar
+from app.services.push import PushService
 from app.services.schedule import ScheduleService
+from app.core.config import settings as app_settings
 
 router = APIRouter(prefix="/athlete")
 
@@ -372,3 +380,45 @@ async def get_week_progress(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
 
     return await AthletePlanService(db).get_week_progress(user.athlete_profile)
+
+
+@router.get("/push/vapid-public-key", response_model=VapidPublicKeyResponse)
+async def get_vapid_public_key() -> VapidPublicKeyResponse:
+    if not app_settings.vapid_public_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Web Push не настроен",
+        )
+    return VapidPublicKeyResponse(public_key=app_settings.vapid_public_key)
+
+
+@router.get("/push/status", response_model=PushSubscriptionStatusResponse)
+async def get_push_status(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PushSubscriptionStatusResponse:
+    enabled = await PushService(db).has_subscriptions(user.id)
+    return PushSubscriptionStatusResponse(enabled=enabled)
+
+
+@router.post("/push/subscriptions", status_code=status.HTTP_204_NO_CONTENT)
+async def create_push_subscription(
+    data: PushSubscriptionCreateRequest,
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    if not app_settings.vapid_public_key or not app_settings.vapid_private_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Web Push не настроен",
+        )
+    await PushService(db).upsert_subscription(user.id, data)
+
+
+@router.delete("/push/subscriptions", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_push_subscription(
+    data: PushSubscriptionDeleteRequest,
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    await PushService(db).delete_subscription(user.id, data.endpoint)

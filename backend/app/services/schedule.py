@@ -376,6 +376,83 @@ class ScheduleService:
             if first_date <= session.occurrence_date <= last_date
         ]
 
+    async def list_upcoming_slots_with_dt(
+        self,
+        athlete_profile: AthleteProfile,
+        horizon_days: int = 2,
+    ) -> list[tuple[datetime, AthleteUpcomingSessionResponse]]:
+        """Upcoming sessions with timezone-aware slot datetimes (coach TZ)."""
+        result = await self.db.execute(
+            select(CoachAthleteLink)
+            .where(
+                CoachAthleteLink.athlete_id == athlete_profile.id,
+                CoachAthleteLink.status == CoachAthleteLinkStatus.active,
+            )
+            .options(selectinload(CoachAthleteLink.coach))
+        )
+        links = result.scalars().all()
+
+        candidates: list[tuple[datetime, AthleteUpcomingSessionResponse]] = []
+
+        for link in links:
+            coach = link.coach
+            settings = await self._load_settings(coach)
+            if settings is None:
+                continue
+
+            template_slots = await self._load_template_slots(coach)
+            tz_name = settings.timezone or "Europe/Moscow"
+            try:
+                tz = ZoneInfo(tz_name)
+            except Exception:
+                tz = ZoneInfo("Europe/Moscow")
+
+            today = datetime.now(tz).date()
+            range_end = today + timedelta(days=horizon_days)
+            exceptions = await self._load_week_exceptions(coach, today, range_end)
+            athlete_map = await self._load_athlete_map(coach)
+            time_slots = self._build_time_slots(settings)
+
+            current = today
+            while current <= range_end:
+                if current.weekday() not in settings.work_days:
+                    current += timedelta(days=1)
+                    continue
+
+                for slot_str in time_slots:
+                    slot_time = _parse_time(slot_str)
+                    cell = self._resolve_week_cell(
+                        current,
+                        slot_time,
+                        template_slots,
+                        exceptions,
+                        athlete_map,
+                    )
+                    if cell.athlete is None or cell.athlete.athlete_id != athlete_profile.id:
+                        continue
+
+                    slot_dt = datetime.combine(current, slot_time, tzinfo=tz)
+                    if slot_dt < datetime.now(tz):
+                        continue
+
+                    session = AthleteUpcomingSessionResponse(
+                        coach_id=coach.id,
+                        coach_display_name=coach.display_name,
+                        coach_avatar_url=coach.avatar_url,
+                        sessions_balance=link.sessions_balance,
+                        occurrence_date=current,
+                        start_time=slot_str,
+                        duration_min=settings.slot_duration_min,
+                        activity_type_id=cell.activity_type_id,
+                        activity_name=cell.activity_name,
+                    )
+                    candidates.append((slot_dt, session))
+
+                current += timedelta(days=1)
+
+        candidates.sort(key=lambda item: item[0])
+        return candidates
+
     async def _load_settings(self, coach_profile: CoachProfile) -> CoachScheduleSettings | None:
         result = await self.db.execute(
             select(CoachScheduleSettings).where(

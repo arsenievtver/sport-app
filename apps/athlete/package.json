@@ -14,7 +14,9 @@
     "@sport-app/shared": "workspace:*",
     "@sport-app/ui": "workspace:*",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "workbox-core": "^7.4.1",
+    "workbox-precaching": "^7.4.1"
   },
   "devDependencies": {
     "@sport-app/vite-config": "workspace:*",

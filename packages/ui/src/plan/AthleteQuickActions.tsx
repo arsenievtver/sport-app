@@ -3,17 +3,20 @@ import { IconDumbbell } from "../icons/AthleteMetricIcons";
 import { ICON_VIEW_BOX, iconStrokeProps } from "../icons/iconProps";
 import "./athlete-plan.css";
 
-export type AthleteQuickActionId = "my-plan" | "nutrition" | "workouts" | "assistant";
+export type AthleteQuickActionId = "hall-of-fame" | "nutrition" | "workouts" | "assistant";
 
 interface AthleteQuickActionsProps {
   onAction: (action: AthleteQuickActionId) => void;
 }
 
-function IconMyPlan() {
+function IconHallOfFame() {
   return (
     <svg viewBox={ICON_VIEW_BOX} aria-hidden="true" {...iconStrokeProps}>
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" />
+      <path d="M8 21h8" />
+      <path d="M12 17v4" />
+      <path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" />
+      <path d="M17 5h2a2 2 0 0 1 0 4h-2" />
+      <path d="M7 5H5a2 2 0 0 0 0 4h2" />
     </svg>
   );
 }
@@ -43,7 +46,7 @@ const ACTIONS: Array<{
   hint: string;
   Icon: () => ReactElement;
 }> = [
-  { id: "my-plan", label: "Мой план", hint: "Настроить", Icon: IconMyPlan },
+  { id: "hall-of-fame", label: "Зал славы", hint: "Открыть", Icon: IconHallOfFame },
   { id: "nutrition", label: "Питание", hint: "Записать", Icon: IconNutrition },
   { id: "workouts", label: "Тренировки", hint: "Открыть", Icon: IconDumbbell },
   { id: "assistant", label: "Ассистент", hint: "Спросить", Icon: IconAssistant },

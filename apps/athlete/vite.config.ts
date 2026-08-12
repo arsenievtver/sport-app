@@ -13,8 +13,14 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       VitePWA({
+        strategies: "injectManifest",
+        srcDir: "src",
+        filename: "sw.ts",
         registerType: "autoUpdate",
         includeAssets: ["icon.svg"],
+        injectManifest: {
+          globPatterns: ["**/*.{js,css,html,svg,png,ico,webp,woff2}"],
+        },
         manifest: {
           id: "/",
           name: "sport-app — Атлет",
@@ -39,6 +45,10 @@ export default defineConfig(({ mode }) => {
               purpose: "maskable",
             },
           ],
+        },
+        devOptions: {
+          enabled: true,
+          type: "module",
         },
       }),
     ],

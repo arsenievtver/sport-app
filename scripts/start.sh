@@ -85,6 +85,13 @@ start_background api bash -c "
   exec '$ROOT/backend/.venv/bin/uvicorn' app.main:app --reload --host 0.0.0.0 --port ${PORT_API}
 "
 
+log "Starting ARQ worker..."
+start_background worker bash -c "
+  cd '$ROOT/backend' &&
+  export DEBUG=true &&
+  exec '$ROOT/backend/.venv/bin/arq' app.workers.settings.WorkerSettings
+"
+
 # Wait for services to boot
 sleep 3
 if ! curl -sf "http://127.0.0.1:${PORT_API}/api/v1/health" >/dev/null; then

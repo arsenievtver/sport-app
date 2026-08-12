@@ -20,7 +20,12 @@ import {
 
 import { AvatarCropModal } from "./AvatarCropModal";
 import { NativeTemporalInput } from "../native-temporal/NativeTemporalInput";
+import { AthleteMyPlanPanel } from "../plan/AthleteMyPlanPanel";
+import { useNotificationPermission } from "../pwa/useNotificationPermission";
+import { useWebPushSubscription } from "../pwa/useWebPushSubscription";
 import { SessionsBalanceBadge } from "../sessions/SessionsBalanceBadge";
+
+export type AthleteSettingsView = "settings" | "my-plan";
 
 interface AthleteSettingsProps {
   user: UserResponse;
@@ -28,6 +33,9 @@ interface AthleteSettingsProps {
   onOpenThemes: () => void;
   onLogout: () => void;
   whoopSection?: ReactNode;
+  view?: AthleteSettingsView;
+  onViewChange?: (view: AthleteSettingsView) => void;
+  onPlanSaved?: () => void;
 }
 
 function SettingsSection({
@@ -87,6 +95,9 @@ export function AthleteSettings({
   onOpenThemes,
   onLogout,
   whoopSection,
+  view = "settings",
+  onViewChange,
+  onPlanSaved,
 }: AthleteSettingsProps) {
   const profile = user.athlete_profile;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -103,6 +114,14 @@ export function AthleteSettings({
   const [success, setSuccess] = useState<string | null>(null);
   const [currentWeightKg, setCurrentWeightKg] = useState<number | null>(null);
   const [loadingWeight, setLoadingWeight] = useState(true);
+  const { permission: notificationPermission } = useNotificationPermission();
+  const {
+    subscribed: pushEnabled,
+    loading: pushLoading,
+    error: pushError,
+    subscribe: enablePush,
+    unsubscribe: disablePush,
+  } = useWebPushSubscription(view === "settings");
 
   const avatarUrl = resolveMediaUrl(profile?.avatar_url);
   const age = calculateAge(birthDate);
@@ -150,6 +169,13 @@ export function AthleteSettings({
       cancelled = true;
     };
   }, []);
+
+  const openMyPlan = () => onViewChange?.("my-plan");
+  const backToSettings = () => onViewChange?.("settings");
+
+  if (view === "my-plan") {
+    return <AthleteMyPlanPanel onBack={backToSettings} onSaved={onPlanSaved} />;
+  }
 
   const showMessage = (message: string) => {
     setSuccess(message);
@@ -317,6 +343,13 @@ export function AthleteSettings({
         )}
       </SettingsSection>
 
+      <section className="settings-section glass glass--panel">
+        <button type="button" className="settings-nav-row" onClick={openMyPlan}>
+          <span className="settings-section__title">Мой план</span>
+          <span className="settings-nav-row__chevron" aria-hidden="true" />
+        </button>
+      </section>
+
       {whoopSection ? <SettingsSection title="WHOOP">{whoopSection}</SettingsSection> : null}
 
       <SettingsSection title="Результаты тренировок">
@@ -377,6 +410,37 @@ export function AthleteSettings({
             Добавить
           </button>
         </div>
+      </SettingsSection>
+
+      <SettingsSection title="Уведомления">
+        <p className="settings-section__lead">
+          Напоминание за час до тренировки. Работает в установленном приложении (PWA).
+        </p>
+        {notificationPermission === "unsupported" ? (
+          <p className="settings-placeholder">Уведомления не поддерживаются в этом браузере.</p>
+        ) : notificationPermission === "denied" ? (
+          <p className="settings-placeholder">
+            Разрешение отклонено. Включите уведомления в настройках системы или браузера.
+          </p>
+        ) : (
+          <>
+            <SettingsRow
+              label="Статус"
+              value={pushEnabled ? "Включены" : "Выключены"}
+              hint="Не чаще одного напоминания в день"
+            />
+            {pushError ? <p className="settings-message settings-message--error">{pushError}</p> : null}
+            <button
+              type="button"
+              className={`settings-btn ${pushEnabled ? "settings-btn--ghost" : "settings-btn--primary"}`}
+              style={{ marginTop: "var(--space-4)" }}
+              disabled={pushLoading}
+              onClick={() => void (pushEnabled ? disablePush() : enablePush())}
+            >
+              {pushLoading ? "Сохранение…" : pushEnabled ? "Отключить уведомления" : "Включить уведомления"}
+            </button>
+          </>
+        )}
       </SettingsSection>
 
       <SettingsSection title="Приложение">

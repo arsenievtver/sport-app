@@ -1722,6 +1722,10 @@
   white-space: nowrap;
 }
 
+.athlete-home-section__when--relative {
+  color: var(--color-accent);
+}
+
 .athlete-home-coaches {
   display: grid;
   gap: var(--space-3);

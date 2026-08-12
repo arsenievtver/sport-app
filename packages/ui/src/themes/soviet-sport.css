@@ -102,6 +102,10 @@
 [data-theme="soviet-sport"] .athlete-home-section__when {
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+[data-theme="soviet-sport"] .athlete-home-section__when--relative {
   color: var(--color-primary);
 }
 

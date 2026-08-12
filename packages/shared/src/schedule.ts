@@ -93,7 +93,15 @@ export interface AthleteUpcomingSession {
   activity_name?: string | null;
 }
 
-export function formatAthleteUpcomingSessionDay(session: AthleteUpcomingSession): string {
+export function formatAthleteUpcomingSessionDay(
+  session: AthleteUpcomingSession,
+  referenceToday = new Date(),
+): string {
+  const todayIso = toIsoDate(referenceToday);
+  const tomorrowIso = toIsoDate(addDays(referenceToday, 1));
+  if (session.occurrence_date === todayIso) return "Сегодня";
+  if (session.occurrence_date === tomorrowIso) return "Завтра";
+
   const parsed = new Date(`${session.occurrence_date}T12:00:00`);
   return parsed.toLocaleDateString("ru-RU", {
     weekday: "short",

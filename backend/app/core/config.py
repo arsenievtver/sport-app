@@ -1,4 +1,4 @@
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -62,6 +62,19 @@ class Settings(BaseSettings):
     # emb://… model suffixes (256-dim)
     yandex_embedding_doc_model: str = "text-search-doc/latest"
     yandex_embedding_query_model: str = "text-search-query/latest"
+
+    # Web Push (VAPID). Generate: python scripts/generate_vapid_keys.py
+    vapid_public_key: str | None = None
+    vapid_private_key: str | None = None
+    vapid_subject: str = "mailto:admin@athlete-app.ru"
+    push_reminder_minutes_before: int = 60
+
+    @field_validator("vapid_private_key", mode="before")
+    @classmethod
+    def normalize_vapid_private_key(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.replace("\\n", "\n").strip() or None
+        return value
 
 
 settings = Settings()

@@ -40,6 +40,20 @@ services:
     expose:
       - "8000"
 
+  worker:
+    build:
+      context: ../..
+      dockerfile: infra/Dockerfile.backend
+    container_name: sport-app-worker
+    restart: unless-stopped
+    env_file: .env
+    entrypoint: ["/entrypoint-worker.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   postgres:
     image: pgvector/pgvector:pg16
     container_name: sport-app-postgres
