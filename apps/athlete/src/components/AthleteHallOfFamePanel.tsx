@@ -34,7 +34,8 @@ function buildMedals(streak: AthleteStreak | null): MedalView[] {
     const weeksRequired = remote?.weeks_required ?? 4;
     const unlocked = remote?.unlocked ?? false;
     const progressWeeks = Math.min(current, weeksRequired);
-    const progressPercent = weeksRequired <= 0 ? 0 : Math.min(100, Math.round((progressWeeks / weeksRequired) * 100));
+    const progressPercent =
+      weeksRequired <= 0 ? 0 : Math.min(100, Math.round((progressWeeks / weeksRequired) * 100));
 
     return {
       id,
@@ -49,72 +50,19 @@ function buildMedals(streak: AthleteStreak | null): MedalView[] {
   });
 }
 
-function MysteryShape({ id }: { id: StreakMedalId }) {
-  if (id === "streak-3m") {
-    return (
-      <svg className="hof-mystery__svg" viewBox="0 0 80 96" aria-hidden="true">
-        <defs>
-          <linearGradient id={`hof-g-${id}`} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.55)" />
-            <stop offset="45%" stopColor="rgb(var(--medal-glow))" />
-            <stop offset="100%" stopColor="rgba(var(--medal-glow), 0.35)" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M40 6 L72 24 L72 56 L40 90 L8 56 L8 24 Z"
-          fill={`url(#hof-g-${id})`}
-          opacity="0.92"
-        />
-      </svg>
-    );
-  }
-
-  if (id === "streak-6m") {
-    return (
-      <svg className="hof-mystery__svg" viewBox="0 0 80 96" aria-hidden="true">
-        <defs>
-          <linearGradient id={`hof-g-${id}`} x1="0.2" y1="0" x2="0.8" y2="1">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
-            <stop offset="40%" stopColor="rgb(var(--medal-glow))" />
-            <stop offset="100%" stopColor="rgba(var(--medal-glow), 0.28)" />
-          </linearGradient>
-        </defs>
-        <path d="M40 4 L76 48 L40 92 L4 48 Z" fill={`url(#hof-g-${id})`} opacity="0.92" />
-      </svg>
-    );
-  }
-
-  if (id === "streak-12m") {
-    return (
-      <svg className="hof-mystery__svg" viewBox="0 0 80 96" aria-hidden="true">
-        <defs>
-          <radialGradient id={`hof-g-${id}`} cx="35%" cy="30%" r="70%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.65)" />
-            <stop offset="45%" stopColor="rgb(var(--medal-glow))" />
-            <stop offset="100%" stopColor="rgba(var(--medal-glow), 0.25)" />
-          </radialGradient>
-        </defs>
-        <circle cx="40" cy="48" r="34" fill={`url(#hof-g-${id})`} opacity="0.92" />
-        <circle cx="40" cy="48" r="22" fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="2" />
-      </svg>
-    );
-  }
-
+/** Exact medal outline, no artwork details — surprise until unlocked. */
+function MedalSilhouette({ src, className }: { src: string; className?: string }) {
   return (
-    <svg className="hof-mystery__svg" viewBox="0 0 80 96" aria-hidden="true">
-      <defs>
-        <linearGradient id={`hof-g-${id}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
-          <stop offset="40%" stopColor="rgb(var(--medal-glow))" />
-          <stop offset="100%" stopColor="rgba(var(--medal-glow), 0.3)" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M18 10 H62 Q70 10 70 18 V52 Q70 72 40 90 Q10 72 10 52 V18 Q10 10 18 10 Z"
-        fill={`url(#hof-g-${id})`}
-        opacity="0.92"
-      />
-    </svg>
+    <span
+      className={className ?? "hof-locked__silhouette"}
+      style={
+        {
+          WebkitMaskImage: `url(${src})`,
+          maskImage: `url(${src})`,
+        } as CSSProperties
+      }
+      aria-hidden="true"
+    />
   );
 }
 
@@ -149,10 +97,7 @@ function LockedMedalCard({ medal, delayMs }: { medal: MedalView; delayMs: number
     >
       <div className="hof-locked__visual">
         <span className="hof-locked__glow" aria-hidden="true" />
-        <MysteryShape id={medal.id} />
-        <span className="hof-locked__mark" aria-hidden="true">
-          ?
-        </span>
+        <MedalSilhouette src={medal.src} />
       </div>
       <div className="hof-locked__body">
         <strong className="hof-locked__title">{medal.title}</strong>
@@ -202,6 +147,7 @@ export function AthleteHallOfFamePanel() {
   const medals = useMemo(() => buildMedals(streak), [streak]);
   const earned = medals.filter((medal) => medal.unlocked);
   const locked = medals.filter((medal) => !medal.unlocked);
+  const plan = streak?.workouts_per_week ?? 2;
 
   return (
     <div className="athlete-overlay-screen hall-of-fame">
@@ -234,8 +180,9 @@ export function AthleteHallOfFamePanel() {
 
         {earned.length === 0 ? (
           <p className="hof-empty text-secondary">
-            Пока пусто — пусть тренер отметит {streak?.workouts_per_week ?? "…"} тренировки в неделю, и серия
-            пойдёт.
+            Первая медаль — за {plan}{" "}
+            {plan === 1 ? "тренировку" : plan < 5 ? "тренировки" : "тренировок"} с тренером каждую неделю,
+            четыре недели подряд. Ты уже на старте — просто не пропускай.
           </p>
         ) : (
           <div className={`hof-earned${earned.length === 1 ? " hof-earned--solo" : ""}`}>
@@ -263,7 +210,7 @@ export function AthleteHallOfFamePanel() {
         <p className="hall-of-fame__note text-muted">Демо: все награды открыты (админка)</p>
       ) : (
         <p className="hall-of-fame__note text-muted">
-          В серию идут только тренировки, отмеченные тренером. Вид медали — сюрприз до получения.
+          Регулярные тренировки с тренером открывают медали. Как выглядит награда — узнаешь, когда заберёшь её.
         </p>
       )}
     </div>

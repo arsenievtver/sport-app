@@ -1791,19 +1791,18 @@
 .athlete-home-sessions {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-1) 0;
+  padding: var(--space-3);
 }
 
 .athlete-home-sessions__item {
   display: grid;
   gap: var(--space-1);
   background: transparent;
-  padding: var(--space-3) 0;
 }
 
 .athlete-home-sessions__item + .athlete-home-sessions__item {
   padding-top: var(--space-3);
-  border-top: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+  border-top: 1px solid var(--color-border-subtle, var(--color-border));
 }
 
 .athlete-home-sessions__time {
@@ -1850,7 +1849,7 @@
 .athlete-home-last-session {
   display: grid;
   gap: var(--space-3);
-  padding: var(--space-1) 0;
+  padding: var(--space-4);
 }
 
 .athlete-home-last-session__header {

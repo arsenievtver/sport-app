@@ -64,7 +64,7 @@ export function AthleteQuickActions({ onAction }: AthleteQuickActionsProps) {
           <button
             key={id}
             type="button"
-            className="athlete-quick-actions__tile"
+            className="athlete-quick-actions__tile glass glass--panel"
             onClick={() => onAction(id)}
           >
             <span className="athlete-quick-actions__icon" aria-hidden="true">

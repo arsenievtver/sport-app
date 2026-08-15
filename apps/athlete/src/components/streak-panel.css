@@ -40,7 +40,7 @@
 
 .streak-panel {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-4);
   align-items: center;
   padding: var(--space-2) 0 var(--space-1);
@@ -81,35 +81,26 @@
   animation: streak-medal-float 4.2s ease-in-out infinite;
 }
 
-.streak-panel__mystery {
+.streak-panel__silhouette {
   position: relative;
   z-index: 1;
+  display: block;
   width: 72px;
   height: 90px;
-  display: grid;
-  place-items: center;
+  background: linear-gradient(
+    165deg,
+    rgba(var(--streak-glow), 0.55) 0%,
+    rgba(var(--streak-glow), 0.22) 55%,
+    color-mix(in srgb, var(--color-text-muted) 55%, transparent) 100%
+  );
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.28));
   animation: streak-medal-float 4.2s ease-in-out infinite;
-}
-
-.streak-panel__mystery-shape {
-  width: 58px;
-  height: 70px;
-  border-radius: 42% 42% 36% 36% / 30% 30% 48% 48%;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.28), transparent 42%),
-    linear-gradient(160deg, rgba(var(--streak-glow), 0.95), rgba(var(--streak-glow), 0.35));
-  box-shadow:
-    0 12px 22px rgba(0, 0, 0, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  filter: blur(0.2px);
-}
-
-.streak-panel__mystery-mark {
-  position: absolute;
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  color: rgba(255, 255, 255, 0.78);
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .streak-panel__body {
@@ -337,7 +328,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .streak-panel__medal,
-  .streak-panel__mystery,
+  .streak-panel__silhouette,
   .streak-panel__medal-aura,
   .streak-panel__shine,
   .streak-rules-modal__sheet {

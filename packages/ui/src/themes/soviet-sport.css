@@ -243,12 +243,11 @@
 
 /* ── Quick actions: poster tiles (red · teal · beige) ────────── */
 
-[data-theme="soviet-sport"] .athlete-quick-actions__tile {
+[data-theme="soviet-sport"] .athlete-quick-actions__tile.glass.glass--panel {
   min-height: 108px;
   padding: var(--space-4) var(--space-2);
-  border: 2px solid rgba(0, 0, 0, 0.4);
+  border-width: 2px;
   border-radius: var(--radius-sm);
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.28);
 }
 
 [data-theme="soviet-sport"] .athlete-quick-actions__tile:nth-child(1) {
@@ -378,6 +377,39 @@
 [data-theme="soviet-sport"] .athlete-home-sessions__coach-name {
   letter-spacing: 0.03em;
   font-size: var(--text-xs);
+}
+
+[data-theme="soviet-sport"] .athlete-home-last-session.glass--panel {
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="soviet-sport"] .athlete-home-last-session.glass--panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+[data-theme="soviet-sport"] .athlete-home-last-session.glass--panel::after {
+  display: block;
+  content: "";
+  position: absolute;
+  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: auto;
+  z-index: 0;
+  border-radius: inherit;
+  opacity: 1;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  background:
+    repeating-conic-gradient(
+      from -8deg at 50% 120%,
+      color-mix(in srgb, var(--color-accent) 22%, transparent) 0deg 10deg,
+      transparent 10deg 20deg
+    ),
+    var(--soviet-paper-stains);
 }
 
 [data-theme="soviet-sport"] .athlete-home-last-session__activity {

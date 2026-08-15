@@ -179,23 +179,6 @@ export function AthleteStreakPanel({ refreshKey, onOpenHallOfFame }: AthleteStre
       </div>
 
       <section className="streak-panel" style={{ "--streak-glow": asset.glow } as CSSProperties}>
-        <button
-          type="button"
-          className="streak-panel__medal-btn"
-          onClick={onOpenHallOfFame}
-          aria-label={`Зал славы: следующая награда ${asset.title}`}
-        >
-          <span className="streak-panel__medal-aura" aria-hidden="true" />
-          {revealNextArt ? (
-            <img className="streak-panel__medal" src={asset.src} alt="" width={72} height={90} decoding="async" />
-          ) : (
-            <span className="streak-panel__mystery" aria-hidden="true">
-              <span className="streak-panel__mystery-shape" />
-              <span className="streak-panel__mystery-mark">?</span>
-            </span>
-          )}
-        </button>
-
         <div className="streak-panel__body">
           <div className="streak-panel__meta">
             <span className="streak-panel__label">{asset.title}</span>
@@ -230,6 +213,29 @@ export function AthleteStreakPanel({ refreshKey, onOpenHallOfFame }: AthleteStre
             <span className="streak-panel__best">Рекорд: {streak.best_streak_weeks} нед</span>
           </div>
         </div>
+
+        <button
+          type="button"
+          className="streak-panel__medal-btn"
+          onClick={onOpenHallOfFame}
+          aria-label={`Зал славы: следующая награда ${asset.title}`}
+        >
+          <span className="streak-panel__medal-aura" aria-hidden="true" />
+          {revealNextArt ? (
+            <img className="streak-panel__medal" src={asset.src} alt="" width={72} height={90} decoding="async" />
+          ) : (
+            <span
+              className="streak-panel__silhouette"
+              style={
+                {
+                  WebkitMaskImage: `url(${asset.src})`,
+                  maskImage: `url(${asset.src})`,
+                } as CSSProperties
+              }
+              aria-hidden="true"
+            />
+          )}
+        </button>
       </section>
 
       <StreakRulesModal
