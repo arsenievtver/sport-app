@@ -39,6 +39,7 @@ import { WhoopSettingsPanel } from "./components/WhoopSettingsPanel";
 import { AthleteUpcomingSessionsPanel } from "./components/AthleteUpcomingSessionsPanel";
 import { AthleteLastSessionPanel } from "./components/AthleteLastSessionPanel";
 import { AthleteAddWorkoutModal } from "./components/AthleteAddWorkoutModal";
+import { AthleteHallOfFamePanel } from "./components/AthleteHallOfFamePanel";
 import "./components/whoop.css";
 
 type AthleteTab = "home" | "data" | "settings";
@@ -208,13 +209,7 @@ export default function App() {
         >
           {tab === "home" ? (
             homeOverlay === "hall-of-fame" ? (
-              <div className="athlete-overlay-screen">
-                <section className="athlete-stub glass glass--panel">
-                  <p className="athlete-stub__message text-secondary">
-                    Скоро: ваши достижения и личные рекорды.
-                  </p>
-                </section>
-              </div>
+              <AthleteHallOfFamePanel />
             ) : homeOverlay === "nutrition" ? (
               <AthleteNutritionPanel />
             ) : homeOverlay === "workouts" ? (

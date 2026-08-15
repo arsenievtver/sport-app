@@ -1,0 +1,153 @@
+.hall-of-fame {
+  gap: var(--space-5);
+  padding-bottom: var(--space-4);
+}
+
+.hall-of-fame__lead {
+  margin: 0;
+  text-align: center;
+  font-size: var(--text-sm);
+  letter-spacing: 0.04em;
+}
+
+.hall-of-fame__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4) var(--space-3);
+  align-items: end;
+}
+
+.hall-of-fame__grid .hall-of-fame__medal:last-child {
+  grid-column: 1 / -1;
+  width: min(100%, 168px);
+}
+
+.hall-of-fame__medal {
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  --medal-float-duration: 4.6s;
+}
+
+.hall-of-fame__medal--featured {
+  width: min(100%, 280px);
+  justify-self: center;
+  --medal-float-duration: 5.2s;
+}
+
+.hall-of-fame__stage {
+  position: relative;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  perspective: 720px;
+}
+
+.hall-of-fame__aura {
+  position: absolute;
+  inset: 12% 8% 18%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(var(--medal-glow), 0.42) 0%,
+    rgba(var(--medal-glow), 0.12) 48%,
+    transparent 72%
+  );
+  filter: blur(10px);
+  pointer-events: none;
+  animation: hall-of-fame-glow var(--medal-float-duration) ease-in-out infinite;
+  animation-delay: var(--medal-delay, 0ms);
+}
+
+.hall-of-fame__art {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  transform-origin: 50% 70%;
+  transform: rotateX(8deg);
+  filter: drop-shadow(0 18px 16px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 18px rgba(var(--medal-glow), 0.28));
+  animation: hall-of-fame-float var(--medal-float-duration) ease-in-out infinite;
+  animation-delay: var(--medal-delay, 0ms);
+}
+
+.hall-of-fame__plinth {
+  width: 58%;
+  height: 12px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgb(0 0 0 / 0.55) 0%, transparent 72%);
+  pointer-events: none;
+}
+
+.hall-of-fame__caption {
+  display: grid;
+  gap: 2px;
+  text-align: center;
+}
+
+.hall-of-fame__title {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--font-display-weight);
+  letter-spacing: 0.04em;
+  line-height: var(--leading-tight);
+}
+
+.hall-of-fame__medal--featured .hall-of-fame__title {
+  font-size: var(--text-base);
+}
+
+.hall-of-fame__subtitle {
+  font-size: var(--text-xs);
+  line-height: var(--leading-tight);
+}
+
+.hall-of-fame__note {
+  margin: var(--space-2) 0 0;
+  text-align: center;
+  font-size: var(--text-xs);
+}
+
+@keyframes hall-of-fame-float {
+  0%,
+  100% {
+    transform: rotateX(8deg) translateY(0);
+  }
+  50% {
+    transform: rotateX(8deg) translateY(-8px);
+  }
+}
+
+@keyframes hall-of-fame-glow {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@media (max-width: 340px) {
+  .hall-of-fame__grid {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .hall-of-fame__grid .hall-of-fame__medal,
+  .hall-of-fame__grid .hall-of-fame__medal:last-child {
+    width: min(100%, 200px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hall-of-fame__art,
+  .hall-of-fame__aura {
+    animation: none;
+  }
+}
