@@ -94,16 +94,16 @@ export function AthleteUpcomingSessionsPanel({ refreshKey }: { refreshKey?: stri
       </h2>
 
       {loading ? (
-        <section className="athlete-home-sessions glass glass--panel">
+        <section className="athlete-home-sessions">
           <p className="text-muted">Загрузка расписания…</p>
         </section>
       ) : error ? (
-        <section className="athlete-home-sessions glass glass--panel">
+        <section className="athlete-home-sessions">
           <p className="auth-error">{error}</p>
         </section>
       ) : sessions.length === 0 ? (
         <section
-          className="athlete-home-sessions glass glass--panel athlete-home-enter"
+          className="athlete-home-sessions athlete-home-enter"
           style={{ "--enter-delay": "160ms" } as CSSProperties}
         >
           <div className="athlete-empty-state">
@@ -117,7 +117,7 @@ export function AthleteUpcomingSessionsPanel({ refreshKey }: { refreshKey?: stri
         </section>
       ) : (
         <section
-          className="athlete-home-sessions glass glass--panel athlete-home-enter"
+          className="athlete-home-sessions athlete-home-enter"
           style={{ "--enter-delay": "160ms" } as CSSProperties}
         >
           {sessions.map((session) => (

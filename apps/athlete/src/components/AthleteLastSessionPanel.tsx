@@ -55,16 +55,16 @@ export function AthleteLastSessionPanel({ refreshKey }: AthleteLastSessionPanelP
       <h2 className="athlete-home-section__title">Последняя тренировка</h2>
 
       {loading ? (
-        <section className="athlete-home-last-session glass glass--panel">
+        <section className="athlete-home-last-session">
           <p className="text-muted">Загрузка…</p>
         </section>
       ) : error ? (
-        <section className="athlete-home-last-session glass glass--panel">
+        <section className="athlete-home-last-session">
           <p className="auth-error">{error}</p>
         </section>
       ) : session == null ? (
         <section
-          className="athlete-home-last-session glass glass--panel athlete-home-enter"
+          className="athlete-home-last-session athlete-home-enter"
           style={{ "--enter-delay": "240ms" } as CSSProperties}
         >
           <div className="athlete-empty-state">
@@ -78,7 +78,7 @@ export function AthleteLastSessionPanel({ refreshKey }: AthleteLastSessionPanelP
         </section>
       ) : (
         <section
-          className="athlete-home-last-session glass glass--panel athlete-home-enter"
+          className="athlete-home-last-session athlete-home-enter"
           style={{ "--enter-delay": "240ms" } as CSSProperties}
         >
           <div className="athlete-home-last-session__header">

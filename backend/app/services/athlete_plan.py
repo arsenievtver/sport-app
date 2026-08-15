@@ -198,8 +198,31 @@ class AthletePlanService:
         today = _athlete_today(profile)
         current_monday, _ = _week_bounds(today)
         target = max(1, profile.plan_workouts_per_week)
-        dynamics = await self.get_weekly_workout_dynamics(profile, weeks=STREAK_HISTORY_WEEKS)
-        weeks_asc = [(entry.week_start, entry.workouts_count) for entry in dynamics.entries]
+        oldest_monday = current_monday - timedelta(weeks=STREAK_HISTORY_WEEKS - 1)
+
+        # Streak medals count only coach-confirmed sessions (ledger debit with link_id).
+        result = await self.db.execute(
+            select(CoachAthleteSessionEntry)
+            .join(CoachAthleteLink, CoachAthleteSessionEntry.link_id == CoachAthleteLink.id)
+            .where(
+                CoachAthleteSessionEntry.kind == CoachAthleteSessionEntryKind.debit,
+                CoachAthleteSessionEntry.link_id.is_not(None),
+                CoachAthleteLink.athlete_id == profile.id,
+                CoachAthleteSessionEntry.entry_date >= oldest_monday,
+                CoachAthleteSessionEntry.entry_date <= today,
+            )
+        )
+        coach_entries = list(result.scalars().all())
+
+        workouts_by_week: dict[date, int] = {}
+        for entry in coach_entries:
+            week_start, _ = _week_bounds(entry.entry_date)
+            workouts_by_week[week_start] = workouts_by_week.get(week_start, 0) + entry.sessions_count
+
+        weeks_asc: list[tuple[date, int]] = []
+        for index in range(STREAK_HISTORY_WEEKS):
+            week_start = oldest_monday + timedelta(weeks=index)
+            weeks_asc.append((week_start, workouts_by_week.get(week_start, 0)))
 
         current_streak = compute_current_streak_weeks(
             weeks_asc,
@@ -211,15 +234,12 @@ class AthletePlanService:
             target=target,
             current_week_start=current_monday,
         )
-        best_streak = max(profile.best_streak_weeks, computed_best, current_streak)
-        if best_streak > profile.best_streak_weeks:
+        best_streak = max(computed_best, current_streak)
+        if profile.best_streak_weeks != best_streak:
             profile.best_streak_weeks = best_streak
             await self.db.flush()
 
-        current_week_workouts = next(
-            (count for week_start, count in weeks_asc if week_start == current_monday),
-            0,
-        )
+        current_week_workouts = workouts_by_week.get(current_monday, 0)
         current_week_met = current_week_workouts >= target
         next_threshold = next_medal_threshold(current_streak)
         progress_weeks = min(current_streak, next_threshold)
@@ -248,7 +268,6 @@ class AthletePlanService:
                 )
             )
         if not any(medal.is_next for medal in medals) and medals:
-            # Next target is a stack beyond base tiers (e.g. second month).
             for medal in medals:
                 if medal.weeks_required == MEDAL_TIERS[0].weeks_required:
                     medal.is_next = True

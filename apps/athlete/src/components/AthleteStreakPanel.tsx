@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { fetchAthleteStreak } from "@sport-app/api-client";
 import {
   STREAK_MEDAL_ASSETS,
@@ -34,11 +35,11 @@ function StreakRulesModal({
   const titleId = useId();
   useModalScrollIsolation(open, modalRef);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
   const plan = streak?.workouts_per_week ?? 2;
 
-  return (
+  return createPortal(
     <div
       ref={modalRef}
       className="streak-rules-modal"
@@ -57,6 +58,10 @@ function StreakRulesModal({
           </button>
         </header>
         <div className="streak-rules-modal__body">
+          <p>
+            Считаются только тренировки, которые <strong>отметил тренер</strong> как прошедшие. Самостоятельные
+            записи в серию не входят.
+          </p>
           <p>
             В плане — <strong>{plan}</strong>{" "}
             {plan === 1 ? "тренировка" : plan < 5 ? "тренировки" : "тренировок"} в неделю. Как только неделя
@@ -77,8 +82,8 @@ function StreakRulesModal({
             </li>
           </ul>
           <p>
-            Если неделя закрылась без плана — текущая серия обнуляется. Рекорд (максимум) сохраняется. Долгая
-            серия складывает медали: в углу появится ×2, ×5 и т.д.
+            Если неделя закрылась без плана — текущая серия обнуляется. Рекорд сохраняется. Долгая серия
+            складывает медали: ×2, ×5 и т.д.
           </p>
           <button
             type="button"
@@ -92,7 +97,8 @@ function StreakRulesModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -151,6 +157,8 @@ export function AthleteStreakPanel({ refreshKey, onOpenHallOfFame }: AthleteStre
   if (!streak) return null;
 
   const asset = nextMedalAsset(streak);
+  const nextMedal = streak.medals.find((medal) => medal.is_next) ?? streak.medals[0];
+  const revealNextArt = Boolean(nextMedal?.unlocked || streak.medals_preview_unlock_all);
   const weeksLeft = Math.max(0, streak.next_threshold_weeks - streak.current_streak_weeks);
 
   return (
@@ -170,10 +178,7 @@ export function AthleteStreakPanel({ refreshKey, onOpenHallOfFame }: AthleteStre
         </button>
       </div>
 
-      <section
-        className="streak-panel glass glass--panel"
-        style={{ "--streak-glow": asset.glow } as CSSProperties}
-      >
+      <section className="streak-panel" style={{ "--streak-glow": asset.glow } as CSSProperties}>
         <button
           type="button"
           className="streak-panel__medal-btn"
@@ -181,7 +186,14 @@ export function AthleteStreakPanel({ refreshKey, onOpenHallOfFame }: AthleteStre
           aria-label={`Зал славы: следующая награда ${asset.title}`}
         >
           <span className="streak-panel__medal-aura" aria-hidden="true" />
-          <img className="streak-panel__medal" src={asset.src} alt="" width={72} height={90} decoding="async" />
+          {revealNextArt ? (
+            <img className="streak-panel__medal" src={asset.src} alt="" width={72} height={90} decoding="async" />
+          ) : (
+            <span className="streak-panel__mystery" aria-hidden="true">
+              <span className="streak-panel__mystery-shape" />
+              <span className="streak-panel__mystery-mark">?</span>
+            </span>
+          )}
         </button>
 
         <div className="streak-panel__body">
