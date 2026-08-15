@@ -36,6 +36,7 @@ export { AuthScreen } from "./auth/AuthScreen";
 export type { AuthScreenConfig } from "./auth/AuthScreen";
 export { useAuthSession, setSessionRefreshPaused } from "./auth/useAuthSession";
 export type { AuthSession } from "./auth/useAuthSession";
+export { useCountUp } from "./hooks/useCountUp";
 export { useLiveDataRefresh } from "./hooks/useLiveDataRefresh";
 export { useBodyScrollLock } from "./hooks/useBodyScrollLock";
 export { useModalScrollIsolation } from "./hooks/useModalScrollIsolation";

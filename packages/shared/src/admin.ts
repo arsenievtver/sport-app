@@ -36,6 +36,7 @@ export interface AdminAthlete {
   timezone: string;
   is_active: boolean;
   is_managed: boolean;
+  medals_preview_unlock_all: boolean;
   coaches: LinkedCoachSummary[];
   created_at: string;
 }
@@ -72,6 +73,7 @@ export interface AdminAthleteUpdatePayload {
   birth_date?: string | null;
   timezone?: string;
   is_active?: boolean;
+  medals_preview_unlock_all?: boolean;
   pin?: string;
   coach_ids?: string[];
 }

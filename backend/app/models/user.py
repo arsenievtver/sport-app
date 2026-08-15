@@ -109,6 +109,10 @@ class AthleteProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         default=PlanActivityTier.moderate,
         nullable=False,
     )
+    # Hall of fame demo: show all medals unlocked (admin toggle).
+    medals_preview_unlock_all: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Longest consecutive weeks meeting plan_workouts_per_week (cached high-water mark).
+    best_streak_weeks: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="athlete_profile")
     coach_links: Mapped[list["CoachAthleteLink"]] = relationship(

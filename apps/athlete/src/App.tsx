@@ -40,6 +40,7 @@ import { AthleteUpcomingSessionsPanel } from "./components/AthleteUpcomingSessio
 import { AthleteLastSessionPanel } from "./components/AthleteLastSessionPanel";
 import { AthleteAddWorkoutModal } from "./components/AthleteAddWorkoutModal";
 import { AthleteHallOfFamePanel } from "./components/AthleteHallOfFamePanel";
+import { AthleteStreakPanel } from "./components/AthleteStreakPanel";
 import "./components/whoop.css";
 
 type AthleteTab = "home" | "data" | "settings";
@@ -228,6 +229,10 @@ export default function App() {
                 {inviteError ? <p className="invite-banner invite-banner--error">{inviteError}</p> : null}
                 <AthleteWeekProgressPanel
                   refreshKey={`${coachesRefreshKey}-${weekProgressRefreshKey}-${sessionsCompleted}`}
+                />
+                <AthleteStreakPanel
+                  refreshKey={`${coachesRefreshKey}-${weekProgressRefreshKey}-${sessionsCompleted}`}
+                  onOpenHallOfFame={() => setHomeOverlay("hall-of-fame")}
                 />
                 <AthleteQuickActions onAction={setHomeOverlay} />
                 <AthleteUpcomingSessionsPanel refreshKey={coachesRefreshKey > 0 ? String(coachesRefreshKey) : undefined} />

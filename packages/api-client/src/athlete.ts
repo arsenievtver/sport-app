@@ -21,6 +21,7 @@ import type {
   PushSubscriptionStatus,
   UserResponse,
   VapidPublicKeyResponse,
+  AthleteStreak,
 } from "@sport-app/shared";
 import { SESSION_HISTORY_DAYS, WORKOUT_WEEKLY_CHART_WEEKS } from "@sport-app/shared";
 
@@ -152,6 +153,11 @@ export async function updateAthletePlan(payload: AthletePlanUpdatePayload): Prom
 export async function fetchAthleteWeekProgress(): Promise<AthleteWeekProgress> {
   const res = await authenticatedFetchOk("/athlete/plan/week-progress");
   return res.json() as Promise<AthleteWeekProgress>;
+}
+
+export async function fetchAthleteStreak(): Promise<AthleteStreak> {
+  const res = await authenticatedFetchOk("/athlete/plan/streak");
+  return res.json() as Promise<AthleteStreak>;
 }
 
 export async function fetchVapidPublicKey(): Promise<VapidPublicKeyResponse> {

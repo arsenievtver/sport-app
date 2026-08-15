@@ -144,6 +144,8 @@ class AdminService:
             profile.timezone = data.timezone
         if data.is_active is not None and profile.user is not None:
             profile.user.is_active = data.is_active
+        if data.medals_preview_unlock_all is not None:
+            profile.medals_preview_unlock_all = data.medals_preview_unlock_all
         if data.pin is not None and profile.user is not None:
             profile.user.password_hash = hash_pin(data.pin)
         if data.coach_ids is not None:
@@ -341,6 +343,7 @@ class AdminService:
             timezone=profile.timezone,
             is_active=user.is_active if user is not None else False,
             is_managed=is_managed,
+            medals_preview_unlock_all=profile.medals_preview_unlock_all,
             coaches=coaches,
             created_at=profile.created_at,
         )

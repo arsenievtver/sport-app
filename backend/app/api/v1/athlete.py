@@ -39,6 +39,7 @@ from app.schemas.athlete_plan import (
     AthleteWeekProgressResponse,
     AthleteWorkoutWeeklyDynamicsResponse,
 )
+from app.schemas.athlete_streak import AthleteStreakResponse
 from app.schemas.auth import UserResponse
 from app.schemas.push import (
     PushSubscriptionCreateRequest,
@@ -380,6 +381,17 @@ async def get_week_progress(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
 
     return await AthletePlanService(db).get_week_progress(user.athlete_profile)
+
+
+@router.get("/plan/streak", response_model=AthleteStreakResponse)
+async def get_workout_streak(
+    user: AthleteUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AthleteStreakResponse:
+    if user.athlete_profile is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Требуется профиль атлета")
+
+    return await AthletePlanService(db).get_streak(user.athlete_profile)
 
 
 @router.get("/push/vapid-public-key", response_model=VapidPublicKeyResponse)

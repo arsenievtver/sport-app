@@ -24,6 +24,7 @@ interface AthleteFormState {
   birth_date: string;
   timezone: string;
   is_active: boolean;
+  medals_preview_unlock_all: boolean;
   coach_ids: string[];
 }
 
@@ -34,6 +35,7 @@ const emptyForm = (): AthleteFormState => ({
   birth_date: "",
   timezone: "Europe/Moscow",
   is_active: true,
+  medals_preview_unlock_all: false,
   coach_ids: [],
 });
 
@@ -79,6 +81,7 @@ export function AthletesTab() {
       birth_date: athlete.birth_date ?? "",
       timezone: athlete.timezone,
       is_active: athlete.is_active,
+      medals_preview_unlock_all: athlete.medals_preview_unlock_all ?? false,
       coach_ids: athlete.coaches.map((c) => c.coach_id),
     });
     setEditingId(athlete.id);
@@ -139,6 +142,7 @@ export function AthletesTab() {
           birth_date: birthDate,
           timezone: form.timezone.trim() || "UTC",
           is_active: form.is_active,
+          medals_preview_unlock_all: form.medals_preview_unlock_all,
           pin: form.pin || undefined,
           coach_ids: form.coach_ids,
         });
@@ -327,6 +331,21 @@ export function AthletesTab() {
                 </label>
               </div>
             )}
+
+            {formMode === "edit" ? (
+              <div className="admin-field admin-field--checkbox">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={form.medals_preview_unlock_all}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, medals_preview_unlock_all: e.target.checked }))
+                    }
+                  />
+                  Показать все медали (демо зала славы)
+                </label>
+              </div>
+            ) : null}
 
             <div className="admin-field">
               <label>Тренеры</label>

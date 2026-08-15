@@ -46,6 +46,7 @@ class AdminAthleteResponse(BaseModel):
     timezone: str
     is_active: bool
     is_managed: bool = False
+    medals_preview_unlock_all: bool = False
     coaches: list[LinkedCoachSummary]
     created_at: datetime
 
@@ -109,6 +110,7 @@ class AdminAthleteUpdate(BaseModel):
     birth_date: date | None = None
     timezone: str | None = None
     is_active: bool | None = None
+    medals_preview_unlock_all: bool | None = None
     pin: str | None = None
     coach_ids: list[UUID] | None = None
 

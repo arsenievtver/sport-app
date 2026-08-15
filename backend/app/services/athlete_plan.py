@@ -16,6 +16,7 @@ from app.schemas.athlete_plan import (
     AthleteWorkoutWeeklyDynamicsResponse,
     AthleteWorkoutWeeklyEntryResponse,
 )
+from app.schemas.athlete_streak import AthleteStreakMedalResponse, AthleteStreakResponse
 from app.services.activity_load import clamp_activity_effort
 from app.services.activity_tier import get_tier_spec, resolve_activity_tier
 from app.services.athlete_weight import AthleteWeightService
@@ -24,6 +25,14 @@ from app.services.baseline_calories import (
     calculate_target_daily_calories_kcal,
 )
 from app.services.session_counting import countable_session_entries, supplementary_activity_entries
+from app.services.workout_streak import (
+    MEDAL_TIERS,
+    STREAK_HISTORY_WEEKS,
+    compute_best_streak_weeks,
+    compute_current_streak_weeks,
+    medal_stack_count,
+    next_medal_threshold,
+)
 
 
 def _athlete_today(profile: AthleteProfile) -> date:
@@ -139,7 +148,7 @@ class AthletePlanService:
         profile: AthleteProfile,
         weeks: int = WORKOUT_WEEKLY_CHART_WEEKS,
     ) -> AthleteWorkoutWeeklyDynamicsResponse:
-        weeks = max(1, min(weeks, 52))
+        weeks = max(1, min(weeks, STREAK_HISTORY_WEEKS))
         today = _athlete_today(profile)
         current_monday, _ = _week_bounds(today)
         oldest_monday = current_monday - timedelta(weeks=weeks - 1)
@@ -184,6 +193,80 @@ class AthletePlanService:
             )
 
         return AthleteWorkoutWeeklyDynamicsResponse(entries=entries_out)
+
+    async def get_streak(self, profile: AthleteProfile) -> AthleteStreakResponse:
+        today = _athlete_today(profile)
+        current_monday, _ = _week_bounds(today)
+        target = max(1, profile.plan_workouts_per_week)
+        dynamics = await self.get_weekly_workout_dynamics(profile, weeks=STREAK_HISTORY_WEEKS)
+        weeks_asc = [(entry.week_start, entry.workouts_count) for entry in dynamics.entries]
+
+        current_streak = compute_current_streak_weeks(
+            weeks_asc,
+            target=target,
+            current_week_start=current_monday,
+        )
+        computed_best = compute_best_streak_weeks(
+            weeks_asc,
+            target=target,
+            current_week_start=current_monday,
+        )
+        best_streak = max(profile.best_streak_weeks, computed_best, current_streak)
+        if best_streak > profile.best_streak_weeks:
+            profile.best_streak_weeks = best_streak
+            await self.db.flush()
+
+        current_week_workouts = next(
+            (count for week_start, count in weeks_asc if week_start == current_monday),
+            0,
+        )
+        current_week_met = current_week_workouts >= target
+        next_threshold = next_medal_threshold(current_streak)
+        progress_weeks = min(current_streak, next_threshold)
+        progress_percent = (
+            100
+            if next_threshold <= 0
+            else min(100, round(progress_weeks / next_threshold * 100))
+        )
+
+        preview_all = bool(profile.medals_preview_unlock_all)
+        unlock_basis = best_streak
+        medals: list[AthleteStreakMedalResponse] = []
+        for tier in MEDAL_TIERS:
+            stack = medal_stack_count(unlock_basis, tier.weeks_required)
+            if preview_all:
+                stack = max(1, stack)
+            unlocked = preview_all or stack >= 1
+            medals.append(
+                AthleteStreakMedalResponse(
+                    id=tier.id,
+                    title=tier.title,
+                    weeks_required=tier.weeks_required,
+                    unlocked=unlocked,
+                    stack_count=stack if unlocked else 0,
+                    is_next=tier.weeks_required == next_threshold and not preview_all,
+                )
+            )
+        if not any(medal.is_next for medal in medals) and medals:
+            # Next target is a stack beyond base tiers (e.g. second month).
+            for medal in medals:
+                if medal.weeks_required == MEDAL_TIERS[0].weeks_required:
+                    medal.is_next = True
+                    break
+
+        return AthleteStreakResponse(
+            current_streak_weeks=current_streak,
+            best_streak_weeks=best_streak,
+            workouts_per_week=target,
+            current_week_workouts=current_week_workouts,
+            current_week_met=current_week_met,
+            next_threshold_weeks=next_threshold,
+            progress_weeks=progress_weeks,
+            progress_percent=progress_percent,
+            medals_preview_unlock_all=preview_all,
+            medals=medals,
+            week_start=current_monday,
+        )
 
     async def get_week_progress(self, profile: AthleteProfile) -> AthleteWeekProgressResponse:
         today = _athlete_today(profile)

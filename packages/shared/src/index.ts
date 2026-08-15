@@ -11,6 +11,7 @@ export * from "./activity-load";
 export * from "./weight";
 export * from "./workout-weekly";
 export * from "./plan";
+export * from "./streak";
 export * from "./meals";
 export * from "./meal-catalog";
 export * from "./activity-compendium";

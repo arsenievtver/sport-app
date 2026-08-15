@@ -1,0 +1,291 @@
+.streak-panel-wrap {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.streak-panel__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.streak-panel__heading .athlete-home-section__title {
+  margin: 0;
+}
+
+.streak-panel__info {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+}
+
+.streak-panel__info:active {
+  transform: scale(0.94);
+}
+
+.streak-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-4);
+  overflow: hidden;
+}
+
+.streak-panel__medal-btn {
+  position: relative;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  width: 72px;
+}
+
+.streak-panel__medal-aura {
+  position: absolute;
+  inset: -8% -4% 8%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(var(--streak-glow), 0.45) 0%,
+    rgba(var(--streak-glow), 0.08) 55%,
+    transparent 72%
+  );
+  filter: blur(8px);
+  animation: streak-aura-pulse 3.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.streak-panel__medal {
+  position: relative;
+  z-index: 1;
+  width: 72px;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.4));
+  animation: streak-medal-float 4.2s ease-in-out infinite;
+}
+
+.streak-panel__body {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.streak-panel__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.streak-panel__label {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  letter-spacing: 0.04em;
+}
+
+.streak-panel__stat {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+}
+
+.streak-panel__stat strong {
+  font-size: var(--text-lg);
+  color: var(--color-text);
+}
+
+.streak-panel__track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-muted) 18%, transparent);
+  overflow: hidden;
+}
+
+.streak-panel__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    rgba(var(--streak-glow), 0.55) 0%,
+    rgba(var(--streak-glow), 0.95) 55%,
+    color-mix(in srgb, var(--color-primary) 70%, white) 100%
+  );
+  box-shadow: 0 0 16px rgba(var(--streak-glow), 0.35);
+  transition: width 0.35s var(--ease-out);
+}
+
+.streak-panel__shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.28) 48%,
+    transparent 62%
+  );
+  transform: translateX(-120%);
+  animation: streak-shine 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.streak-panel__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.streak-panel__best {
+  white-space: nowrap;
+}
+
+.streak-rules-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: end center;
+  padding: var(--space-4);
+  padding-bottom: max(var(--space-4), var(--safe-bottom));
+}
+
+.streak-rules-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+}
+
+.streak-rules-modal__sheet {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 420px);
+  max-height: min(78vh, 560px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  animation: streak-sheet-up 0.35s var(--ease-out) both;
+}
+
+.streak-rules-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-muted) 20%, transparent);
+}
+
+.streak-rules-modal__title {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.streak-rules-modal__close {
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: var(--space-1);
+}
+
+.streak-rules-modal__body {
+  overflow: auto;
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+}
+
+.streak-rules-modal__body p {
+  margin: 0;
+}
+
+.streak-rules-modal__list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.streak-rules-modal__cta {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+@keyframes streak-medal-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes streak-aura-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes streak-shine {
+  0%,
+  35% {
+    transform: translateX(-120%);
+  }
+  65%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes streak-sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streak-panel__medal,
+  .streak-panel__medal-aura,
+  .streak-panel__shine,
+  .streak-rules-modal__sheet {
+    animation: none;
+  }
+}
