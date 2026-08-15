@@ -69,7 +69,7 @@ function MedalFigure({
           src={medal.src}
           alt=""
           width={featured ? 280 : 200}
-          height={featured ? 340 : 244}
+          height={featured ? 350 : 250}
           decoding="async"
         />
         <span className="hall-of-fame__plinth" aria-hidden="true" />
