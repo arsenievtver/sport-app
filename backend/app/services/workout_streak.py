@@ -94,3 +94,29 @@ def medal_stack_count(streak_weeks: int, weeks_required: int) -> int:
     if weeks_required <= 0 or streak_weeks < weeks_required:
         return 0
     return streak_weeks // weeks_required
+
+
+def compute_medal_progress_percent(
+    *,
+    current_streak_weeks: int,
+    current_week_workouts: int,
+    current_week_met: bool,
+    next_threshold_weeks: int,
+    workouts_per_week: int,
+) -> int:
+    """Progress bar fill toward the next medal, by coach-confirmed workout count.
+
+    Label still shows weeks (current_streak / next_threshold); the bar uses
+    workouts_per_week * next_threshold as the goal and counts completed plan
+    weeks plus partial progress in the current week.
+    """
+    if next_threshold_weeks <= 0 or workouts_per_week <= 0:
+        return 100
+
+    workouts_target = next_threshold_weeks * workouts_per_week
+    if current_week_met:
+        workouts_done = current_streak_weeks * workouts_per_week
+    else:
+        workouts_done = current_streak_weeks * workouts_per_week + current_week_workouts
+
+    return min(100, round(workouts_done / workouts_target * 100))

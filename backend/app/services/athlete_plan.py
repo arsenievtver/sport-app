@@ -30,6 +30,7 @@ from app.services.workout_streak import (
     STREAK_HISTORY_WEEKS,
     compute_best_streak_weeks,
     compute_current_streak_weeks,
+    compute_medal_progress_percent,
     medal_stack_count,
     next_medal_threshold,
 )
@@ -243,10 +244,12 @@ class AthletePlanService:
         current_week_met = current_week_workouts >= target
         next_threshold = next_medal_threshold(current_streak)
         progress_weeks = min(current_streak, next_threshold)
-        progress_percent = (
-            100
-            if next_threshold <= 0
-            else min(100, round(progress_weeks / next_threshold * 100))
+        progress_percent = compute_medal_progress_percent(
+            current_streak_weeks=current_streak,
+            current_week_workouts=current_week_workouts,
+            current_week_met=current_week_met,
+            next_threshold_weeks=next_threshold,
+            workouts_per_week=target,
         )
 
         preview_all = bool(profile.medals_preview_unlock_all)

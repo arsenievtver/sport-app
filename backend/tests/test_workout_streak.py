@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from app.services.workout_streak import (
     compute_best_streak_weeks,
     compute_current_streak_weeks,
+    compute_medal_progress_percent,
     medal_stack_count,
     next_medal_threshold,
 )
@@ -57,6 +58,56 @@ class TestComputeBestStreak:
         ]
         assert compute_best_streak_weeks(weeks, target=2, current_week_start=current) == 3
         assert compute_current_streak_weeks(weeks, target=2, current_week_start=current) == 1
+
+
+class TestMedalProgressPercent:
+    def test_first_workout_fills_one_eighth(self):
+        assert (
+            compute_medal_progress_percent(
+                current_streak_weeks=0,
+                current_week_workouts=1,
+                current_week_met=False,
+                next_threshold_weeks=4,
+                workouts_per_week=2,
+            )
+            == 12
+        )
+
+    def test_completed_streak_weeks_only(self):
+        assert (
+            compute_medal_progress_percent(
+                current_streak_weeks=1,
+                current_week_workouts=2,
+                current_week_met=True,
+                next_threshold_weeks=4,
+                workouts_per_week=2,
+            )
+            == 25
+        )
+
+    def test_partial_current_week_adds_workouts(self):
+        assert (
+            compute_medal_progress_percent(
+                current_streak_weeks=1,
+                current_week_workouts=1,
+                current_week_met=False,
+                next_threshold_weeks=4,
+                workouts_per_week=2,
+            )
+            == 38
+        )
+
+    def test_caps_at_100(self):
+        assert (
+            compute_medal_progress_percent(
+                current_streak_weeks=4,
+                current_week_workouts=2,
+                current_week_met=True,
+                next_threshold_weeks=4,
+                workouts_per_week=2,
+            )
+            == 100
+        )
 
 
 class TestMedalHelpers:

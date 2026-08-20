@@ -20,7 +20,9 @@ class AthleteStreakResponse(BaseModel):
     current_week_met: bool
     next_threshold_weeks: int
     progress_weeks: int = Field(description="Weeks earned toward next_threshold")
-    progress_percent: int
+    progress_percent: int = Field(
+        description="Workout-based progress (0–100) for the bar toward next_threshold"
+    )
     medals_preview_unlock_all: bool
     medals: list[AthleteStreakMedalResponse]
     week_start: date
